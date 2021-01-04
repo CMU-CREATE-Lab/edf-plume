@@ -1,0 +1,94 @@
+/* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+#map {
+  height: calc(100% - 76px);
+}
+
+/* Optional: Makes the sample page fill the window. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #fff !important;
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+}
+
+#infobar {
+  margin: 0;
+  padding: 0;
+  width: 350px;
+  background-color: #f1f1f1;
+  position: fixed;
+  height: calc(100% - 75px);
+  overflow: auto;
+  z-index: 999;
+  visibility: hidden;
+}
+
+@media screen and (max-width: 700px) {
+  #infobar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+  }
+  .infobar-component {float: left;}
+}
+
+.infobar-component {
+  display: block;
+}
+
+
+.timeline-container {
+  position: absolute;
+  left: 77px;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  height: 75px;
+  width: auto;
+  overflow-x: scroll;
+  background-color: #fff;
+  border-top: 1px solid black;
+}
+
+.timeline-heatmap .timeline-heatmap-label td {
+  color: black;
+}
+
+#calendar-btn {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+#calendar-btn.custom-button-flat {
+  border-radius: 0;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+#calendar-btn.custom-button-flat img {
+  width: 51px;
+  height: 49px;
+}
+
+#timeline-container .timeline-heatmap {
+  margin-left: -3px;
+}
+
+#calendar-dialog {
+  display: none;
+}
+
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

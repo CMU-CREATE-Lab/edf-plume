@@ -1,0 +1,221 @@
+/* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+#map {
+  height: calc(100% - 76px);
+}
+
+/* Optional: Makes the sample page fill the window. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #fff !important;
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+#infobar {
+  margin: 0;
+  padding: 0;
+  width: 350px;
+  background-color: #f1f1f1;
+  position: fixed;
+  height: calc(100% - 75px);
+  overflow: auto;
+  z-index: 999;
+  visibility: hidden;
+}
+
+@media screen and (max-width: 700px) {
+  #infobar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+  }
+  .infobar-component {float: left;}
+}
+
+.infobar-component {
+  display: block;
+}
+
+
+.timeline-container {
+  position: absolute;
+  left: 70px;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  height: 75px;
+  width: auto;
+  overflow-x: scroll;
+  background-color: #fff;
+  border-top: 1px solid black;
+  scrollbar-color: #adadad #f1f1f1;
+  scrollbar-width: auto;
+}
+
+.timeline-heatmap .timeline-heatmap-label td {
+  color: black;
+}
+
+
+/*button:disabled,
+button[disabled]{
+  opacity: 0.2 !important;
+}*/
+
+#calendar-btn {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+ image-rendering: crisp-edges;
+ image-rendering: -moz-crisp-edges;
+ image-rendering: -o-crisp-edges;
+ image-rendering: -webkit-optimize-contrast;
+ -ms-interpolation-mode: nearest-neighbor;
+ padding: 0px !important;
+}
+
+#calendar-btn.playbackTimelineOn {
+  background-color: #e2c5cb;
+}
+
+#calendar-btn.playbackTimelineOn::before {
+  content: "";
+  background-image: url(assets/img/close-dark.png);
+  background-repeat: no-repeat;
+  background-size: 6px 6px;
+  background-position: left 0px top 5px;
+  opacity: 1;
+  position: absolute;
+  width: 56px;
+  height: 75px;
+ image-rendering: crisp-edges;
+ image-rendering: -moz-crisp-edges;
+ image-rendering: -o-crisp-edges;
+ image-rendering: -webkit-optimize-contrast;
+ -ms-interpolation-mode: nearest-neighbor;
+}
+
+#calendar-btn.custom-button-flat {
+  border-radius: 0;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  border-left: 0;
+  border-bottom: 0;
+  width: 70px;
+  height: 76px;
+  background-repeat: no-repeat;
+  background-size: 45px 50px;
+  background-position: center;
+  opacity: 1;
+}
+
+#calendar-btn.custom-button-flat img {
+  width: 51px;
+  height: 49px;
+}
+
+#timeline-container .timeline-heatmap {
+  margin-left: -3px;
+}
+
+#calendar-dialog {
+  display: none;
+}
+
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.calendar-specific-day {
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  word-break: break-word;
+  width: 37px;
+  margin-top: 11px;
+  z-index: 900;
+}
+
+.calendar-default-icon::after {
+  content: "";
+  width: 70px;
+  height: 76px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 45px 52px;
+  background-image: url('assets/img/calendar-default2.png');
+  opacity: 0.85;
+}
+
+.calendar-default-icon:disabled::after {
+  opacity: 0.3;
+}
+
+.calendar-default-icon:hover::after {
+  opacity: 1;
+}
+
+.calendar-specific-day-icon::after {
+  content: "";
+  width: 70px;
+  height: 76px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 45px 52px;
+  background-image: url('assets/img/calendar-day-template-transparent2.png');
+  opacity: 1;
+}
+
+
+
+.timeline-container::-webkit-scrollbar {
+  -webkit-appearance: none;
+  background: transparent;
+  overflow: visible;
+  width: 14px;
+}
+
+.timeline-container::-webkit-scrollbar:horizontal {
+  border-width: 6px 4px;
+  min-height: 15px;
+}
+
+.timeline-container::-webkit-scrollbar-track-piece {
+  background-color: #f1f1f1;
+}
+
+.timeline-container::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background-color: #ADADAD;
+  -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background-color: #999;
+}
+
+#playback-timeline-container .materialTimelineContainerMain {
+  transition: all 1s ease;
+  left: 69px;
+}
+
+#controls.playbackTimelineOff .materialTimelineContainerMain {
+  left: calc(100% - 56px - 56px);
+}
+
+#controls.playbackTimelineOff #timeline-container {
+  width: calc(100% - 70px - 56px - 56px);
+}
