@@ -58,7 +58,7 @@
 }
 
 .materialUI .waypointDrawerContainerToggleIcon {
-  background: url(assets/img/left-arrow-black.png);
+  background: url(../img/left-arrow-black.png);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -73,7 +73,7 @@
 }
 
 .materialUI .waypointDrawerClosed .waypointDrawerContainerToggleIcon {
-  background: url(assets/img/right-arrow-black.png);
+  background: url(../img/right-arrow-black.png);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -172,7 +172,7 @@
 }
 
 .materialUI .share .ui-icon-custom-share-black {
-  background: url(assets/img/buttons/share-black.png);
+  background: url(../img/buttons/share-black.png);
   width: 24px;
   height: 24px;
   opacity: 0.6;
@@ -315,7 +315,7 @@
 
 .materialUI .timestampPreview::before {
   content: "";
-  background-image: url(assets/img/expand-transparent.png);
+  background-image: url(../img/expand-transparent.png);
   background-repeat: no-repeat;
   background-size: 10px 10px;
   background-position: right 5px top 5px;
@@ -344,7 +344,7 @@
 }
 
 .materialUI .ui-button .ui-icon.ui-icon-custom-play {
-  background-image: url(assets/img/play.png);
+  background-image: url(../img/play.png);
   margin-top: -12px;
   margin-left: -15px;
   background-size: 30px 25px;
@@ -354,7 +354,7 @@
 }
 
 .materialUI .ui-button .ui-icon.ui-icon-custom-pause {
-  background-image: url(assets/img/pause.png);
+  background-image: url(../img/pause.png);
   margin-top: -12px;
   margin-left: -15px;
   background-size: 30px 25px;
@@ -390,7 +390,7 @@
 
 
 .materialUI .leftSeekControlIcon {
-  background: url(assets/img/chevron-left.png);
+  background: url(../img/chevron-left.png);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -405,7 +405,7 @@
 }
 
 .materialUI .rightSeekControlIcon {
-  background: url(assets/img/chevron-right.png);
+  background: url(../img/chevron-right.png);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -636,7 +636,7 @@
 }
 
 .materialNowViewingContent .close {
-  background: url(assets/img/close-white.png) center center no-repeat;
+  background: url(../img/close-white.png) center center no-repeat;
   background-size: 14px 14px;
   display: inline-block;
   width: 14px;
@@ -709,7 +709,7 @@
 }
 
 .materialUI .close-right-panel {
-  background: url(assets/img/close.png) center center no-repeat;
+  background: url(../img/close.png) center center no-repeat;
   background-size: 20px 20px;
   display: inline-block;
   width: 20px;
