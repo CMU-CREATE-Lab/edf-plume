@@ -270,7 +270,9 @@ var infowindow_PM25;
 var currentDate = new Date();
 var startOfCurrentDateInMilisec = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()).getTime();
 var currentHour = currentDate.getHours();
-var currentHourString = pad(currentHour) + ":00";
+var current24HourString = pad(currentHour) + ":00";
+var current12HourString = convertFrom24To12Format(current24HourString);
+
 
 // Touch support
 var hasTouchSupport = isTouchDevice();
@@ -324,7 +326,7 @@ function initMap() {
 
   $("#controls").on("click", ".playbackButton, #calendar-btn, .timestampPreview", handleTimelineToggling);
 
-  $(".timestampPreview").text(currentHourString);
+  $("#timestampPreviewContent").text(current12HourString);
   loadSensorList(sensors);
 
   if (hasTouchSupport || hasPointerSupport()) {
@@ -866,7 +868,7 @@ function handleTimelineToggling(e) {
 
     // TODO
     if ($("#timeline-container .selected-block").data('epochtime_milisec') == startOfCurrentDateInMilisec) {
-      var captureTime = currentHourString;
+      var captureTime = current12HourString;
       var captureTimes = playbackTimeline.getCaptureTimes();
       var captureTimeIdx = captureTimes.indexOf(captureTime);
       playbackTimeline.seekTo(captureTimeIdx);
@@ -892,6 +894,14 @@ function handleTimelineToggling(e) {
 }
 
 function pad(n) { return (n < 10 ? '0' : '') + n.toString(); };
+
+
+function convertFrom24To12Format(time24) {
+  var [sHours, minutes] = time24.match(/([0-9]{1,2}):([0-9]{2})/).slice(1);
+  var period = +sHours < 12 ? 'AM' : 'PM';
+  var hours = +sHours % 12 || 12;
+  return hours + ":" + minutes + " " + period;
+}
 
 
 function isPointerDevice() {

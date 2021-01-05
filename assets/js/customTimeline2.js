@@ -115,7 +115,9 @@ var create = {};
       // TODO
       captureTimes = [];
       for (var i = 0; i < 24; i++) {
-        captureTimes.push(pad(i) + ":00");
+        var TimeStamp24Hour = pad(i) + ":00";
+        var TimeStamp12Hour = convertFrom24To12Format(TimeStamp24Hour)
+        captureTimes.push(TimeStamp12Hour);
       }
       numFrames = captureTimes.length;
 
