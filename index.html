@@ -61,27 +61,22 @@
     </div>
 
     <div id="infobar">
-      <div id="infobar-header" class="infobar-component">
-        <h3></h3>
+      <button id="infobar-close">X</button>
+      <div id="infobar-header">
+        <h2></h2>
       </div>
-      <hr>
-      <div id="infobar-about" class="infobar-component">
-        <p></p>
+      <div id="infobar-about-section" class="infobar-component">
+        <i>Our model shows that at this location and time, most particles originated from the northeast</i>
       </div>
-      <hr>
-      <div id="infobar-sensor" class="infobar-component">
-        <h4>Pollution Measurements: </h4>
-        <p>
-          <i>Click on the nearest sensor to see pollution measurements</i>
-        </p>
+      <div id="infobar-pollution-section" class="infobar-component">
+        <div class="infobar-component-header">PM 2.5 Measurements: </div>
+        <div id="infobar-pollution" class="infobar-component-value"><i>Click on the nearest sensor to see pollution measurements</i></div>
       </div>
-      <hr>
-      <div id="infobar-wind" class="infobar-component">
-        <h4>Wind  Measurements: </h4>
-        <p>
-          <i>Click on the nearest sensor to see wind measurements</i>
-        </p>
+      <div id="infobar-wind-section" class="infobar-component">
+        <div class="infobar-component-header">Wind  Measurements: </div>
+        <div id="infobar-wind" class="infobar-component-value"><i>Click on the nearest sensor to see wind measurements</i></div>
       </div>
+      <div id="infobar-close-handle"></div>
     </div>
     <div id="map"></div>
     <div id="calendar-dialog" title="Calendar" data-role="none">

@@ -1,4 +1,5 @@
 var map;
+var selectedLocation;
 
 var sensors = [{
   "name": "Salt Lake City",
@@ -312,14 +313,14 @@ function initMap() {
   });
 
   map.addListener("click", (mapsMouseEvent) => {
-    var infobar = $("#infobar")[0];
-    infobar.style.visibility = 'visible';
-
-    var infobarHeader = $("#infobar-header > h3")[0];
-    var lat = roundTo(mapsMouseEvent.latLng.lat(), 5);
-    var lng = roundTo(mapsMouseEvent.latLng.lng(), 5);
-    infobarHeader.innerHTML = lat + ", " + lng;
+    expandInfobar();
+    drawFootprint();
+    handleMapClicked(mapsMouseEvent);
   });
+
+  $("#infobar-close").on("click",closeInfobar);
+
+  $("#infobar-close-handle").on("touchmove",closeInfobar);
 
   $("#controls").on("click", ".playbackButton, #calendar-btn, .timestampPreview", handleTimelineToggling);
 
@@ -334,6 +335,32 @@ function initMap() {
     controlsElem.addEventListener("touchcancel", touch2Mouse, {capture: true, passive: false});
   }
 }
+
+function drawFootprint() {
+  //nothing yet
+}
+
+function closeInfobar() {
+  var infobar = $("#infobar")[0];
+  infobar.style.visibility = 'hidden';
+}
+
+function expandInfobar() {
+  //get infobar element
+  var infobar = $("#infobar")[0];
+  infobar.style.visibility = 'visible';
+
+  //if screen bigger than 450px:
+  //    add HTML elems for sidebar view (headers)
+
+  
+
+  //set to visible
+}
+
+//if ($(window).width() < 450) {
+//  $( ".custom-legend" ).accordion( "option", "active", false );
+//}
 
 function styleInfoWindowCloseButton() {
   $(".gm-style-iw").next().css({
@@ -377,7 +404,9 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "type": getSensorType(info),
     "data": parseSensorMarkerData(data, is_current_day, info),
     "click": function (marker) {
+      expandInfobar();
       handleSensorMarkerClicked(marker);
+      drawFootprint();
     },
     "complete": function (marker) {
       // Make the maker visible on the map when the maker is created
@@ -700,28 +729,96 @@ function createMarkerTableFromSensorData(data, epochtime_milisec, info, i) {
 */
 
 function handleSensorMarkerClicked(marker) {
-  infowindow_smell.close();
+  if (selectedLocation) { selectedLocation.setMap(null) };
 
-  document.getElementById("infobar-header").innerHTML = marker.getContent();
+  //set infobar header to name
+  var infobarHeader = $("#infobar-header > h2")[0];
+  infobarHeader.innerHTML = marker.getData()['name'];
 
-  var marker_type = marker.getMarkerType();
-  if (marker_type == "PM25" || marker_type == "WIND_ONLY") {
-    infowindow_PM25.setContent(marker.getContent());
-    infowindow_PM25.open(map, marker.getGoogleMapMarker());
+  //show sensor pollution value in infobar
+  var infobarPollution = $("#infobar-pollution")[0];
+  infobarPollution.innerHTML = formatPM25(marker.getData()['sensor_value']);
+
+  //if time selected, show sensor wind in infobar
+  var infobarWind = $("#infobar-wind")[0];
+  infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']);
+  
+
+  //infowindow_smell.close();
+
+  //document.getElementById("infobar-header").innerHTML = marker.getContent();
+
+  //var marker_type = marker.getMarkerType();
+  //if (marker_type == "PM25" || marker_type == "WIND_ONLY") {
+  //  infowindow_PM25.setContent(marker.getContent());
+  //  infowindow_PM25.open(map, marker.getGoogleMapMarker());
+}
+
+function formatPM25(val) {
+  if (val){
+    return val + " μg/m3";
+  }
+  else {
+    return "No PM 2.5 data available";
   }
 }
 
-function handleMapClicked(marker) {
-  infowindow_smell.close();
-
-  document.getElementById("infobar").innerHTML = marker.getContent();
-
-  var marker_type = marker.getMarkerType();
-  if (marker_type == "PM25" || marker_type == "WIND_ONLY") {
-    infowindow_PM25.setContent(marker.getContent());
-    infowindow_PM25.open(map, marker.getGoogleMapMarker());
+function formatWind(speed,deg) {
+  var returnString;
+  if (speed){
+    returnString = speed + " mph ";
   }
+  if (deg) {
+    returnString+= "from " + getWindDirFromDeg(deg) + " direction"
+  }
+  if (!returnString) {
+    return "No wind data available";
+  }
+  return returnString;
 }
+
+
+function handleMapClicked(mapsMouseEvent) {
+
+  //drop pin
+  if (selectedLocation) { selectedLocation.setMap(null) };
+  selectedLocation = new google.maps.Marker({
+    position: mapsMouseEvent.latLng,
+    map,
+    title: "Selected Location",
+    animation: google.maps.Animation.DROP
+  });
+
+  //set infobar header to lat/lng
+  var infobarHeader = $("#infobar-header > h2")[0];
+  var lat = roundTo(mapsMouseEvent.latLng.lat(), 5);
+  var lng = roundTo(mapsMouseEvent.latLng.lng(), 5);
+  infobarHeader.innerHTML = lat + ", " + lng;
+
+    //show default text for sensor pollution value in infobar
+  var infobarPollution = $("#infobar-pollution")[0];
+  infobarPollution.innerHTML = "<i>Click on the nearest sensor to see pollution measurements</i>";
+
+  //show default text for sensor wind in infobar
+  var infobarWind = $("#infobar-wind")[0];
+  infobarWind.innerHTML = "<i>Click on the nearest sensor to see wind measurements</i>";
+  
+  //infowindow_smell.close();
+
+  //document.getElementById("infobar-header").innerHTML = marker.getContent();
+
+  //var marker_type = marker.getMarkerType();
+  //if (marker_type == "PM25" || marker_type == "WIND_ONLY") {
+  //  infowindow_PM25.setContent(marker.getContent());
+  //  infowindow_PM25.open(map, marker.getGoogleMapMarker());
+}
+
+function getWindDirFromDeg(deg) {
+  var val = Math.round((deg/22.5)+.5);
+  var arr = ["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return arr[(val % 16)];
+}
+
 
 function showMarkers(markers) {
   markers = safeGet(markers, []);
