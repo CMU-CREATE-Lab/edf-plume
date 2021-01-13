@@ -1,5 +1,4 @@
 var map;
-var selectedLocation;
 
 var sensors = [{
   "name": "Salt Lake City",
@@ -264,6 +263,11 @@ var sensors_cache = {}
 // This should be the starting time of today's date
 var current_epochtime_milisec = (new Date()).setHours(0,0,0,0);
 
+var selectedLocation;
+var overlay;
+
+var db;
+
 var infowindow_smell;
 var infowindow_PM25;
 
@@ -314,7 +318,6 @@ function initMap() {
 
   map.addListener("click", (mapsMouseEvent) => {
     expandInfobar();
-    drawFootprint();
     handleMapClicked(mapsMouseEvent);
   });
 
@@ -334,10 +337,195 @@ function initMap() {
     controlsElem.addEventListener("touchend", touch2Mouse, {capture: true, passive: false});
     controlsElem.addEventListener("touchcancel", touch2Mouse, {capture: true, passive: false});
   }
+
+  //------------------- create custom map overlay to draw footprint ---------------------------------
+  class FootprintOverlay extends google.maps.OverlayView {
+    constructor(bounds, image) {
+      super();
+      this.bounds = bounds;
+      this.image = image;
+    }
+    /**
+     * onAdd is called when the map's panes are ready and the overlay has been
+     * added to the map.
+     */
+    onAdd() {
+      this.div = document.createElement("div");
+      this.div.style.borderStyle = "none";
+      this.div.style.borderWidth = "0px";
+      this.div.style.position = "absolute";
+      // Create the img element and attach it to the div.
+      const img = document.createElement("img");
+      img.src = this.image;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.position = "absolute";
+      img.style.opacity = "50%";
+      
+      this.div.appendChild(img);
+      // Add the element to the "overlayLayer" pane.
+      const panes = this.getPanes();
+      panes.overlayLayer.appendChild(this.div);
+    }
+    draw() {
+      // We use the south-west and north-east
+      // coordinates of the overlay to peg it to the correct position and size.
+      // To do this, we need to retrieve the projection from the overlay.
+      const overlayProjection = this.getProjection();
+      // Retrieve the south-west and north-east coordinates of this overlay
+      // in LatLngs and convert them to pixel coordinates.
+      // We'll use these coordinates to resize the div.
+      const sw = overlayProjection.fromLatLngToDivPixel(
+        this.bounds.getSouthWest()
+      );
+      const ne = overlayProjection.fromLatLngToDivPixel(
+        this.bounds.getNorthEast()
+      );
+  
+      // Resize the image's div to fit the indicated dimensions.
+      if (this.div) {
+        this.div.style.left = sw.x + "px";
+        this.div.style.top = ne.y + "px";
+        this.div.style.width = ne.x - sw.x + "px";
+        this.div.style.height = sw.y - ne.y + "px";
+      }
+    }
+    /**
+     * The onRemove() method will be called automatically from the API if
+     * we ever set the overlay's map property to 'null'.
+     */
+    onRemove() {
+      if (this.div) {
+        this.div.parentNode.removeChild(this.div);
+        delete this.div;
+      }
+    }
+    /**
+     *  Set the visibility to 'hidden' or 'visible'.
+     */
+    hide() {
+      if (this.div) {
+        this.div.style.visibility = "hidden";
+      }
+    }
+    show() {
+      if (this.div) {
+        this.div.style.visibility = "visible";
+      }
+    }
+    toggle() {
+      if (this.div) {
+        if (this.div.style.visibility === "hidden") {
+          this.show();
+        } else {
+          this.hide();
+        }
+      }
+    }
+    toggleDOM(map) {
+      if (this.getMap()) {
+        this.setMap(null);
+      } else {
+        this.setMap(map);
+      }
+    }
+  }
+  //-------------------------------------------------------------------------------------
+  var image = "assets/img/demo_footprint.png";
+
+  var coords = {xmin: -112.5,
+    ymin: 40.4,
+    xmax: -111.5,
+    ymax: 41}
+
+  const bounds = new google.maps.LatLngBounds(
+    new google.maps.LatLng(coords.ymin, coords.xmin),
+    new google.maps.LatLng(coords.ymax, coords.xmax)
+  );
+
+  overlay = new FootprintOverlay(bounds, image);
+  overlay.set('opacity',0.1);
+  //overlay.setMap(map);
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyBApvOreZf2JX3Ew9MazDduL_EgGf-RSDU",
+    authDomain: "air-tracker-edf.firebaseapp.com",
+    databaseURL: "https://air-tracker-edf.firebaseio.com",
+    projectId: "air-tracker-edf",
+    storageBucket: "air-tracker-edf.appspot.com",
+    messagingSenderId: "688008459229",
+    appId: "1:688008459229:web:e4650919402c7a71a33c34"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
 }
 
-function drawFootprint() {
+//
+function drawFootprint(lat, lng) {
   //nothing yet
+  console.log('drawing footprint!')
+
+  //clear existing footprint if there is one
+  if (overlay) {
+    overlay.setMap(null);
+  }
+
+  //TODO: get image from firebase----------
+  //var image = "assets/img/demo_footprint.png";
+
+  var coords = {xmin: lng - 0.5,
+    ymin: lat - 0.5,
+    xmax: lng + 0.5,
+    ymax: lat + 0.5}
+
+  const bounds = new google.maps.LatLngBounds(
+    new google.maps.LatLng(coords.ymin, coords.xmin),
+    new google.maps.LatLng(coords.ymax, coords.xmax)
+  );
+
+  console.log(lat,lng);
+  //console.log(timeline.selectedDayInMs)
+
+  var d = new Date(0);
+  d.setUTCSeconds(timeline.selectedDayInMs / 1000);
+  //"2021-01-13T21:53:44.495Z"
+  var isoString = d.toISOString();
+  var yearMonthDay = isoString.split("T")[0].split("-");
+
+
+
+  var docRef = db.collection("stilt-prod").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
+  console.log(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1")
+
+  docRef
+    .get()
+    .then((doc) => doc.data())
+    .then((data) => {
+      if (data) {
+        console.log(data);
+        return data;
+      }
+      //TODO: show error in plume infobar
+      $("#infobar-about-section").innerHTML = "No plume available at this point"
+      throw new Error("document not found");
+    })
+    .then(({ image, location, time, extent }) => {
+      //console.log(image);
+      //console.log(location);
+      overlay.set('image',image);
+      const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(extent.ymin, extent.xmin),
+        new google.maps.LatLng(extent.ymax, extent.xmax)
+      );
+      overlay.set('bounds',bounds);
+      
+      overlay.set('opacity',0.1);
+      overlay.setMap(map);
+    })
+    .catch(console.error);
+  
 }
 
 function closeInfobar() {
@@ -406,7 +594,6 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "click": function (marker) {
       expandInfobar();
       handleSensorMarkerClicked(marker);
-      drawFootprint();
     },
     "complete": function (marker) {
       // Make the maker visible on the map when the maker is created
@@ -743,6 +930,7 @@ function handleSensorMarkerClicked(marker) {
   var infobarWind = $("#infobar-wind")[0];
   infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']);
   
+  drawFootprint(marker.getData()['latitude'], marker.getData()['longitude']);
 
   //infowindow_smell.close();
 
@@ -802,6 +990,8 @@ function handleMapClicked(mapsMouseEvent) {
   //show default text for sensor wind in infobar
   var infobarWind = $("#infobar-wind")[0];
   infobarWind.innerHTML = "<i>Click on the nearest sensor to see wind measurements</i>";
+
+  drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng());
   
   //infowindow_smell.close();
 

@@ -90,7 +90,8 @@ function createTimeline(data) {
     click: function ($e) {
       handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")));
       // TODO
-      if ($("#timeline-container .selected-block").data('epochtime_milisec') == startOfCurrentDateInMilisec) {
+      timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+      if (timeline.selectedDayInMs == startOfCurrentDateInMilisec) {
         $(".timestampPreview").text(currentHourString);
       } else {
         $(".timestampPreview").text("00:00");
@@ -117,12 +118,18 @@ function createTimeline(data) {
   };
 
   timeline = new edaplotjs.TimelineHeatmap("timeline-container", chart_settings);
-   timeline.selectLastBlock();
+  timeline.selectLastBlock();
+  timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+   
 
 
   // Add horizontal scrolling to the timeline
   // Needed because Android <= 4.4 won't scroll without this
   addTouchHorizontalScroll($timeline_container);
+}
+
+function getCurrentSelectedDayInMs() {
+  return timeline.selectedDayInMs;
 }
 
 
