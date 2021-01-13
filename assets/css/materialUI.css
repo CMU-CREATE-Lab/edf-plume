@@ -313,6 +313,10 @@
    cursor: pointer;
 }
 
+.materialUI #timestampPreviewContent {
+  text-align: center;
+}
+
 .materialUI .timestampPreview::before {
   content: "";
   background-image: url(../img/expand-transparent.png);
@@ -545,8 +549,8 @@
 .materialTimelineTick {
   color: #80868B;
   font-size: 14px;
-  padding-right: 16px;
-  padding-left: 16px;
+  padding-right: 15px;
+  padding-left: 15px;
   display: block;
   -ms-flex-preferred-size: 36px;
   flex-basis: 36px;
@@ -560,9 +564,9 @@
   cursor: pointer;
   -ms-flex: 0 0 auto;
   flex: 0 0 auto;
-  width: 47px;
+  width: 66px;
   flex-shrink: 0;
-  font-size:15px;
+  font-size:14px;
   line-height:14px;
   display: flex;
   align-items: center;
@@ -579,7 +583,7 @@
   border-radius: 16px;
   background-color: #2979FF;
   color: white;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 16px;
   -ms-flex-negative: 0;
   flex-shrink: 0;
