@@ -297,6 +297,122 @@ function initMap() {
     streetViewControl: false,
     fullscreenControl: false,
     clickableIcons: false,
+    styles:
+      [
+          {
+              "stylers": [
+                  {
+                      "saturation": -100
+                  },
+                  {
+                      "gamma": 1
+                  }
+              ]
+          },
+          {
+              "elementType": "labels.text.stroke",
+              "stylers": [
+                  {
+                      "visibility": "off"
+                  }
+              ]
+          },
+          {
+              "featureType": "poi.business",
+              "elementType": "labels.text",
+              "stylers": [
+                  {
+                      "visibility": "off"
+                  }
+              ]
+          },
+          {
+              "featureType": "poi.business",
+              "elementType": "labels.icon",
+              "stylers": [
+                  {
+                      "visibility": "off"
+                  }
+              ]
+          },
+          {
+              "featureType": "poi.place_of_worship",
+              "elementType": "labels.text",
+              "stylers": [
+                  {
+                      "visibility": "off"
+                  }
+              ]
+          },
+          {
+              "featureType": "poi.place_of_worship",
+              "elementType": "labels.icon",
+              "stylers": [
+                  {
+                      "visibility": "off"
+                  }
+              ]
+          },
+          {
+              "featureType": "road",
+              "elementType": "geometry",
+              "stylers": [
+                  {
+                      "visibility": "simplified"
+                  }
+              ]
+          },
+          {
+              "featureType": "water",
+              "stylers": [
+                  {
+                      "visibility": "on"
+                  },
+                  {
+                      "saturation": 50
+                  },
+                  {
+                      "gamma": 0
+                  },
+                  {
+                      "hue": "#50a5d1"
+                  }
+              ]
+          },
+          {
+              "featureType": "administrative.neighborhood",
+              "elementType": "labels.text.fill",
+              "stylers": [
+                  {
+                      "color": "#333333"
+                  }
+              ]
+          },
+          {
+              "featureType": "road.local",
+              "elementType": "labels.text",
+              "stylers": [
+                  {
+                      "weight": 0.5
+                  },
+                  {
+                      "color": "#333333"
+                  }
+              ]
+          },
+          {
+              "featureType": "transit.station",
+              "elementType": "labels.icon",
+              "stylers": [
+                  {
+                      "gamma": 1
+                  },
+                  {
+                      "saturation": 50
+                  }
+              ]
+          }
+      ]
   });
 
   // Set information window
@@ -362,8 +478,8 @@ function initMap() {
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.position = "absolute";
-      img.style.opacity = "50%";
-      
+      img.style.opacity = "80%";
+
       this.div.appendChild(img);
       // Add the element to the "overlayLayer" pane.
       const panes = this.getPanes();
@@ -383,7 +499,7 @@ function initMap() {
       const ne = overlayProjection.fromLatLngToDivPixel(
         this.bounds.getNorthEast()
       );
-  
+
       // Resize the image's div to fit the indicated dimensions.
       if (this.div) {
         this.div.style.left = sw.x + "px";
@@ -462,6 +578,10 @@ function initMap() {
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
+
+  // TODO: Need pollyfill
+  new ResizeObserver(playbackTimeline.refocusTimeline).observe($(".materialTimeline")[0]);
+
 }
 
 //
@@ -522,17 +642,19 @@ function drawFootprint(lat, lng) {
         new google.maps.LatLng(extent.ymax, extent.xmax)
       );
       overlay.set('bounds',bounds);
-      
+
       overlay.set('opacity',0.1);
       overlay.setMap(map);
     })
     .catch(console.error);
-  
+
 }
 
 function closeInfobar() {
   var infobar = $("#infobar")[0];
   infobar.style.visibility = 'hidden';
+  overlay.setMap(null);
+  selectedLocation.setMap(null)
 }
 
 function expandInfobar() {
@@ -543,7 +665,7 @@ function expandInfobar() {
   //if screen bigger than 450px:
   //    add HTML elems for sidebar view (headers)
 
-  
+
 
   //set to visible
 }
@@ -931,7 +1053,7 @@ function handleSensorMarkerClicked(marker) {
   //if time selected, show sensor wind in infobar
   var infobarWind = $("#infobar-wind")[0];
   infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']);
-  
+
   drawFootprint(marker.getData()['latitude'], marker.getData()['longitude']);
 
   //infowindow_smell.close();
@@ -956,10 +1078,12 @@ function formatPM25(val) {
 function formatWind(speed,deg) {
   var returnString;
   if (speed){
-    returnString = speed + " mph ";
+    returnString = speed + " mph";
+  } else {
+    returnString = "Unknown speed";
   }
   if (deg) {
-    returnString+= "from " + getWindDirFromDeg(deg) + " direction"
+    returnString+= " from " + getWindDirFromDeg(deg) + " direction"
   }
   if (!returnString) {
     return "No wind data available";
@@ -994,7 +1118,7 @@ function handleMapClicked(mapsMouseEvent) {
   infobarWind.innerHTML = "<i>Click on the nearest sensor to see wind measurements</i>";
 
   drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng());
-  
+
   //infowindow_smell.close();
 
   //document.getElementById("infobar-header").innerHTML = marker.getContent();
@@ -1052,7 +1176,6 @@ function showSensorMarkersByTime(epochtime_milisec) {
 
 function handleTimelineToggling(e) {
   var $currentTarget = $(e.currentTarget);
-
   if ($("#controls").hasClass("playbackTimelineOff")) {
     if ($currentTarget.prop("id") == "calendar-btn") return;
 
@@ -1068,15 +1191,17 @@ function handleTimelineToggling(e) {
 
     $("#controls").removeClass("playbackTimelineOff");
     $(".calendar-specific-day").text($(".selected-block").data("label")).removeClass("hidden");
-    $("#calendar-btn").addClass("playbackTimelineOn calendar-specific-day-icon").prop("title", "Choose a different day");
-    $(".timestampPreview").addClass("force-hidden");
-    playbackTimeline.refocusTimeline();
+    $("#calendar-btn").addClass("playbackTimelineOn calendar-specific-day-icon").removeClass("force-hidden").prop("title", "Choose a different day");
+    //$(".timestampPreview").addClass("force-hidden");
+    $(".timestampPreview").addClass("force-no-visibility");
+
   } else {
     if ($currentTarget.hasClass("playbackButton")) return;
     $(".calendar-specific-day").addClass("hidden");
-    $("#calendar-btn").removeClass("playbackTimelineOn calendar-specific-day-icon").prop("title", "Calendar");
-    $(".timestampPreview").removeClass("force-hidden");
-    playbackTimeline.setPlaybackButtonState("pause");
+    $("#calendar-btn").removeClass("playbackTimelineOn calendar-specific-day-icon").addClass("force-hidden").prop("title", "Calendar");
+    //$(".timestampPreview").removeClass("force-hidden");
+    $(".timestampPreview").removeClass("force-no-visibility");
+    playbackTimeline.stopAnimate();
     $("#controls").addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
   }

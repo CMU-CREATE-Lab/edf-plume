@@ -82,10 +82,14 @@ var create = {};
     var startDownX;
     var $customPlay;
 
+    var animateIntervalInMs = 1000;
+
 
     // Flags
     var addedTimelineSliderListener = false;
     var lastFrameWasGroupEnd = false;
+    var isAnimating = false;
+    var animateInterval = null;
 
 
     var initPlayPause = function() {
@@ -103,12 +107,28 @@ var create = {};
 
       $customPlay.on("click", function() {
         if ($(this).data("state") == "playing") {
-          setPlaybackButtonState("pause");
+          handleAnimate(false);
         } else {
-          setPlaybackButtonState("play");
+          handleAnimate(true);
         }
        });
     };
+
+
+    var handleAnimate = function(doAnimate) {
+      if (isAnimating && doAnimate) return;
+      if (doAnimate) {
+        animateInterval = setInterval(function() {
+          seekControlAction("right");
+        }, animateIntervalInMs);
+        isAnimating = true;
+        seekControlAction("right");
+        setPlaybackButtonState("play");
+      } else {
+        stopAnimate();
+      }
+    };
+
 
     var createTimelineSlider = function() {
       var currentTimelineHTML = "";
@@ -300,6 +320,13 @@ var create = {};
     //
     // Public methods
     //
+
+    var stopAnimate = function() {
+      clearInterval(animateInterval)
+      isAnimating = false;
+      setPlaybackButtonState('pause');
+    };
+    this.stopAnimate = stopAnimate;
 
     var refocusTimeline = function() {
       updateTimelineSlider(null, $selectedTimelineTick, false);

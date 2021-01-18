@@ -92,9 +92,9 @@ function createTimeline(data) {
       // TODO
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
       if (timeline.selectedDayInMs == startOfCurrentDateInMilisec) {
-        $(".timestampPreview").text(currentHourString);
+        $("#timestampPreviewContent").text(current12HourString);
       } else {
-        $(".timestampPreview").text("00:00");
+        $("#timestampPreviewContent").text(convertFrom24To12Format("00:00"));
       }
     },
     select: function ($e, obj) {
@@ -120,7 +120,7 @@ function createTimeline(data) {
   timeline = new edaplotjs.TimelineHeatmap("timeline-container", chart_settings);
   timeline.selectLastBlock();
   timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-   
+
 
 
   // Add horizontal scrolling to the timeline
