@@ -478,7 +478,7 @@ function initMap() {
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.position = "absolute";
-      img.style.opacity = "80%";
+      img.style.opacity = "75%";
 
       this.div.appendChild(img);
       // Add the element to the "overlayLayer" pane.
@@ -618,7 +618,7 @@ function drawFootprint(lat, lng) {
 
 
 
-  var docRef = db.collection("stilt-prod").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
+  var docRef = db.collection("stilt-dev").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
   console.log(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1")
 
   docRef
