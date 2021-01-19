@@ -496,9 +496,9 @@ function drawFootprint(lat, lng) {
   var isoString = d.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
 
+//yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1"
 
-
-  var docRef = db.collection("stilt-prod").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
+  var docRef = db.collection("stilt-dev").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
   console.log(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1")
 
   docRef
@@ -510,7 +510,18 @@ function drawFootprint(lat, lng) {
         return data;
       }
       //TODO: show error in plume infobar
-      $("#infobar-about-section").innerHTML = "No plume available at this point"
+      $("#infobar-about-section")[0].style = "text-align: center"
+      $("#infobar-about-section > i")[0].innerHTML = "No plume available at this point";
+      $("#infobar-error-icon")[0].style = "display: table";
+      //selectedLocation.setIcon();
+      selectedLocation = new google.maps.Marker({
+        position: new google.maps.LatLng(lat,lng),
+        map,
+        title: "Selected Location",
+        animation: google.maps.Animation.DROP,
+        icon: 'assets/img/gray-pin.png'
+      });
+      //selectedLocation.setOpacity(.5);
       throw new Error("document not found");
     })
     .then(({ image, location, time, extent }) => {
@@ -525,6 +536,17 @@ function drawFootprint(lat, lng) {
       
       overlay.set('opacity',0.1);
       overlay.setMap(map);
+
+      selectedLocation = new google.maps.Marker({
+        position: new google.maps.LatLng(lat,lng),
+        map,
+        title: "Selected Location",
+        animation: google.maps.Animation.DROP
+      });
+
+      $("#infobar-about-section")[0].style = "text-align: auto; font-style: auto";
+      $("#infobar-about-section > i")[0].innerHTML = "Our model shows that particles originated from the XX direction";
+      $("#infobar-error-icon")[0].style = "display: none";
     })
     .catch(console.error);
   
@@ -972,12 +994,6 @@ function handleMapClicked(mapsMouseEvent) {
 
   //drop pin
   if (selectedLocation) { selectedLocation.setMap(null) };
-  selectedLocation = new google.maps.Marker({
-    position: mapsMouseEvent.latLng,
-    map,
-    title: "Selected Location",
-    animation: google.maps.Animation.DROP
-  });
 
   //set infobar header to lat/lng
   var infobarHeader = $("#infobar-header > h2")[0];

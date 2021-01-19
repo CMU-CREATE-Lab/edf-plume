@@ -55,6 +55,14 @@ body {
   padding: 10px 0 10px 0;
 }
 
+#infobar-error-icon {
+  width: 80px;
+  display: none;
+  margin-left: calc(50% - 40px);
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 @media screen and (max-width: 450px) {
   #infobar {
     height: auto;
@@ -83,6 +91,10 @@ body {
     bottom: 8px;
     right: calc(50% - 20px);
     display: block;
+  }
+
+  #infobar-error-icon {
+    width: 30px;
   }
 
   .infobar-component {
