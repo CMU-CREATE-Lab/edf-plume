@@ -600,7 +600,9 @@ async function initMap() {
   })
 
 
-
+  expandInfobar();
+  $(".infobar-component").hide();
+  $("#infobar-initial").show();
 }
 
 //
@@ -635,8 +637,6 @@ function drawFootprint(lat, lng) {
   var isoString = d.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
 
-//yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1"
-
   var docRef = db.collection("stilt-dev").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
   console.log(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1")
 
@@ -650,7 +650,7 @@ function drawFootprint(lat, lng) {
       }
       //TODO: show error in plume infobar
       $("#infobar-about-section")[0].style = "text-align: center"
-      $("#infobar-about-section > i")[0].innerHTML = "No plume available at this point";
+      $("#infobar-about-section > i")[0].innerHTML = "No pollution backtrace available at this place and time.";
       $("#infobar-error-icon")[0].style = "display: table";
       //selectedLocation.setIcon();
       selectedLocation = new google.maps.Marker({
@@ -684,7 +684,7 @@ function drawFootprint(lat, lng) {
       });
 
       $("#infobar-about-section")[0].style = "text-align: auto; font-style: auto";
-      $("#infobar-about-section > i")[0].innerHTML = "Our model shows that particles originated from the XX direction";
+      $("#infobar-about-section > i")[0].innerHTML = "Our model shows that particles originated from the XX direction.";
       $("#infobar-error-icon")[0].style = "display: none";
     })
     .catch(console.error);
@@ -702,6 +702,8 @@ function expandInfobar() {
   //get infobar element
   var infobar = $("#infobar")[0];
   infobar.style.visibility = 'visible';
+  $(".infobar-component").show();
+  $("#infobar-initial").hide();
 
   //if screen bigger than 450px:
   //    add HTML elems for sidebar view (headers)

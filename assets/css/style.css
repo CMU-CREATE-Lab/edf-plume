@@ -57,7 +57,7 @@ body {
 }
 
 #infobar-error-icon {
-  width: 80px;
+  width: 60px;
   display: none;
   margin-left: calc(50% - 40px);
   margin-top: 10px;
