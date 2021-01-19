@@ -289,8 +289,19 @@ var isTouchMoving = false;
 var touchStartTargetElement;
 var currentTouchCount = 0;
 
+async function getTraxLocations() {
+  const snapshot = await db.collection('trax_location').get()
+  return snapshot.docs.map(doc => ({[doc.id] : {'lat' : doc.data().loc.latitude, 'lng' : doc.data().loc.longitude}}));
+}
 
-function initMap() {
+async function getTraxInfoByDateAndId(date, id) {
+  date = "20210108224846";
+  id = "g096";
+  const doc = await db.collection("trax-dev").doc(date + "_" + id + "_TRX01").get()
+  console.log(doc.data());
+}
+
+async function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
     center: { lat: 40.758701, lng: -111.876183 },
     zoom: 11,
@@ -549,21 +560,9 @@ function initMap() {
     }
   }
   //-------------------------------------------------------------------------------------
-  var image = "assets/img/demo_footprint.png";
 
-  var coords = {xmin: -112.5,
-    ymin: 40.4,
-    xmax: -111.5,
-    ymax: 41}
-
-  const bounds = new google.maps.LatLngBounds(
-    new google.maps.LatLng(coords.ymin, coords.xmin),
-    new google.maps.LatLng(coords.ymax, coords.xmax)
-  );
-
-  overlay = new FootprintOverlay(bounds, image);
-  overlay.set('opacity',0.1);
-  //overlay.setMap(map);
+  // Prep footprint overlay
+  overlay = new FootprintOverlay(null, null);
 
   var firebaseConfig = {
     apiKey: "AIzaSyBApvOreZf2JX3Ew9MazDduL_EgGf-RSDU",
@@ -581,6 +580,26 @@ function initMap() {
 
   // TODO: Need pollyfill
   new ResizeObserver(playbackTimeline.refocusTimeline).observe($(".materialTimeline")[0]);
+
+  // Draw TRAX locations on the map
+  var traxLocations = await getTraxLocations();
+  traxLocations.forEach(function(trax){
+    const cityCircle = new google.maps.Circle({
+      strokeColor: "#000000",
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: "#000000",
+      fillOpacity: 1,
+      map,
+      center: trax[Object.keys(trax)[0]],
+      radius: 50,
+    });
+    google.maps.event.addListener(cityCircle, 'click', function (e) {
+      console.log(e.latLng.lat(), e.latLng.lng())
+    });
+  })
+
+
 
 }
 
