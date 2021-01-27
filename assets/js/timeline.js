@@ -84,10 +84,12 @@
     }
 
 // Use the TimelineHeatmap charting library to draw the timeline
-function createTimeline(data) {
+function createTimeline(data, options) {
+  console.log('create timeline')
   var $timeline_container = $("#timeline-container").empty();
   var chart_settings = {
     click: function ($e) {
+      console.log('test')
       handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")));
       // TODO
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
@@ -95,6 +97,9 @@ function createTimeline(data) {
         $("#timestampPreviewContent").text(current12HourString);
       } else {
         $("#timestampPreviewContent").text(convertFrom24To12Format("00:00"));
+      }
+      if (typeof(options.clickEvent == "function")) {
+        options.clickEvent();
       }
     },
     select: function ($e, obj) {
@@ -181,14 +186,14 @@ function hideMarkers(markers) {
       });
     }
 
-    function initTimeline() {
+    function initTimeline(options) {
       widgets.setCustomLegend($("#legend"));
         //loadInitialTimeLine();
         loadAndCreateTimeline(function() {
           $("#calendar-btn").prop("disabled", false)
           $(".timestampPreview").removeClass("disabled");
           $(".playbackButton").button("enable");
-        });
+        }, options);
         // Set the calendar button eventss
         initCalendarBtn();
     }
@@ -254,11 +259,11 @@ function hideMarkers(markers) {
       });
     }
 
-    function loadAndCreateTimeline(callback) {
+    function loadAndCreateTimeline(callback, options) {
       // Create the timeline
       var T = getInitialTimeRange();
       loadTimelineData(T["start_time"], T["end_time"], function (data) {
-        createTimeline(formatDataForTimeline(data, new Date(T["end_time"])));
+        createTimeline(formatDataForTimeline(data, new Date(T["end_time"])), options);
         if (typeof(callback) == "function") {
           callback();
         }

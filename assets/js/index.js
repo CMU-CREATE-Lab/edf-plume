@@ -446,13 +446,56 @@ async function initMap() {
   });
 
   map.addListener("click", (mapsMouseEvent) => {
-    expandInfobar();
     handleMapClicked(mapsMouseEvent);
   });
 
   $("#infobar-close").on("click",closeInfobar);
 
-  $("#infobar-close-handle").on("touchmove",closeInfobar);
+  //$("#infobar-close-handle").on("touchmove",closeInfobar);
+
+  var $infobar = $("#infobar");
+  $("#infobar").on("mousedown", function(e) {
+    var lastYPos;
+    var lastYDirection = null;
+    var startYPos = e.pageY;
+    lastYPos = startYPos;
+    var startHeight = $infobar.height();
+    var currentYPos;
+    $infobar.addClass("disableScroll");
+    $(document).on("mousemove.infocontainer", function(e) {
+      console.log('mouse move')
+      currentYPos = e.pageY;
+      if (lastYPos > e.pageY) {
+        lastYDirection = "down";
+      } else if (lastYPos < e.pageY) {
+        lastYDirection = "up";
+      }
+      lastYPos = currentYPos;
+      var dist = startYPos - currentYPos;
+      var maxHeight = Math.min(295, (startHeight - dist));
+      $infobar.height(maxHeight);
+    });
+    $(document).one("mouseup.infocontainer", function(e) {
+      if (lastYDirection && lastYDirection == "up") {
+        $infobar.stop(true, false).animate({
+          height: "40%"
+        });
+        $infobar.addClass("maximized");
+      } else if (lastYDirection && lastYDirection == "down") {
+        $infobar.stop(true, false).animate({
+          height: "0px"
+        }, function() {
+          $infobar.removeClass("maximized");
+        });
+
+      }
+      $infobar.removeClass("disableScroll");
+      $(document).off(".infocontainer");
+    });
+  });
+
+  verticalTouchScroll($("#infobar"));
+
 
   $("#controls").on("click", ".playbackButton, #calendar-btn, .timestampPreview", handleTimelineToggling);
 
@@ -460,11 +503,11 @@ async function initMap() {
   loadSensorList(sensors);
 
   if (hasTouchSupport || hasPointerSupport()) {
-    var controlsElem = document.getElementById("controls");
-    controlsElem.addEventListener("touchstart", touch2Mouse, {capture: true, passive: false});
-    controlsElem.addEventListener("touchmove", touch2Mouse, {capture: true, passive: false});
-    controlsElem.addEventListener("touchend", touch2Mouse, {capture: true, passive: false});
-    controlsElem.addEventListener("touchcancel", touch2Mouse, {capture: true, passive: false});
+    //var controlsElem = document.getElementById("controls");
+    $("#controls, #infobar").on("touchstart", touch2Mouse);
+    $("#controls, #infobar").on("touchmove", touch2Mouse);
+    $("#controls, #infobar").on("touchend", touch2Mouse);
+    $("#controls, #infobar").on("touchcancel", touch2Mouse);
   }
 
   //------------------- create custom map overlay to draw footprint ---------------------------------
@@ -605,6 +648,34 @@ async function initMap() {
   $("#infobar-initial").show();
 }
 
+ // Add horizontal scroll touch support to a jQuery HTML element.
+ var touchHorizontalScroll = function($elem) {
+  var scrollStartPos = 0;
+  $elem.on("touchstart", function(e) {
+    scrollStartPos = this.scrollLeft + e.originalEvent.touches[0].pageX;
+    e.preventDefault();
+  }).on("touchmove", function(e) {
+    this.scrollLeft = scrollStartPos - e.originalEvent.touches[0].pageX;
+    e.preventDefault();
+  });
+};
+
+// Add vertical scroll touch support to an HTML element
+var verticalTouchScroll = function($elem){
+  var el = $elem[0];
+  var scrollStartPos = 0;
+  el.addEventListener("touchstart", function(e) {
+    if ($(this).hasClass("disableScroll")) return;
+    scrollStartPos = this.scrollTop + e.touches[0].pageY;
+    e.preventDefault();
+  }, false);
+  el.addEventListener("touchmove", function(e) {
+    if ($(this).hasClass("disableScroll")) return;
+    this.scrollTop = scrollStartPos - e.touches[0].pageY;
+    e.preventDefault();
+  }, false);
+};
+
 //
 function drawFootprint(lat, lng) {
   //nothing yet
@@ -637,8 +708,9 @@ function drawFootprint(lat, lng) {
   var isoString = d.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
 
-  var docRef = db.collection("stilt-dev").doc(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1");
-  console.log(yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1000_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1")
+  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
+  var docRef = db.collection("stilt-dev").doc(docRefString);
+  console.log(docRefString)
 
   docRef
     .get()
@@ -650,9 +722,10 @@ function drawFootprint(lat, lng) {
       }
       //TODO: show error in plume infobar
       $("#infobar-about-section")[0].style = "text-align: center"
-      $("#infobar-about-section > i")[0].innerHTML = "No pollution backtrace available at this place and time.";
+      $("#infobar-about-section > i")[0].innerHTML = "No pollution backtrace available at: " + docRefString;
       $("#infobar-error-icon")[0].style = "display: table";
       //selectedLocation.setIcon();
+      expandInfobar();
       selectedLocation = new google.maps.Marker({
         position: new google.maps.LatLng(lat,lng),
         map,
@@ -675,6 +748,8 @@ function drawFootprint(lat, lng) {
 
       overlay.set('opacity',0.1);
       overlay.setMap(map);
+
+      expandInfobar();
 
       selectedLocation = new google.maps.Marker({
         position: new google.maps.LatLng(lat,lng),
@@ -732,7 +807,13 @@ function loadSensorList(sensors) {
       sensors_list.push(markers[j]);
     }
   }
-  initTimeline();
+  // TODO: timeline block click events
+  var options = {
+    clickEvent: function() { 
+      closeInfobar();
+    }
+  }
+  initTimeline(options);
   playbackTimeline = new create.CustomTimeline2();
 }
 
@@ -759,7 +840,6 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "type": getSensorType(info),
     "data": parseSensorMarkerData(data, is_current_day, info),
     "click": function (marker) {
-      expandInfobar();
       handleSensorMarkerClicked(marker);
     },
     "complete": function (marker) {

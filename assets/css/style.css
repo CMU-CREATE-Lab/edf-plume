@@ -16,6 +16,10 @@ body {
   overflow-y: hidden;
 }
 
+#infobar.maximized {
+  height: 50%;
+}
+
 #infobar {
   margin: 0;
   padding: 0 15px 0 15px;
@@ -27,6 +31,12 @@ body {
   z-index: 1;
   visibility: hidden;
   box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19)
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;  
 }
 
 #infobar h2 {
@@ -45,7 +55,7 @@ body {
 
 .infobar-component {
   display: block;
-  height: 20%;
+  height: 25%;
   padding: 10px;
   border-top: solid #bbbbbb;
 }
