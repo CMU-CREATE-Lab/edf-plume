@@ -55,9 +55,11 @@ var create = {};
     // Objects
     //var UTIL = org.gigapan.Util;
 
+
     // Parameters
     var captureTimes;
     var numFrames;
+    var playbackTimeInMs = 0;
 
     // DOM elements
     var viewerDivId = "playback-timeline-container"
@@ -142,7 +144,7 @@ var create = {};
       numFrames = captureTimes.length;
 
       for (var i = 0; i < captureTimes.length; i++) {
-        currentTimelineHTML += "<span class='materialTimelineTick' data-frame=" + i + ">" + captureTimes[i] + "</span>";
+        currentTimelineHTML += "<span class='materialTimelineTick' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
       }
       timelineGroupHTML = currentTimelineHTML;
       var $leftGroup = $("<div class='leftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
@@ -203,7 +205,15 @@ var create = {};
       //}
     };
 
+    var getPlaybackTimeInMs = function() {
+      return playbackTimeInMs;
+    }
+    this.getPlaybackTimeInMs = getPlaybackTimeInMs;
+
     var updateTimelineSlider = function(frameNum, timeTick, fromSync) {
+      if (timeline) {
+        playbackTimeInMs = new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
+      }
       if (!timeTick || timeTick.length == 0) {
         if ((lastFrameWasGroupEnd && frameNum == 0) ||
             (lastSelectedGroup.hasClass("rightGroup") && $selectedTimelineTick.parent().hasClass("leftGroup")) ||
@@ -362,6 +372,7 @@ var create = {};
         }
         updateTimelineSlider(null, $nextTimelineTick, false);
       }
+      //var epochTime = new Date(timeline.selectedDayInMs).setHours(i);
     };
     this.seekControlAction = seekControlAction;
 
@@ -395,6 +406,7 @@ var create = {};
     this.getCaptureTimes = getCaptureTimes;
 
     var seekTo = function(frameNum) {
+      console.log("seekto: ", frameNum)
       var $newTimelineTick = $timelineTicks.eq(frameNum);
       $timelineTicks.removeClass("materialTimelineTickSelected");
       $newTimelineTick.addClass("materialTimelineTickSelected");

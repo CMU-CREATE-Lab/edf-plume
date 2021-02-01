@@ -702,14 +702,14 @@ function drawFootprint(lat, lng) {
   //console.log(timeline.selectedDayInMs)
 
   var d = new Date(0);
-  d.setUTCSeconds(timeline.selectedDayInMs / 1000);
+  d.setUTCSeconds(playbackTimeline.getPlaybackTimeInMs() / 1000);
   //"2021-01-13T21:53:44.495Z"
   var isoString = d.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
   var hourMinute = isoString.split("T")[1].split(":")
 
   var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
-  var docRef = db.collection("stilt-dev").doc(docRefString);
+  var docRef = db.collection("stilt-prod").doc(docRefString);
   console.log(docRefString)
 
   docRef
