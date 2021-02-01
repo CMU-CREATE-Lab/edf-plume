@@ -455,6 +455,9 @@ async function initMap() {
 
   var $infobar = $("#infobar");
   $("#infobar").on("mousedown", function(e) {
+    if ($(window).width() > 450) {
+      return;
+    }
     var lastYPos;
     var lastYDirection = null;
     var startYPos = e.pageY;
@@ -495,6 +498,7 @@ async function initMap() {
   });
 
   verticalTouchScroll($("#infobar"));
+
 
 
   $("#controls").on("click", ".playbackButton, #calendar-btn, .timestampPreview", handleTimelineToggling);
@@ -676,18 +680,13 @@ var verticalTouchScroll = function($elem){
   }, false);
 };
 
-//
 function drawFootprint(lat, lng) {
-  //nothing yet
   console.log('drawing footprint!')
 
   //clear existing footprint if there is one
   if (overlay) {
     overlay.setMap(null);
   }
-
-  //TODO: get image from firebase----------
-  //var image = "assets/img/demo_footprint.png";
 
   var coords = {xmin: lng - 0.5,
     ymin: lat - 0.5,
@@ -707,8 +706,9 @@ function drawFootprint(lat, lng) {
   //"2021-01-13T21:53:44.495Z"
   var isoString = d.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
+  var hourMinute = isoString.split("T")[1].split(":")
 
-  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + "1300_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
+  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
   var docRef = db.collection("stilt-dev").doc(docRefString);
   console.log(docRefString)
 
@@ -770,7 +770,9 @@ function closeInfobar() {
   var infobar = $("#infobar")[0];
   infobar.style.visibility = 'hidden';
   overlay.setMap(null);
-  selectedLocation.setMap(null)
+  if(selectedLocation) {
+    selectedLocation.setMap(null)
+  }
 }
 
 function expandInfobar() {
