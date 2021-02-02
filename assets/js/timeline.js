@@ -115,8 +115,9 @@ function createTimeline(data, options) {
     // 40 would not work as far to many days are over 40
     // like the whole bar would be black
     //colors are made to be similar to existing chart
-    colorBin: [0, 16, 32, 46, 77, 183],
-    colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
+    colorBin: [50, 101, 151, 201, 301],
+    colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
+    //colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
     columnNames: ["label", "value", "epochtime_milisec"],
     dataIndexForLabels: 0,
     dataIndexForValues: 1,
@@ -231,6 +232,11 @@ function hideMarkers(markers) {
       return generateURL("https://api.smellpittsburgh.org/", "/api/v2/smell_reports", parameters);
     }
 
+    function generateURLForAQI() {
+      //return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT_MONTH.json";
+      return "/assets/data/Salt_Lake_City_UT_MONTH.json"
+    }
+
 
     function getInitialTimeRange() {
       // The starting time is the first day of the year
@@ -272,13 +278,15 @@ function hideMarkers(markers) {
 
     function loadTimelineData(start_time, end_time, callback) {
       $.ajax({
-        "url": generateURLForSmellReports({
+        /**"url": generateURLForSmellReports({
           "group_by": "day",
           "aggregate": "true",
           "smell_value": "3,4,5",
           "start_time": parseInt(start_time / 1000).toString(),
           "end_time": parseInt(end_time / 1000).toString()
-        }),
+        })
+        **/
+        "url": generateURLForAQI(),
         "success": function (data) {
           if (typeof callback === "function") {
             if (isDictEmpty(data)) {
@@ -287,13 +295,21 @@ function hideMarkers(markers) {
               var k = dt.getFullYear() + "-" + ("0" + (dt.getMonth() + 1)).slice(-2) + "-" + ("0" + dt.getDate()).slice(-2);
               data[k] = 0;
             }
-            callback(data);
+            callback(preprocessAQIData(data));
           }
         },
         "error": function (response) {
           console.log("server error:", response);
         }
       });
+    }
+
+    function preprocessAQIData(raw_data) {
+      var days = JSON.parse(raw_data)["utcDateTimes"].map(x => x.split(" ")[0]);
+      var aqis = JSON.parse(raw_data)["aqi"];
+      var result = {};
+      days.forEach((key, i) => result[key] = aqis[i]);
+      return result;
     }
 
     function formatDataForTimeline(data, pad_to_date_obj) {

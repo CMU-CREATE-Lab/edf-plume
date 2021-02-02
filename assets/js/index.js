@@ -781,13 +781,6 @@ function expandInfobar() {
   infobar.style.visibility = 'visible';
   $(".infobar-component").show();
   $("#infobar-initial").hide();
-
-  //if screen bigger than 450px:
-  //    add HTML elems for sidebar view (headers)
-
-
-
-  //set to visible
 }
 
 //if ($(window).width() < 450) {
