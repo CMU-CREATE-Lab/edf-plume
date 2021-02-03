@@ -92,11 +92,16 @@ function createTimeline(data, options) {
       handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")));
       // TODO
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+      var timeString = "12:00 AM";
       if (timeline.selectedDayInMs == startOfCurrentDateInMilisec) {
+        timeString = current12HourString;
         $("#timestampPreviewContent").text(current12HourString);
       } else {
-        $("#timestampPreviewContent").text(convertFrom24To12Format("00:00"));
+        $("#timestampPreviewContent").text(timeString);
       }
+      var captureTimes = playbackTimeline.getCaptureTimes();
+      var captureTimeIdx = captureTimes.indexOf(timeString);
+      playbackTimeline.seekTo(captureTimeIdx);
       if (typeof(options.clickEvent == "function")) {
         options.clickEvent();
       }

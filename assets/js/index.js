@@ -923,7 +923,6 @@ function loadSensorList(sensors) {
   var options = {
     clickEvent: function() {
       closeInfobar();
-      resetAllTraxColors();
     }
   }
   initTimeline(options);
@@ -1411,9 +1410,8 @@ function handleTimelineToggling(e) {
 
     // TODO
     if ($("#timeline-container .selected-block").data('epochtime_milisec') == startOfCurrentDateInMilisec) {
-      var captureTime = current12HourString;
       var captureTimes = playbackTimeline.getCaptureTimes();
-      var captureTimeIdx = captureTimes.indexOf(captureTime);
+      var captureTimeIdx = captureTimes.indexOf(current12HourString);
       playbackTimeline.seekTo(captureTimeIdx);
     } else {
       playbackTimeline.seekTo(0);
@@ -1434,6 +1432,8 @@ function handleTimelineToggling(e) {
     playbackTimeline.stopAnimate();
     $("#controls").addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
+    // TODO: Perhaps leave the last hour that was up?
+    playbackTimeline.seekTo(0);
   }
 
 }
