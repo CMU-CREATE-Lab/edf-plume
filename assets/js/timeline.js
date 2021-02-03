@@ -89,7 +89,6 @@ function createTimeline(data, options) {
   var $timeline_container = $("#timeline-container").empty();
   var chart_settings = {
     click: function ($e) {
-      console.log('test')
       handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")));
       // TODO
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
@@ -234,7 +233,7 @@ function hideMarkers(markers) {
 
     function generateURLForAQI() {
       //return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT_MONTH.json";
-      return "/assets/data/Salt_Lake_City_UT_MONTH.json"
+      return "assets/data/Salt_Lake_City_UT_MONTH.json"
     }
 
 

@@ -1,4 +1,28 @@
 var map;
+//var isMobileDevice = navigator.userAgent.match(/CrOS/) != null && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Mobile/i.test(navigator.userAgent));
+
+var TRAX_COLLECTION_NAME = "trax-dev";
+var STILT_COLLECTION_NAME = "stilt-prod";
+
+var pm25ColorLookup = function(pm25) {
+  var color;
+  if (pm25 >= 250.5) {
+    color = "#7e0023";
+  } else if (pm25 >= 150.5) {
+    color = "#99004c";
+  } else if (pm25 >= 55.5) {
+    color = "#ff0000";
+  } else if (pm25 >= 35.5) {
+    color = "#ff7e00";
+  } else if (pm25 >= 12.1) {
+    color = "#ffff00";
+  } else if (pm25 >= 0) {
+    color = "#00e400";
+  } else {
+    color = "#000000";
+  }
+  return color;
+}
 
 var sensors = [{
   "name": "Salt Lake City",
@@ -289,16 +313,105 @@ var isTouchMoving = false;
 var touchStartTargetElement;
 var currentTouchCount = 0;
 
+var traxDataByHourlyEpochTimeInMs = {};
+var traxLocations = {};
+
+function resetAllTraxColors() {
+  for (trax in traxLocations) {
+    var marker = traxLocations[trax].marker;
+    marker.setOptions({
+      fillColor: "#000000",
+      strokeColor: "#000000",
+      fillOpacity: 0,
+      strokeOpacity: 0
+    })
+    marker.setVisible(false);
+  }
+}
+
+function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
+  var opacity;
+  var oneHourInMs = 3600000;
+  var options = {};
+  for (site in traxLocations) {
+    var marker = traxLocations[site].marker;
+    var dataWithinPlaybackHour = traxDataByHourlyEpochTimeInMs[currentPlaybackTimeInMs][site];
+    if (dataWithinPlaybackHour) {
+      var color = pm25ColorLookup(dataWithinPlaybackHour.pm25);
+      var timeDiff = Math.abs(currentPlaybackTimeInMs - (dataWithinPlaybackHour.epochtimeInSec * 1000));
+      opacity = Math.min(1, (timeDiff / oneHourInMs) + .05);
+      options.fillColor = color;
+      options.strokeColor = color;
+      options.fillOpacity = opacity;
+      options.strokeOpacity = Math.max(0, opacity - 0.2);
+    } else {
+      opacity = 0;
+      options.fillOpacity = opacity;
+      options.strokeOpacity = opacity;
+    }
+    marker.setOptions(options);
+    var visiblity = opacity != 0;
+    marker.setVisible(visiblity);
+  }
+}
+
 async function getTraxLocations() {
   const snapshot = await db.collection('trax_location').get()
-  return snapshot.docs.map(doc => ({[doc.id] : {'lat' : doc.data().loc.latitude, 'lng' : doc.data().loc.longitude}}));
+  let locations = {}
+  snapshot.docs.map(doc => (locations[doc.id]  = {'lat' : doc.data().loc.latitude, 'lng' : doc.data().loc.longitude}));
+  return locations;
 }
 
 async function getTraxInfoByDateAndId(date, id) {
   date = "20210108224846";
   id = "g096";
-  const doc = await db.collection("trax-dev").doc(date + "_" + id + "_TRX01").get()
+  const doc = await db.collection(TRAX_COLLECTION_NAME).doc(date + "_" + id + "_TRX01").get()
   console.log(doc.data());
+}
+
+async function getTraxInfoByDay() {
+  var d = moment(timeline.selectedDayInMs);
+  var startDate = d.startOf("day").toDate();
+  var endDate = d.endOf("day").toDate();
+  const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>=', startDate).where('time', '<=', endDate).get();
+  if (!snapshot.empty) {
+    snapshot.forEach(doc => {
+      var data = doc.data();
+      console.log(data)
+    });
+  } else {
+    console.log("no trax data found found for day starting at: ", timeline.selectedDayInMs);
+    resetAllTraxColors();
+  }
+}
+
+async function getTraxInfoByPlaybackTime() {
+  var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+  if (traxDataByHourlyEpochTimeInMs[playbackTimeInMs]) {
+    setTraxOpacityAndColor(playbackTimeInMs);
+    return;
+  }
+  traxDataByHourlyEpochTimeInMs[playbackTimeInMs] = {};
+
+
+  var d = new Date(0);
+  d.setUTCMilliseconds(playbackTimeInMs);
+  var startDate = new Date(d)
+  var endDate = new Date(d.setUTCHours(d.getUTCHours() + 1));
+  const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>=', startDate).where('time', '<', endDate).get();
+  if (!snapshot.empty) {
+    snapshot.forEach(doc => {
+      var data = doc.data();
+      var site = data.site;
+      var epochtimeInSec = data.time.seconds;
+      traxDataByHourlyEpochTimeInMs[playbackTimeInMs][site] = {pm25: data.pm25, epochtimeInSec: epochtimeInSec};
+      traxLocations[site].marker.data = {mostRecentPm25Reading: data.pm25, mostRecentReadingTimeInSec: epochtimeInSec};
+    });
+    setTraxOpacityAndColor(playbackTimeInMs);
+  } else {
+    console.log("no trax data found found for:", playbackTimeInMs);
+    resetAllTraxColors();
+  }
 }
 
 async function initMap() {
@@ -454,7 +567,8 @@ async function initMap() {
   //$("#infobar-close-handle").on("touchmove",closeInfobar);
 
   var $infobar = $("#infobar");
-  $("#infobar").on("mousedown", function(e) {
+
+  $infobar.on("mousedown", function(e) {
     if ($(window).width() > 450) {
       return;
     }
@@ -466,7 +580,6 @@ async function initMap() {
     var currentYPos;
     $infobar.addClass("disableScroll");
     $(document).on("mousemove.infocontainer", function(e) {
-      console.log('mouse move')
       currentYPos = e.pageY;
       if (lastYPos > e.pageY) {
         lastYDirection = "down";
@@ -497,9 +610,13 @@ async function initMap() {
     });
   });
 
-  verticalTouchScroll($("#infobar"));
+  verticalTouchScroll($infobar);
 
-
+  $(window).on("resize", function(){
+    if ($(this).width() > 450) {
+      $infobar.height("");
+    }
+  });
 
   $("#controls").on("click", ".playbackButton, #calendar-btn, .timestampPreview", handleTimelineToggling);
 
@@ -536,7 +653,7 @@ async function initMap() {
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.position = "absolute";
-      img.style.opacity = "75%";
+      img.style.opacity = "80%";
 
       this.div.appendChild(img);
       // Add the element to the "overlayLayer" pane.
@@ -629,31 +746,31 @@ async function initMap() {
   new ResizeObserver(playbackTimeline.refocusTimeline).observe($(".materialTimeline")[0]);
 
   // Draw TRAX locations on the map
-  var traxLocations = await getTraxLocations();
-  traxLocations.forEach(function(trax){
+  traxLocations = await getTraxLocations();
+  for (const trax in traxLocations) {
     const cityCircle = new google.maps.Circle({
-      strokeColor: "#000000",
-      strokeOpacity: 0.8,
+      strokeOpacity: 0,
       strokeWeight: 2,
       fillColor: "#000000",
-      fillOpacity: 1,
+      fillOpacity: 0,
       map,
-      center: trax[Object.keys(trax)[0]],
-      radius: 50,
+      center: traxLocations[trax],
+      radius: 80
     });
+    cityCircle.traxId = trax;
+    traxLocations[trax]['marker'] = cityCircle;
     google.maps.event.addListener(cityCircle, 'click', function (e) {
-      console.log(e.latLng.lat(), e.latLng.lng())
+      console.log(this.traxId)
     });
-  })
-
+  }
 
   expandInfobar();
   $(".infobar-component").hide();
   $("#infobar-initial").show();
+  // END OF INIT
 }
-
  // Add horizontal scroll touch support to a jQuery HTML element.
- var touchHorizontalScroll = function($elem) {
+var touchHorizontalScroll = function($elem) {
   var scrollStartPos = 0;
   $elem.on("touchstart", function(e) {
     scrollStartPos = this.scrollLeft + e.originalEvent.touches[0].pageX;
@@ -709,7 +826,7 @@ function drawFootprint(lat, lng) {
   var hourMinute = isoString.split("T")[1].split(":")
 
   var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
-  var docRef = db.collection("stilt-prod").doc(docRefString);
+  var docRef = db.collection(STILT_COLLECTION_NAME).doc(docRefString);
   console.log(docRefString)
 
   docRef
@@ -746,7 +863,7 @@ function drawFootprint(lat, lng) {
       );
       overlay.set('bounds',bounds);
 
-      overlay.set('opacity',0.1);
+      //overlay.set('opacity',0.1);
       overlay.setMap(map);
 
       expandInfobar();
@@ -804,8 +921,9 @@ function loadSensorList(sensors) {
   }
   // TODO: timeline block click events
   var options = {
-    clickEvent: function() { 
+    clickEvent: function() {
       closeInfobar();
+      resetAllTraxColors();
     }
   }
   initTimeline(options);

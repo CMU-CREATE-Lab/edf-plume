@@ -84,7 +84,7 @@ var create = {};
     var startDownX;
     var $customPlay;
 
-    var animateIntervalInMs = 1000;
+    var animateIntervalInMs = 1500;
 
 
     // Flags
@@ -212,7 +212,11 @@ var create = {};
 
     var updateTimelineSlider = function(frameNum, timeTick, fromSync) {
       if (timeline) {
-        playbackTimeInMs = new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
+        var newPlaybackTimeInMs = new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
+        if (newPlaybackTimeInMs != playbackTimeInMs) {
+          playbackTimeInMs = newPlaybackTimeInMs;
+          getTraxInfoByPlaybackTime();
+        }
       }
       if (!timeTick || timeTick.length == 0) {
         if ((lastFrameWasGroupEnd && frameNum == 0) ||
@@ -406,7 +410,6 @@ var create = {};
     this.getCaptureTimes = getCaptureTimes;
 
     var seekTo = function(frameNum) {
-      console.log("seekto: ", frameNum)
       var $newTimelineTick = $timelineTicks.eq(frameNum);
       $timelineTicks.removeClass("materialTimelineTickSelected");
       $newTimelineTick.addClass("materialTimelineTickSelected");

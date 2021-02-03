@@ -26,13 +26,13 @@ body {
   overflow: auto;
   z-index: 1;
   visibility: hidden;
-  box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19)
+  box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;  
+  user-select: none;
 }
 
 #infobar h2 {
