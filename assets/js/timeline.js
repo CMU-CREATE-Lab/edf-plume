@@ -237,8 +237,7 @@ function hideMarkers(markers) {
     }
 
     function generateURLForAQI() {
-      //return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT_MONTH.json";
-      return "assets/data/Salt_Lake_City_UT_MONTH.json"
+      return "assets/data/aqi_dict.json"
     }
 
 
@@ -299,7 +298,7 @@ function hideMarkers(markers) {
               var k = dt.getFullYear() + "-" + ("0" + (dt.getMonth() + 1)).slice(-2) + "-" + ("0" + dt.getDate()).slice(-2);
               data[k] = 0;
             }
-            callback(preprocessAQIData(data));
+            callback(data);
           }
         },
         "error": function (response) {
