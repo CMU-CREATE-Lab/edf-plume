@@ -798,8 +798,6 @@ var verticalTouchScroll = function($elem){
 };
 
 function drawFootprint(lat, lng) {
-  console.log('drawing footprint!')
-
   //clear existing footprint if there is one
   if (overlay) {
     overlay.setMap(null);
@@ -815,9 +813,6 @@ function drawFootprint(lat, lng) {
     new google.maps.LatLng(coords.ymax, coords.xmax)
   );
 
-  console.log(lat,lng);
-  //console.log(timeline.selectedDayInMs)
-
   var d = new Date(0);
   d.setUTCSeconds(playbackTimeline.getPlaybackTimeInMs() / 1000);
   //"2021-01-13T21:53:44.495Z"
@@ -825,7 +820,7 @@ function drawFootprint(lat, lng) {
   var yearMonthDay = isoString.split("T")[0].split("-");
   var hourMinute = isoString.split("T")[1].split(":")
 
-  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + lng.toFixed(2) + "_" + lat.toFixed(2) + "_1";
+  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + parseFloat(lng.toFixed(2)) + "_" + parseFloat(lat.toFixed(2)) + "_1";
   var docRef = db.collection(STILT_COLLECTION_NAME).doc(docRefString);
   console.log(docRefString)
 
@@ -834,7 +829,6 @@ function drawFootprint(lat, lng) {
     .then((doc) => doc.data())
     .then((data) => {
       if (data) {
-        console.log(data);
         return data;
       }
       //TODO: show error in plume infobar
@@ -854,8 +848,6 @@ function drawFootprint(lat, lng) {
       throw new Error("document not found");
     })
     .then(({ image, location, time, extent }) => {
-      //console.log(image);
-      //console.log(location);
       overlay.set('image',image);
       const bounds = new google.maps.LatLngBounds(
         new google.maps.LatLng(extent.ymin, extent.xmin),
