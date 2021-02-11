@@ -240,6 +240,10 @@ function hideMarkers(markers) {
       return "assets/data/aqi_dict.json"
     }
 
+    function generateURLForHourlyAQI() {
+      return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT.json"
+    }
+
 
     function getInitialTimeRange() {
       // The starting time is the first day of the year
@@ -294,11 +298,30 @@ function hideMarkers(markers) {
           if (typeof callback === "function") {
             if (isDictEmpty(data)) {
               // Fill out data if empty
+              //TODO: use moment.js to ensure we're in SLC time
               var dt = new Date(start_time);
               var k = dt.getFullYear() + "-" + ("0" + (dt.getMonth() + 1)).slice(-2) + "-" + ("0" + dt.getDate()).slice(-2);
               data[k] = 0;
             }
-            callback(data);
+            loadTimelineDataToday(data,callback);
+          }
+        },
+        "error": function (response) {
+          console.log("server error:", response);
+        }
+      });
+    }
+
+    function loadTimelineDataToday(fullData,callback){
+      $.ajax({
+        "url": generateURLForHourlyAQI(),
+        "success": function (data) {
+          if (typeof callback === "function") {
+            var parsed = JSON.parse(data)
+            var date = parsed["utcDateTimes"].pop();
+            var val = parsed["aqi"].pop();
+            fullData[date] = val;
+            callback(fullData);
           }
         },
         "error": function (response) {
