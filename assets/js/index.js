@@ -405,7 +405,7 @@ async function getTraxInfoByPlaybackTime() {
       var site = data.site;
       var epochtimeInSec = data.time.seconds;
       traxDataByHourlyEpochTimeInMs[playbackTimeInMs][site] = {pm25: data.pm25, epochtimeInSec: epochtimeInSec};
-      traxLocations[site].marker.data = {mostRecentPm25Reading: data.pm25, mostRecentReadingTimeInSec: epochtimeInSec};
+      traxLocations[site].marker.data = {mostRecentPm25Reading: data.pm25, mostRecentReadingTimeInSec: epochtimeInSec, traxId: site};
     });
     setTraxOpacityAndColor(playbackTimeInMs);
   } else {
@@ -760,7 +760,8 @@ async function initMap() {
     cityCircle.traxId = trax;
     traxLocations[trax]['marker'] = cityCircle;
     google.maps.event.addListener(cityCircle, 'click', function (e) {
-      console.log(this.traxId)
+      // Handle TRAX click event
+      console.log(this.data)
     });
   }
 
