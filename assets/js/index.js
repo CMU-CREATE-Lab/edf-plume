@@ -761,7 +761,7 @@ async function initMap() {
     traxLocations[trax]['marker'] = cityCircle;
     google.maps.event.addListener(cityCircle, 'click', function (e) {
       // Handle TRAX click event
-      console.log(this.data)
+      handleTRAXMarkerClicked(this.data);
     });
   }
 
@@ -1283,15 +1283,34 @@ function handleSensorMarkerClicked(marker) {
   infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']);
 
   drawFootprint(marker.getData()['latitude'], marker.getData()['longitude']);
+}
 
-  //infowindow_smell.close();
+function handleTRAXMarkerClicked(marker) {
+  if (selectedLocation) { selectedLocation.setMap(null) };
 
-  //document.getElementById("infobar-header").innerHTML = marker.getContent();
+  //set infobar header to name
+  var infobarHeader = $("#infobar-header > h2")[0];
+  infobarHeader.innerHTML = "TRAX "+ formatTRAXLineName(marker.traxId) + " Line";
 
-  //var marker_type = marker.getMarkerType();
-  //if (marker_type == "PM25" || marker_type == "WIND_ONLY") {
-  //  infowindow_PM25.setContent(marker.getContent());
-  //  infowindow_PM25.open(map, marker.getGoogleMapMarker());
+  //show sensor pollution value in infobar
+  var infobarPollution = $("#infobar-pollution")[0];
+  infobarPollution.innerHTML = formatPM25(marker.mostRecentPm25Reading.toFixed(2)) + " at time " + new Date(marker.mostRecentReadingTimeInSec * 1000).toLocaleTimeString();
+
+  //if time selected, show sensor wind in infobar
+  //var infobarWind = $("#infobar-wind")[0];
+  //infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']);
+
+  drawFootprint(traxLocations[marker.traxId]['lat'], traxLocations[marker.traxId]['lng']);
+}
+
+function formatTRAXLineName(traxID) {
+  var lineID = traxID[0];
+  var idToName = {
+    'b': 'Blue',
+    'g': 'Green',
+    'r': 'Red'
+  };
+  return idToName[lineID];
 }
 
 function formatPM25(val) {
