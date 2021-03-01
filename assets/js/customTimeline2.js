@@ -60,6 +60,10 @@ var create = {};
     var captureTimes;
     var numFrames;
     var playbackTimeInMs = 0;
+    // Change to make more/less coarse playback
+    var incrementAmtInMin = 10;
+    // Change how fast it animates. Note that better caching will need to be involved if too low of a value is used.
+    var animateIntervalInMs = 1000;
 
     // DOM elements
     var viewerDivId = "playback-timeline-container"
@@ -84,7 +88,6 @@ var create = {};
     var startDownX;
     var $customPlay;
 
-    var animateIntervalInMs = 1500;
 
 
     // Flags
@@ -136,20 +139,26 @@ var create = {};
       var currentTimelineHTML = "";
       // TODO
       captureTimes = [];
-      for (var i = 0; i < 24; i++) {
-        var TimeStamp24Hour = pad(i) + ":00";
+      var hour = -1;
+      var multipler = 60/incrementAmtInMin;
+      var numIntervals = 24*multipler;
+      for (var i = 0; i < numIntervals; i++) {
+        var min = i % multipler == 0 ? 0 : min + incrementAmtInMin;
+        hour = i % multipler == 0 ? hour + 1 : hour;
+        var TimeStamp24Hour = pad(hour) + ":" + pad(min);
         var TimeStamp12Hour = convertFrom24To12Format(TimeStamp24Hour)
         captureTimes.push(TimeStamp12Hour);
       }
       numFrames = captureTimes.length;
 
       for (var i = 0; i < captureTimes.length; i++) {
-        currentTimelineHTML += "<span class='materialTimelineTick' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
+        currentTimelineHTML += "<span class='materialTimelineTick' data-increment='" + incrementAmtInMin + "' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
       }
       timelineGroupHTML = currentTimelineHTML;
       var $leftGroup = $("<div class='leftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
       var $rightGroup =  $("<div class='rightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-      $timeline.append($leftGroup, $rightGroup);
+      var $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
+      $timeline.append($leftGroup, $rightGroup, $anchor);
 
       $timeline.on("mousedown", function(e) {
         if (typeof(e.pageX) === "undefined") {
@@ -210,12 +219,38 @@ var create = {};
     }
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
 
+    var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
+      playbackTimeInMs = newPlaybackTimeInMs;
+    }
+    this.setPlaybackTimeInMs = setPlaybackTimeInMs;
+
+    var getIncrementAmt = function() {
+      return incrementAmtInMin;
+    }
+    this.getIncrementAmt = getIncrementAmt;
+
     var updateTimelineSlider = function(frameNum, timeTick, fromSync) {
       if (timeline) {
-        var newPlaybackTimeInMs = new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
+        var numMins = $(timeTick).data("frame") * $(timeTick).data("increment");
+
+        var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, "America/Denver").add(numMins, 'minutes').valueOf(); //new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
+
         if (newPlaybackTimeInMs != playbackTimeInMs) {
+          // TODO(!!): Need to select the closest available data. Currently if we go in verse from a timestamp that brings in new data we still see this new timestamp,
+          // rather than the old data that we saw before clicking this new timestamp.
+
           playbackTimeInMs = newPlaybackTimeInMs;
+          // animate trax data
           getTraxInfoByPlaybackTime();
+          // animate footprint
+          if (overlay && overlay.projection) {
+            drawFootprint(overlay.lat, overlay.lng, false)
+          }
+          // animate ESDR (and eventually other) sensors
+          updateSensorsByEpochTime(playbackTimeInMs);
+          if (selectedSensorMarker) {
+            updateInfoBar(selectedSensorMarker, false)
+          }
         }
       }
       if (!timeTick || timeTick.length == 0) {

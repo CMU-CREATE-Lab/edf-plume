@@ -274,18 +274,19 @@
   background-size: cover;
   background-position:50% 50%;
   cursor: pointer;
-  background-color: #6dcab8;
- image-rendering: crisp-edges;
- image-rendering: -moz-crisp-edges;
- image-rendering: -o-crisp-edges;
+  /*background-color: #6dcab8;*/
+  background-color: #83d2c3;
  image-rendering: -webkit-optimize-contrast;
  -ms-interpolation-mode: nearest-neighbor;
- opacity: 0.85;
+ /*opacity: 0.85;*/
+ z-index: 5;
 }
 
 .materialUI .playbackButton:hover {
-  opacity: 1;
-
+  background-color: #6dcab8;
+}
+.materialUI .playbackButton:hover .ui-icon.ui-icon-custom-play {
+  opacity: 1.0;
 }
 
 .materialUI .timestampPreview {
@@ -309,10 +310,17 @@
   border-bottom-right-radius: 0px !important;
   position: relative;
   margin: 0px;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  background-image: url(../img/clock.png);
+  background-repeat: no-repeat;
+  background-size: 35px 35px;
+  background-position: right 11px top 22px;
+  background-color: #f7f7f7;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .materialUI #timestampPreviewContent {
@@ -329,9 +337,6 @@
   position: absolute;
   width: 56px;
   height: 75px;
- image-rendering: crisp-edges;
- image-rendering: -moz-crisp-edges;
- image-rendering: -o-crisp-edges;
  image-rendering: -webkit-optimize-contrast;
  -ms-interpolation-mode: nearest-neighbor;
 }
@@ -385,6 +390,7 @@
   flex-basis: 34px;
   position: relative;
   cursor: pointer;
+  z-index: 5;
 }
 
 .materialUI .leftSeekControl {
@@ -544,12 +550,17 @@
   height: 22px !important;
 }
 
-.materialTimelineTick {
-  color: #80868B;
+.anchorHighlight {
+  position: absolute;
+  /* height: calc(100% - 79px); */
+  margin: 0px calc(50% - 67px);
+  border-radius: 16px;
+  background-color: #2979FF;
+  color: transparent;
+  box-shadow: inset 0px 0px 5px 0px #80868b;
   font-size: 14px;
   padding-right: 15px;
   padding-left: 15px;
-  display: block;
   -ms-flex-preferred-size: 36px;
   flex-basis: 36px;
   -webkit-box-flex: 0;
@@ -557,7 +568,71 @@
   flex-grow: 0;
   -ms-flex-negative: 0;
   flex-shrink: 0;
-  padding-top: 10px;
+  /* padding-top: 0px; */
+  /* padding-bottom: 11px; */
+  cursor: pointer;
+  -ms-flex: 0 0 auto;
+  flex: 0 0 auto;
+  width: 66px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 14px;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  top: 6px;
+}
+
+.anchorTZ {
+  bottom: 0px;
+  position: absolute;
+  color: #80868B;
+  font-size: 11px;
+}
+
+.anchor {
+  display: none;
+  font-size: 14px;
+  /* padding-right: 15px; */
+  /* padding-left: 15px; */
+  -ms-flex-preferred-size: 36px;
+  flex-basis: 36px;
+  -webkit-box-flex: 0;
+  -ms-flex-positive: 0;
+  flex-grow: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  /* padding-top: 10px; */
+  padding-bottom: 8px;
+  cursor: pointer;
+  -ms-flex: 0 0 auto;
+  flex: 0 0 auto;
+  width: 66px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 14px;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  height: 54px;
+  margin: 0px calc(50% - 107px);
+  border-radius: 16px;
+  color: transparent;
+}
+
+.materialTimelineTick {
+  color: #80868B;
+  font-size: 14px;
+  padding-right: 15px;
+  padding-left: 15px;
+  -ms-flex-preferred-size: 36px;
+  flex-basis: 36px;
+  -webkit-box-flex: 0;
+  -ms-flex-positive: 0;
+  flex-grow: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  padding-top: 8px;
   padding-bottom: 8px;
   cursor: pointer;
   -ms-flex: 0 0 auto;
@@ -578,8 +653,8 @@
 .materialTimelineTickSelected {
   /* Should be GoogleSans-Medium */
   font-family: 'Open Sans';
-  border-radius: 16px;
-  background-color: #2979FF;
+  /*-radius: 16px;
+  background-color: #2979FF;*/
   color: white;
   font-size: 15px;
   line-height: 16px;
@@ -596,6 +671,7 @@
   display: flex;
   -ms-flex-negative: 0;
   flex-shrink: 0;
+  z-index: 10;
 }
 
 .materialUI.waypointDrawerOpen .materialNowViewingContainer {
@@ -604,64 +680,6 @@
   -webkit-transition: width 0.5s;
   -o-transition: width 0.5s;
   transition: width 0.5s;
-}
-
-.materialNowViewingContent {
-  width: auto;
-  padding-left: 27px;
-  padding-right: 27px;
-  -ms-flex-pack: center;
-  background: rgba(0, 0, 0, 0.54);
-  padding-top: 11px;
-  padding-bottom: 10px;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-  display: none;
-  -ms-flex-pack: center;
-  text-align: center;
-  border-radius: 7px;
-  pointer-events: all;
-}
-
-.materialNowViewingHeader {
-  -ms-flex-preferred-size: 100%;
-  flex-basis: 100%;
-  margin-bottom: 10px;
-  letter-spacing: 1pt;
-}
-
-.materialNowViewingText {
-  font-size: 13px;
-  -ms-flex-preferred-size: 100%;
-  flex-basis: 100%;
-  word-break: break-all;
-}
-
-.materialNowViewingContent .close {
-  background: url(../img/close-white.png) center center no-repeat;
-  background-size: 14px 14px;
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  cursor: default;
-  opacity: 0.67;
-  cursor: pointer;
-  float: right;
-  margin-right: -19px;
-  margin-top: -2px;
-}
-
-.materialNowViewingContent .close:hover {
-  opacity: 0.9;
-}
-
-.materialNowViewingContent .close:after {
-  content: '';
-  position: absolute;
-  width: 30px;
-  height: 24px;
-  margin-left: -17px;
-  top: 0px;
 }
 
 .materialUI .timeText, .mobileUI .timeText {

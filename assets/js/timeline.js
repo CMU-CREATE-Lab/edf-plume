@@ -85,30 +85,17 @@
 
 // Use the TimelineHeatmap charting library to draw the timeline
 function createTimeline(data, options) {
-  console.log('create timeline')
   var $timeline_container = $("#timeline-container").empty();
   var chart_settings = {
     click: function ($e) {
-      handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")));
-      // TODO
-      timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-      var timeString = "12:00 AM";
-      if (timeline.selectedDayInMs == startOfCurrentDateInMilisec) {
-        timeString = current12HourString;
-        $("#timestampPreviewContent").text(current12HourString);
-      } else {
-        $("#timestampPreviewContent").text(timeString);
-      }
-      var captureTimes = playbackTimeline.getCaptureTimes();
-      var captureTimeIdx = captureTimes.indexOf(timeString);
-      playbackTimeline.seekTo(captureTimeIdx);
+      handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")), $e.data("label"));
       if (typeof(options.clickEvent == "function")) {
         options.clickEvent();
       }
     },
     select: function ($e, obj) {
       // Update selected day in the legend
-      $("#selected-day").html(String(new Date($e.data("epochtime_milisec"))).substr(4, 11));
+      //$("#selected-day").html(String(new Date($e.data("epochtime_milisec"))).substr(4, 11));
       handleTimelineButtonSelected(parseInt($e.data("epochtime_milisec")));
       sendQueryStringToParent(obj);
     },
@@ -131,25 +118,35 @@ function createTimeline(data, options) {
   timeline.selectLastBlock();
   timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
 
-
-
   // Add horizontal scrolling to the timeline
   // Needed because Android <= 4.4 won't scroll without this
   addTouchHorizontalScroll($timeline_container);
 }
+
 
 function getCurrentSelectedDayInMs() {
   return timeline.selectedDayInMs;
 }
 
 
-function handleTimelineButtonClicked(epochtime_milisec) {
-
+function handleTimelineButtonClicked(epochtime_milisec, day_label) {
+  // TODO
+  timeline.selectedDayInMs = epochtime_milisec;
+  timeline.selectedDay = day_label;
+  ////playbackTimeline.setPlaybackTimeInMs(epochtime_milisec)
+  /*var timeString = "12:00 AM";
+  if (timeline.selectedDay == mostRecentDayStr) {
+    timeString = mostRecentUpdateTimeForLocation;
+  }
+  $("#timestampPreviewContent").text(timeString);
+  var captureTimes = playbackTimeline.getCaptureTimes();
+  var captureTimeIdx = captureTimes.indexOf(timeString);*/
+  ////playbackTimeline.seekTo(captureTimeIdx);
 }
 
 function handleTimelineButtonSelected(epochtime_milisec) {
-  infowindow_smell.close();
-  infowindow_PM25.close();
+  //infowindow_smell.close();
+  //infowindow_PM25.close();
   hideSensorMarkersByTime(current_epochtime_milisec);
   showSensorMarkersByTime(epochtime_milisec);
   current_epochtime_milisec = epochtime_milisec;
@@ -193,9 +190,9 @@ function hideMarkers(markers) {
 
     function initTimeline(options) {
       widgets.setCustomLegend($("#legend"));
-        //loadInitialTimeLine();
         loadAndCreateTimeline(function() {
-          $("#calendar-btn").prop("disabled", false)
+          $("#calendar-btn").prop("disabled", false);
+          $("#timestampPreviewContent").text(mostRecentUpdateTimeForLocation);
           $(".timestampPreview").removeClass("disabled");
           $(".playbackButton").button("enable");
         }, options);
@@ -237,28 +234,12 @@ function hideMarkers(markers) {
     }
 
     function generateURLForAQI() {
-      return "assets/data/aqi_dict.json"
+      return "https://edf.createlab.org/assets/data/aqi_dict.json"
+      //return "assets/data/aqi_dict.json"
     }
 
     function generateURLForHourlyAQI() {
       return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT.json"
-    }
-
-
-    function getInitialTimeRange() {
-      // The starting time is the first day of the year
-      var start_time = new Date(new Date().getFullYear(), 0, 1).getTime()
-      // The ending time is the current time
-      var end_time = Date.now();
-      return {
-        "start_time": start_time,
-        "end_time": end_time
-      };
-    }
-
-    function loadInitialTimeLine(callback) {
-      var T = getInitialTimeRange();
-      loadAndUpdateTimeLine(T["start_time"], T["end_time"], callback);
     }
 
     function loadAndUpdateTimeLine(start_time, end_time, callback) {
@@ -274,9 +255,10 @@ function hideMarkers(markers) {
 
     function loadAndCreateTimeline(callback, options) {
       // Create the timeline
-      var T = getInitialTimeRange();
-      loadTimelineData(T["start_time"], T["end_time"], function (data) {
-        createTimeline(formatDataForTimeline(data, new Date(T["end_time"])), options);
+      // Start and end time are not passed in and will be based on
+      // available AQI data
+      loadTimelineData(null, null, function (data) {
+        createTimeline(formatDataForTimeline(data, null), options);
         if (typeof(callback) == "function") {
           callback();
         }
@@ -285,26 +267,9 @@ function hideMarkers(markers) {
 
     function loadTimelineData(start_time, end_time, callback) {
       $.ajax({
-        /**"url": generateURLForSmellReports({
-          "group_by": "day",
-          "aggregate": "true",
-          "smell_value": "3,4,5",
-          "start_time": parseInt(start_time / 1000).toString(),
-          "end_time": parseInt(end_time / 1000).toString()
-        })
-        **/
         "url": generateURLForAQI(),
         "success": function (data) {
-          if (typeof callback === "function") {
-            if (isDictEmpty(data)) {
-              // Fill out data if empty
-              //TODO: use moment.js to ensure we're in SLC time
-              var dt = new Date(start_time);
-              var k = dt.getFullYear() + "-" + ("0" + (dt.getMonth() + 1)).slice(-2) + "-" + ("0" + dt.getDate()).slice(-2);
-              data[k] = 0;
-            }
-            loadTimelineDataToday(data,callback);
-          }
+          loadTimelineDataToday(data, callback);
         },
         "error": function (response) {
           console.log("server error:", response);
@@ -318,9 +283,31 @@ function hideMarkers(markers) {
         "success": function (data) {
           if (typeof callback === "function") {
             var parsed = JSON.parse(data)
-            var date = parsed["utcDateTimes"].pop();
+            // Most recent date and data point
+            // The hourly timestamps are actualy in UTC. whereas the daily timestamps
+            // show midnight, and are marked as UTC, but are NOT actually UTC midnight.
+            var date = parsed["utcDateTimes"].pop() + "Z";
+            var mDate = moment(date);
+            var startTimeOfDate = moment(date).tz("America/Denver").startOf("day").format("YYYY-MM-DD HH:mm:ss");
+            mostRecentUpdateTimeForLocation = mDate.tz("America/Denver").format("h:mm A");
+            mostRecentDayStr = mDate.tz("America/Denver").format("DD MMM");
             var val = parsed["aqi"].pop();
-            fullData[date] = val;
+            // We may be missing the previous day. Check and if so, get the max value
+            // for the availabe time span.
+            var possiblePreviousDayStr = mDate.clone().tz("America/Denver").format("YYYY-MM-DD");
+            var possiblePreviousDayTimeStr = possiblePreviousDayStr + " 00:00:00";
+            var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, "America/Denver").format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
+            if (!hasPreviousDayFromCurrent) {
+              var max = 0;
+              for (var i = 0; i < parsed['aqi'].length; i++) {
+                if (parsed['utcDateTimes'][i].indexOf(possiblePreviousDayStr) == -1) {
+                  break;
+                }
+                max = Math.max(max, parsed['aqi'][i]);
+              }
+              fullData[possiblePreviousDayTimeStr] = max;
+            }
+            fullData[startTimeOfDate] = val;
             callback(fullData);
           }
         },
@@ -339,19 +326,33 @@ function hideMarkers(markers) {
     }
 
     function formatDataForTimeline(data, pad_to_date_obj) {
-      var current_date_obj = new Date();
-      if (pad_to_date_obj.getTime() > current_date_obj.getTime()) {
-        pad_to_date_obj = current_date_obj;
-      }
+      //var current_date_obj = new Date();
+      //if (pad_to_date_obj.getTime() > current_date_obj.getTime()) {
+      //  pad_to_date_obj = current_date_obj;
+      //}
+
       var batch_3d = []; // 3D batch data
       var batch_2d = []; // the inner small 2D batch data for batch_3d
+
+      // TODO: We are modifying the data so that it is marked as UTC times
+      /*data = Object.keys(data).reduce(
+        (acc, key) => ({
+          ...acc,
+          ...{ [key+"Z"]: data[key] }
+        }),
+        {}
+      );*/
+
       var sorted_day_str = Object.keys(data).sort();
       var last_month;
 
-      // If no data, need to add the current day to the list
+      // If no data, exit
       if (sorted_day_str.length == 0) {
-        sorted_day_str = [dataObjectToString(new Date())];
+        return;
+        //sorted_day_str = [dataObjectToString(new Date())];
       }
+
+      pad_to_date_obj = dateStringToObject(sorted_day_str[sorted_day_str.length - 1]);
 
       // If the first one is not the first day of the month, we need to insert it
       if (sorted_day_str.length > 0) {
@@ -360,7 +361,7 @@ function hideMarkers(markers) {
         if (first_day != 1) {
           var first_year = parseInt(first_str_split[0]);
           var first_month = parseInt(first_str_split[1]);
-          var k = first_year + "-" + first_month + "-01";
+          var k = first_year + "-" + String(first_month).padStart(2, "0") + "-01 00:00:00";
           sorted_day_str.unshift(k);
         }
       }
@@ -368,7 +369,9 @@ function hideMarkers(markers) {
       for (var i = 0; i < sorted_day_str.length; i++) {
         // Get current day and count
         var day_str = sorted_day_str[i];
+        //console.log(day_str)
         var day_obj = dateStringToObject(day_str);
+        //console.log(day_obj)
         var count = parseInt(safeGet(data[day_str], 0));
         // Check if we need to push the 2D array to 3D, and empty the 2D array
         var month = day_obj.getMonth();
@@ -382,8 +385,8 @@ function hideMarkers(markers) {
           }
         }
         // Push into the 2D array
-        var label = day_obj.toDateString().split(" ");
-        label = label[1] + " " + label[2];
+        var label = day_obj.toDateString().replace(",", "").split(" ");
+        label = label[2] + " " + label[1];
         var day_obj_time = day_obj.getTime();
         batch_2d.push([label, count, day_obj_time]);
         // Check if we need to pad missing days of the future
@@ -397,6 +400,8 @@ function hideMarkers(markers) {
         // Push missing days into the 2D array if necessary
         if (diff_days > 1) {
           for (var j = 1; j < diff_days; j++) {
+            // Number of miliseconds in a day
+            // TODO: Maybe use moment.js here instead
             var day_obj_time_j = day_obj_time + 86400000 * j;
             var day_obj_j = new Date(day_obj_time_j);
             var label_j = day_obj_j.toDateString().split(" ");
@@ -412,10 +417,12 @@ function hideMarkers(markers) {
     // Compute the difference of the number of days of two date objects
     // Notice that d2 must be larger than d1
     function getDiffDays(d1, d2) {
-      // Need to subtract timezone offset for daylight saving issues
+      return moment(d2).clone().startOf('day').diff(moment(d1).clone().startOf('day'), 'days');
+
+      /*// Need to subtract timezone offset for daylight saving issues
       var d2_time = d2.getTime() - d2.getTimezoneOffset() * 60000;
       var d1_time = d1.getTime() - d1.getTimezoneOffset() * 60000;
-      return Math.ceil((d2_time - d1_time) / 86400000);
+      return Math.ceil((d2_time - d1_time) / 86400000);*/
     }
 
 
@@ -425,19 +432,22 @@ function hideMarkers(markers) {
       return Math.round(parseFloat(val) * d) / d;
     }
 
-    function dateStringToObject(str) {
-      var str_split = str.split("-");
+    function dateStringToObject(str, tz) {
+      tz = tz ? tz : getDefaultTZ();
+      return moment.tz(str, tz).toDate();
+      /*var str_split = str.split("-");
       var year = parseInt(str_split[0]);
       var month = parseInt(str_split[1]);
       var day = parseInt(str_split[2]);
-      return new Date(year, month - 1, day);
+      return new Date(year, month - 1, day)*/
     }
 
     function dataObjectToString(date_obj) {
-      var year = date_obj.getFullYear();
+      return moment(date_obj).format("YYYY-MM-DD");
+      /*var year = date_obj.getFullYear();
       var month = date_obj.getMonth() + 1;
       var day = date_obj.getDate();
-      return year + "-" + month + "-" + day;
+      return year + "-" + month + "-" + day;*/
     }
 
     function isMobile() {

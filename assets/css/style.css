@@ -35,8 +35,14 @@ body {
   user-select: none;
 }
 
+#infobar h1 {
+  font-size: 28px;
+  text-align: center;
+}
+
 #infobar h2 {
-  padding: 10px;
+  padding: 5px;
+  text-align: center;
 }
 
 #infobar-close {
@@ -159,9 +165,6 @@ button[disabled]{
   left: 0;
   bottom: 0;
   z-index: 900;
- image-rendering: crisp-edges;
- image-rendering: -moz-crisp-edges;
- image-rendering: -o-crisp-edges;
  image-rendering: -webkit-optimize-contrast;
  -ms-interpolation-mode: nearest-neighbor;
  padding: 0px !important;
@@ -175,8 +178,8 @@ button[disabled]{
   content: "";
   background-image: url(../img/close-dark.png);
   background-repeat: no-repeat;
-  background-size: 6px 6px;
-  background-position: right 3px top 5px;
+  background-size: 7px 7px;
+  background-position: right 5px top 5px;
   opacity: 1;
   position: absolute;
   width: 56px;
@@ -309,4 +312,9 @@ button[disabled]{
 
 .force-no-visibility {
   visibility: hidden;
+}
+
+#map div:focus {
+  outline: none;
+  border: none;
 }
