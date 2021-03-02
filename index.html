@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>EDF Plume Visualization</title>
+    <title>Air Tracker</title>
     <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" media="screen" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" />
@@ -43,7 +43,6 @@
   </head>
   <body>
 
-
     <div id="controls" class="playbackTimelineOff">
       <div id="playback-timeline-container" class="noselect">
         <div class="materialTimelineContainerMain">
@@ -65,7 +64,6 @@
       <button id="infobar-close" title="Close">X</button>
       <div id="infobar-header">
         <h1>Air Tracker</h1>
-        <h2></h2>
       </div>
       <div id="infobar-initial">Click on a circle to see pollution and wind measurements for that sensor. <br><br>Choose a day on the timeline and click the time block in the lower left to explore data within that day. <br><br> You can also click anywhere on the map to see a visualization of a pollution backtrace.</div>
       <div id="infobar-plume-section" class="infobar-component">
@@ -73,15 +71,62 @@
         <div id="infobar-plume"></div>
       </div>
       <div id="infobar-pollution-section" class="infobar-component">
-        <div class="infobar-component-header">PM 2.5 Measurements: </div>
+        <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
         <div id="infobar-pollution" class="infobar-component-value"><i>Click on the nearest sensor to see pollution measurements</i></div>
       </div>
       <div id="infobar-wind-section" class="infobar-component">
-        <div class="infobar-component-header">Wind  Measurements: </div>
+        <div class="infobar-component-header">Wind: </div>
         <div id="infobar-wind" class="infobar-component-value"><i>Click on the nearest sensor to see wind measurements</i></div>
       </div>
       <div id="infobar-close-handle"></div>
     </div>
+    
+    <div class="custom-legend noselect" id="legend">
+      <h3 class="legend-title">Legend</h3>
+      <div class="legend-scale">
+        <table id="legend-smell-value">
+
+          <tr>
+            <td class="entry-title">Backtrace: </td>
+            <td colspan="6" class="backtrace-color-map"></td>
+          </tr>
+          <tr>
+            <td class="entry-title">AirNow PM<sub>2.5</sub>:</td>
+            <td class="smell-color-td PM25-color-1"></td>
+            <td class="smell-color-td PM25-color-2"></td>
+            <td class="smell-color-td PM25-color-3"></td>
+            <td class="smell-color-td PM25-color-4"></td>
+            <td class="smell-color-td PM25-color-5"></td>
+          </tr>
+          <tr>
+            <td class="entry-title">TRAX PM<sub>2.5</sub>:</td>
+            <td colspan="5">
+              <span class="trax-color-1 trax-span opacity-25"></span>
+              <span class="trax-color-1 trax-span opacity-50"></span>
+              <span class="trax-color-1 trax-span opacity-75"></span>
+              <span class="trax-color-1 trax-span"></span>
+              <span class="trax-color-1 trax-span"></span>
+              <span class="trax-color-2 trax-span"></span>
+              <span class="trax-color-2 trax-span"></span>
+              <span class="trax-color-3 trax-span"></span>
+              <span class="trax-color-3 trax-span"></span>
+              <span class="trax-color-4 trax-span"></span>
+              <span class="trax-color-4 trax-span"></span>
+              <span class="trax-color-5 trax-span"></span>
+              <span class="trax-color-5 trax-span"></span>
+              <span class="trax-color-5 trax-span opacity-75"></span>
+              <span class="trax-color-5 trax-span opacity-50"></span>
+              <span class="trax-color-5 trax-span opacity-25"></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="entry-title">Wind:</td>
+            <td colspan="5" class="wind-arrow-td wind-arrow"></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
     <div id="map"></div>
     <div id="calendar-dialog" title="Calendar" data-role="none">
       <p>Select a year to explore:</p>

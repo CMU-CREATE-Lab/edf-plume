@@ -51,7 +51,7 @@
     // The bin and range of the color that will be used to render the blocks
     var use_color_quantiles = safeGet(settings["useColorQuantiles"], false);
     var color_bin = safeGet(settings["colorBin"], [1, 2, 2.5, 3, 3.5]);
-    var color_range = safeGet(settings["colorRange"], ["#dcdcdc", "#52b947", "#f3ec19", "#f57e20", "#ed1f24", "#991b4f"]);
+    var color_range = safeGet(settings["colorRange"], ["#52b947", "#f3ec19", "#f57e20", "#ed1f24", "#991b4f"]);
 
     // The bin and range of the height that will be used to render the blocks
     var height_bin = safeGet(settings["heightBin"], [10, 20]);

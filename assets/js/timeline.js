@@ -106,7 +106,7 @@ function createTimeline(data, options) {
     // like the whole bar would be black
     //colors are made to be similar to existing chart
     colorBin: [50, 101, 151, 201, 301],
-    colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
+    //colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
     //colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
     columnNames: ["label", "value", "epochtime_milisec"],
     dataIndexForLabels: 0,

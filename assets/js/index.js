@@ -304,6 +304,8 @@ var $infobarPollution;
 var $infobarWind;
 var $infobarPlume;
 
+var widgets = new edaplotjs.Widgets();
+
 // Touch support
 var hasTouchSupport = isTouchDevice();
 var hasPointerSupport = isPointerDevice();
@@ -478,6 +480,8 @@ async function initMap() {
     zoom: 11,
     streetViewControl: false,
     fullscreenControl: false,
+    zoomControl: $(window).width() > 450,
+    mapTypeControl: false,
     clickableIcons: false,
     styles:
       [
@@ -652,6 +656,14 @@ async function initMap() {
   $(window).on("resize", function(){
     if ($(this).width() > 450) {
       $infobar.height("");
+      map.setOptions({zoomControl:true});
+      $("#legend").css("top","10px");
+      $("#legend").css("bottom","unset");
+    }
+    else {
+      map.setOptions({zoomControl:false})
+      $("#legend").css("bottom","80px");
+      $("#legend").css("top","unset");
     }
   });
 
@@ -835,6 +847,8 @@ async function initMap() {
     }
   });
 
+  widgets.setCustomLegend($("#legend"));
+
   initDomElms();
   // END OF INIT
 }
@@ -843,7 +857,7 @@ function initDomElms() {
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
-  $infobarHeader = $("#infobar-header > h2");
+  $infobarHeader = $("#infobar-header > h1");
   $playbackTimelineContainer = $("#playback-timeline-container")
 }
 
@@ -1453,6 +1467,7 @@ function updateInfoBar(marker) {
     }
   } else {
     sensorValStr = "Click on the nearest sensor to see pollution measurements.";
+    //TODO: don't show null value on mobile
   }
   infobarPollution.innerHTML = sensorValStr;
 
@@ -1467,6 +1482,7 @@ function updateInfoBar(marker) {
     }
   } else {
     windValStr = "Click on the nearest sensor to see wind measurements.";
+    //TODO: don't show null value on mobile
   }
   infobarWind.innerHTML = windValStr;
 

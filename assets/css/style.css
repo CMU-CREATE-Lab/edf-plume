@@ -76,7 +76,141 @@ body {
   margin-bottom: 10px;
 }
 
+#legend {
+  position: fixed;
+  z-index: 10;
+  right: 10px;
+  top: 10px;
+  bottom: unset;
+}
+
+.legend-circle {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: -8px;
+}
+
+#legend-circle-container {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+#legend-smell-value td {
+  font-size: 10px;
+  margin: 0;
+}
+
+#legend-smell-value .smell-color-td {
+  color: black;
+  min-width: 13px;
+  max-width: 13px;
+  background-repeat: no-repeat;
+  background-size: 15px 15px;
+  background-position: center;
+}
+
+
+#legend-smell-value .trax-td {
+  border-radius: 50%;
+  color: black;
+  min-width: 5px;
+  max-width: 5px;
+  background-repeat: no-repeat;
+  background-size: 5px 5px;
+  background-position: center;
+}
+
+#legend-smell-value .trax-span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  float: left;
+}
+
+#legend-smell-value .opacity-75 {
+  opacity: 75%;
+}
+
+#legend-smell-value .opacity-50 {
+  opacity: 50%;
+}
+
+#legend-smell-value .opacity-25 {
+  opacity: 25%;
+}
+
+#legend-smell-value .wind-arrow-td {
+  color: black;
+  background-repeat: no-repeat;
+  background-size: 40px 15px;
+}
+
+.backtrace-color-map {
+  background-size: 100% 15px;
+  background-repeat: no-repeat;
+  background-image: url('/assets/img/backtrace-color-map.png');
+}
+
+#legend-smell-value .entry-title {
+  text-align: left;
+}
+
+.PM25-color-1 {
+  background-image: url("/assets/img/PM25_1_legend.png");
+}
+
+.PM25-color-2 {
+  background-image: url("/assets/img/PM25_2_legend.png");
+}
+
+.PM25-color-3 {
+  background-image: url("/assets/img/PM25_3_legend.png");
+}
+
+.PM25-color-4 {
+  background-image: url("/assets/img/PM25_4_legend.png");
+}
+
+.PM25-color-5 {
+  background-image: url("/assets/img/PM25_5_legend.png");
+}
+
+.trax-color-1 {
+  background-color: #00e400;
+}
+
+.trax-color-2 {
+  background-color: #ffff00;
+}
+
+.trax-color-3 {
+  background-color: #ff7e00;
+}
+
+.trax-color-4 {
+  background-color: #ff0000;
+}
+
+.trax-color-5 {
+  background-color: #99004c;
+}
+
+.trax-color-6 {
+  background-color: #7e0023;
+}
+
+.wind-arrow {
+  background-image: url("/assets/img/wind_arrow.png");
+}
+
 @media screen and (max-width: 450px) {
+  #legend {
+    bottom: 80px;
+    top: unset;
+  }
+
   #infobar {
     height: auto;
     width: auto;
