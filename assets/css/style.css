@@ -69,9 +69,9 @@ body {
 }
 
 #infobar-error-icon {
-  width: 60px;
+  width: 30px;
   display: none;
-  margin-left: calc(50% - 40px);
+  margin-left: calc(50% - 15px);
   margin-top: 10px;
   margin-bottom: 10px;
 }
@@ -317,4 +317,8 @@ button[disabled]{
 #map div:focus {
   outline: none;
   border: none;
+}
+
+#infobar-plume, #infobar-pollution, #infobar-wind {
+  font-style: italic;
 }

@@ -284,26 +284,25 @@ var sensors = [{
 }];
 
 var sensors_list = [];
-var sensors_cache = {}
+var esdr_sensors = {};
+var plume_backtraces = {};
 
-// This should be the starting time of today's date
-var current_epochtime_milisec = (new Date()).setHours(0,0,0,0);
+var selected_day_start_epochtime_milisec;
+var current_day_str = moment().tz("America/Denver").format("YYYY-MM-DD");
 
-var selectedLocation;
+var selectedLocationPin;
 var selectedSensorMarker;
 var overlay;
 
 var db;
 
-var infowindow_smell;
-var infowindow_PM25;
-
-//var currentDate = new Date();
-//var startOfCurrentDateInMilisec = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()).getTime();
-//var currentHour = currentDate.getHours();
-//var current24HourString = pad(currentHour) + ":00";
-var mostRecentUpdateTimeForLocation;// = convertFrom24To12Format(current24HourString);
+var mostRecentUpdateTimeForLocation;
+var mostRecentUpdateEpochTimeForLocation;
 var mostRecentDayStr;
+
+var $infobarPollution;
+var $infobarWind;
+var $infobarPlume;
 
 // Touch support
 var hasTouchSupport = isTouchDevice();
@@ -338,7 +337,8 @@ function resetAllTraxColors() {
 
 function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   var opacity;
-  var timeIntervalInMs = $("#playback-timeline-container").find(".materialTimelineTickSelected").data("increment") * 60000; //oneHourInMs = 3600000;
+  // 60000 ms in 1 minute
+  var timeIntervalInMs = $playbackTimelineContainer.find(".materialTimelineTickSelected").data("increment") * 60000;
   var options = {};
   for (site in traxLocations) {
     var marker = traxLocations[site].marker;
@@ -433,12 +433,12 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   var markers_with_data_for_chosen_epochtime = [];
   for (sensorName in esdr_sensors) {
     var sensor = esdr_sensors[sensorName];
-    var fullDataForDay = sensor.data[current_epochtime_milisec].data;
+    var fullDataForDay = sensor.data[selected_day_start_epochtime_milisec].data;
     var sensorTimes = fullDataForDay.map(entry => entry.time * 1000);
     indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
     if (indexOfAvailableTime >= 0) {
       markers_with_data_for_chosen_epochtime.push(sensor.marker)
-      sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], sensor.info));
+      sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], sensor.info, animating));
       sensor.marker.updatePM25Marker(sensor.marker.getData())
     }
   }
@@ -453,15 +453,9 @@ async function getTraxInfoByPlaybackTime() {
   }
   traxDataByEpochTimeInMs[playbackTimeInMs] = {};
 
-
-  //var d = new Date(0);
-  //d.setUTCMilliseconds(playbackTimeInMs);
-  //var startDate = new Date(d)
-  //var endDate = new Date(d.setUTCHours(d.getUTCHours() + 1));
   var mStartDate = moment.tz(playbackTimeInMs, "America/Denver");
   var startDate = mStartDate.toDate();
   var endDate = mStartDate.clone().add(playbackTimeline.getIncrementAmt(), 'minutes').toDate();
-  //console.log(startDate, endDate)
 
   const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>=', startDate).where('time', '<', endDate).get();
   if (!snapshot.empty) {
@@ -470,7 +464,6 @@ async function getTraxInfoByPlaybackTime() {
       var traxId = data.site;
       var epochtimeInSec = data.time.seconds;
       traxDataByEpochTimeInMs[playbackTimeInMs][traxId] = {pm25: data.pm25, epochtimeInMs: epochtimeInSec * 1000, name: traxId, sensorType: "trax"};
-      //traxLocations[site].marker.data = {mostRecentPm25Reading: data.pm25, mostRecentReadingTimeInSec: epochtimeInSec, traxId: site};
     });
     setTraxOpacityAndColor(playbackTimeInMs);
   } else {
@@ -604,32 +597,11 @@ async function initMap() {
       ]
   });
 
-  // Set information window
-  infowindow_smell = new google.maps.InfoWindow({
-    pixelOffset: new google.maps.Size(-1, 0),
-    maxWidth: 250
-  });
-  infowindow_PM25 = new google.maps.InfoWindow({
-    pixelOffset: new google.maps.Size(0, 37),
-    maxWidth: 250
-  });
-  //infowindow_PM25 = document.getElementById("infowindow_PM25")
-
-  // Change the style of the info window
-  infowindow_smell.addListener("domready", function () {
-    styleInfoWindowCloseButton();
-  });
-  infowindow_PM25.addListener("domready", function () {
-    styleInfoWindowCloseButton();
-  });
-
   map.addListener("click", (mapsMouseEvent) => {
     handleMapClicked(mapsMouseEvent);
   });
 
   $("#infobar-close").on("click",closeInfobar);
-
-  //$("#infobar-close-handle").on("touchmove",closeInfobar);
 
   var $infobar = $("#infobar");
 
@@ -702,6 +674,7 @@ async function initMap() {
       super();
       this.bounds = bounds;
       this.image = image;
+      this.data = {};
     }
     /**
      * onAdd is called when the map's panes are ready and the overlay has been
@@ -787,6 +760,14 @@ async function initMap() {
         this.setMap(map);
       }
     }
+    getData() {
+      return this.data;
+    }
+    setData(newData) {
+      if (newData) {
+        this.data = newData;
+      }
+    }
   }
   //-------------------------------------------------------------------------------------
 
@@ -835,11 +816,36 @@ async function initMap() {
     traxMarker.setVisible(false);
   }
 
-  expandInfobar();
   $(".infobar-component").hide();
   $("#infobar-initial").show();
+
+  $(document).on("keydown",function(e) {
+    switch (e.keyCode) {
+      case 37:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.seekControlAction("left");
+        }
+        break;
+      case 39:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.seekControlAction("right");
+        }
+        break;
+    }
+  });
+
+  initDomElms();
   // END OF INIT
 }
+
+function initDomElms() {
+  $infobarPollution = $("#infobar-pollution");
+  $infobarWind = $("#infobar-wind");
+  $infobarPlume = $("#infobar-plume");
+  $infobarHeader = $("#infobar-header > h2");
+  $playbackTimelineContainer = $("#playback-timeline-container")
+}
+
  // Add horizontal scroll touch support to a jQuery HTML element.
 var touchHorizontalScroll = function($elem) {
   var scrollStartPos = 0;
@@ -868,110 +874,134 @@ var verticalTouchScroll = function($elem){
   }, false);
 };
 
-function drawFootprint(lat, lng, fromClicked) {
+async function drawFootprint(lat, lng, fromClicked) {
+  if (!fromClicked && !selectedLocationPin) {
+    return;
+  }
+  var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
-  if (overlay && fromClicked) {
-    overlay.setMap(null);
-    overlay.isoString = null;
-    overlay.lat = null;
-    overlay.lng = null;
+  if (fromClicked) {
+    if (overlay) {
+      overlay.setMap(null);
+      overlay.setData({});
+    }
+    if (selectedLocationPin) {
+      selectedLocationPin.setMap(null);
+      selectedLocationPin = null;
+    }
   }
 
-  //var d = new Date(0);
-  //d.setUTCSeconds(playbackTimeline.getPlaybackTimeInMs() / 1000);
-  ////"2021-01-13T21:53:44.495Z"
-  //var isoString = d.toISOString();
-  //var yearMonthDay = isoString.split("T")[0].split("-");
-  //var hourMinute = isoString.split("T")[1].split(":")
-
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+  var m_date = moment(playbackTimeInMs).tz("America/Denver");
+  // Check if current day
+  //var is_current_day = m_date.format("YYYY-MM-DD") === current_day_str;
+
+
 
   // Footprints are hourly
-  var startDate = moment.tz(playbackTimeInMs, "America/Denver").startOf("hour").toDate();
-  var isoString = startDate.toISOString();
+  var m_closestDate = m_date.startOf("hour");
+  var closestDate = m_closestDate.toDate();
+  var closestDateEpoch = m_closestDate.valueOf();
+  var isoString = closestDate.toISOString();
   var yearMonthDay = isoString.split("T")[0].split("-");
   var hourMinute = isoString.split("T")[1].split(":");
 
-  if (overlay.isoString == isoString) {
+  // The hour has not changed, so keep previous plume up
+  if (overlay.getData().isoString == isoString) {
     return;
   }
 
-  overlay.isoString = isoString;
-  overlay.lat = lat;
-  overlay.lng = lng;
+  var latTrunc = lat.toFixed(2);
+  var lngTrunc = lng.toFixed(2);
 
-  var coords = {xmin: lng - 0.5,
-    ymin: lat - 0.5,
-    xmax: lng + 0.5,
-    ymax: lat + 0.5}
+  var overlayData = {
+    'is_current_day' : playbackTimeline.isActive(),
+    'isoString' : isoString,
+    'lat' : lat,
+    'lng' : lng,
+    'sensorType' : "plume-backtrace",
+    'name' : latTrunc + ", " + lngTrunc
+  };
 
-  const bounds = new google.maps.LatLngBounds(
-    new google.maps.LatLng(coords.ymin, coords.xmin),
-    new google.maps.LatLng(coords.ymax, coords.xmax)
-  );
+  var data;
+  var iconPath;
+  var loc = latTrunc + "," + lngTrunc
 
-  var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + parseFloat(lng.toFixed(2)) + "_" + parseFloat(lat.toFixed(2)) + "_1";
-  var docRef = db.collection(STILT_COLLECTION_NAME).doc(docRefString);
-  console.log(docRefString)
+  if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
+    data = plume_backtraces[loc][closestDateEpoch];
+  } else {
+    // STILT job ids don’t use trailing zeros, so do parseFloat to remove them.
+    var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + parseFloat(lngTrunc) + "_" + parseFloat(latTrunc) + "_1";
+    //console.log(docRefString)
+    const snapshot = await  db.collection(STILT_COLLECTION_NAME).doc(docRefString).get();
+    data = snapshot.data();
+    if (!plume_backtraces[loc]) {
+      plume_backtraces[loc] = {};
+    }
+  }
 
-  docRef
-    .get()
-    .then((doc) => doc.data())
-    .then((data) => {
-      if (data) {
-        return data;
+  if (data) {
+    overlayData['hasData'] = true;
+    var { image, location, time, extent } = data;
+    var timeInMs = time.seconds * 1000;
+    plume_backtraces[loc][timeInMs] = data;
+    overlayData['epochtimeInMs'] = timeInMs;
+    overlay.set('image', image);
+    const bounds = new google.maps.LatLngBounds(
+      new google.maps.LatLng(extent.ymin, extent.xmin),
+      new google.maps.LatLng(extent.ymax, extent.xmax)
+    );
+    overlay.set('bounds', bounds);
+    overlay.setMap(map);
+    overlay.show();
+    if (!fromClicked && !previousFootprintData.hasData) {
+      if (selectedLocationPin) {
+        selectedLocationPin.setMap(null);
+        selectedLocationPin = null;
       }
-      // Show error in plume infobar
-      $("#infobar-about-section")[0].style = "text-align: center";
-      $("#infobar-about-section > i")[0].innerHTML = "No pollution backtrace available at: " + docRefString;
-      $("#infobar-error-icon")[0].style = "display: table";
-      //selectedLocation.setIcon();
-      expandInfobar();
-      selectedLocation = new google.maps.Marker({
-        position: new google.maps.LatLng(lat,lng),
-        map,
-        title: "Selected Location",
-        animation: google.maps.Animation.DROP,
-        icon: 'assets/img/gray-pin.png'
-      });
-      //selectedLocation.setOpacity(.5);
-      throw new Error("No plume data found.");
-    })
-    .then(({ image, location, time, extent }) => {
-      overlay.set('image',image);
-      const bounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(extent.ymin, extent.xmin),
-        new google.maps.LatLng(extent.ymax, extent.xmax)
-      );
-      overlay.set('bounds',bounds);
-
-      //overlay.set('opacity',0.1);
-      overlay.setMap(map);
-
-      expandInfobar();
-
-      if (fromClicked) {
-        selectedLocation = new google.maps.Marker({
-          position: new google.maps.LatLng(lat,lng),
-          map,
-          title: "Selected Location",
-          animation: google.maps.Animation.DROP
-        });
+    }
+  } else {
+    overlayData['hasData'] = false;
+    iconPath = 'assets/img/gray-pin.png';
+    if (!fromClicked && previousFootprintData.hasData) {
+      if (selectedLocationPin) {
+        selectedLocationPin.setMap(null);
+        selectedLocationPin = null;
       }
+      if (overlay) {
+        overlay.hide();
+      }
+    }
+  }
 
-      $("#infobar-about-section")[0].style = "text-align: auto; font-style: auto";
-      $("#infobar-about-section > i")[0].innerHTML = "Our model shows that particles originated from the XX direction.";
-      $("#infobar-error-icon")[0].style = "display: none";
-    })
-    .catch(console.error);
+  overlay.setData(overlayData);
+
+  if (!fromClicked && ((previousFootprintData.hasData && overlayData['hasData']) || (previousFootprintData.hasData == false && !overlayData['hasData']))) {
+    return;
+  }
+
+  if (fromClicked) {
+    expandInfobar();
+  }
+
+  // TODO: Set this once and just update position and icon
+  selectedLocationPin = new google.maps.Marker({
+    position: new google.maps.LatLng(lat,lng),
+    map,
+    title: "Selected Location",
+    animation: fromClicked ? google.maps.Animation.DROP : null,
+    icon: iconPath
+  });
+
 }
 
 function closeInfobar() {
   var infobar = $("#infobar")[0];
   infobar.style.visibility = 'hidden';
   overlay.setMap(null);
-  if (selectedLocation) {
-    selectedLocation.setMap(null)
+  if (selectedLocationPin) {
+    selectedLocationPin.setMap(null);
+    selectedLocationPin = null;
   }
 }
 
@@ -986,14 +1016,6 @@ function expandInfobar() {
 //if ($(window).width() < 450) {
 //  $( ".custom-legend" ).accordion( "option", "active", false );
 //}
-
-function styleInfoWindowCloseButton() {
-  $(".gm-style-iw").next().css({
-    "-ms-transform": "scale(1.3, 1.3)",
-    "-webkit-transform": "scale(1.3, 1.3)",
-    "transform": "scale(1.3, 1.3)"
-  });
-}
 
 function loadSensorList(sensors) {
   for (var i = 0; i < sensors.length; i++) {
@@ -1013,8 +1035,6 @@ function loadSensorList(sensors) {
   $("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
 }
 
-var esdr_sensors = {};
-
 function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, i) {
   // Generate a list of urls that we need to request
   var urls = generateSensorDataUrlList(epochtime_milisec, info);
@@ -1027,7 +1047,6 @@ function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, i) 
     data = rollSensorData(data, info);
     // For VOC sensors with faster sampling rates, we need to average data points
     data = aggregateSensorData(data, info);
-    //console.log(data)
     // Create markers
     if (!esdr_sensors[info["name"]]) {
       esdr_sensors[info["name"]] = {"data" : {}};
@@ -1055,23 +1074,20 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
       // Make the maker visible on the map when the maker is created
       // Make sure that the desired time matches the current time
       // (if user selects the time block too fast, they will be different)
-      if (epochtime_milisec == current_epochtime_milisec) {
+      if (epochtime_milisec == selected_day_start_epochtime_milisec) {
         showMarkers([marker]);
       }
       esdr_sensors[info['name']]['marker'] = marker;
       esdr_sensors[info['name']]['info'] = info;
-      // Cache markers
-      //sensors_cache[epochtime_milisec]["is_current_day"] = is_current_day;
-      //sensors_cache[epochtime_milisec]["markers"][i] = marker;
     }
   });
 }
 
-function parseSensorMarkerDataForPlayback(data, info) {
+function parseSensorMarkerDataForPlayback(data, info, is_current_day) {
   var sensor_type = getSensorType(info);
   if (typeof sensor_type === "undefined") return undefined;
   var marker_data = {
-    "is_current_day": true,
+    "is_current_day": typeof(is_current_day) === "undefined" ? true : is_current_day,
     "name": info["name"],
     "latitude": info["latitude"],
     "longitude": info["longitude"],
@@ -1401,64 +1417,86 @@ function safeGet(v, default_val) {
   return (typeof v === "undefined") ? default_val : v;
 }
 
-/*
-function createMarkerTableFromSensorData(data, epochtime_milisec, info, i) {
-  // When animating, we are actually hiding and showing all pre-created markers
-  // Create a table of sensor markers that correspond to different timestamps for animation
-  // One dimension is the marker itself
-  // One dimension is the timestamp
-  sensors_cache[epochtime_milisec]["marker_table"][i] = [];
-  for (var j = 0; j < data["data"].length; j++) {
-    var marker_data = parseSensorMarkerData(data, true, info, j);
-    createSensorMarkerForAnimation(marker_data, epochtime_milisec, info, i, j);
-  }
-}
-*/
-
+// TODO: Refactor so we are not passing in a marker but pulling state elsewhere.
 function updateInfoBar(marker) {
-  var markerData = marker.getData();
-  var markerDataTimeInMs = markerData.sensorType ==  "trax" ? markerData['epochtimeInMs'] : markerData['sensor_data_time']
-  var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, "America/Denver").format("h:mm:ss A");
+  if (!marker) return;
 
-  // Set infobar header to name
-  var infobarHeader = $("#infobar-header > h2")[0];
+  var markerData = marker.getData();
+
+  // This is likely the case where we clicked on TRAX and incremented time, thus that marker is no longer valid.
+  if (!markerData) {
+    if (overlay) {
+      markerData = overlay.getData();
+    }
+  }
+
+  var isDaySummary = !markerData['is_current_day'] && markerData.sensorType != "trax";
+
+  var markerDataTimeInMs = markerData.sensorType ==  "trax" || markerData.sensorType  == "plume-backtrace" ? markerData['epochtimeInMs'] : markerData['sensor_data_time'];
+  var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, "America/Denver").format("h:mm A (zz)");
+
+  // Set infobar header to sensor name (if TRAX or AirNow) or clicked lat/lon coords otherwise
+  var infobarHeader = $infobarHeader[0];
   var markerName = markerData.sensorType ==  "trax" ? "TRAX "+ formatTRAXLineName(marker.traxId) + " Line" : markerData.name;
   infobarHeader.innerHTML = markerName;
 
   // Show sensor pollution value (PM25) in infobar
-  var infobarPollution = $("#infobar-pollution")[0];
+  var infobarPollution = $infobarPollution[0];
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'];
-  infobarPollution.innerHTML = formatPM25(sensorVal) + " at " + markerDataTimeMomentFormatted;
+  var sensorValStr = "";
+  if (selectedSensorMarker) {
+    if (isDaySummary) {
+      sensorValStr = "Maxium reading for the day was " + formatPM25(sensorVal) + " at " + markerDataTimeMomentFormatted + ". <br><br> Click the clock icon to explore more readings for this past day.";
+    } else {
+      sensorValStr = formatPM25(sensorVal) + " at " + markerDataTimeMomentFormatted;
+    }
+  } else {
+    sensorValStr = "Click on the nearest sensor to see pollution measurements.";
+  }
+  infobarPollution.innerHTML = sensorValStr;
 
   // If time selected, show sensor wind in infobar
-  var infobarWind = $("#infobar-wind")[0];
-  infobarWind.innerHTML = formatWind(marker.getData()['wind_speed'], marker.getData()['wind_direction']) + " at " + markerDataTimeMomentFormatted;
+  var infobarWind = $infobarWind[0];
+  var windValStr = "";
+  if (selectedSensorMarker) {
+    if (isDaySummary) {
+      windValStr = "Click the clock icon to explore wind information for this past day."
+    } else {
+      windValStr = formatWind(markerData['wind_speed'], markerData['wind_direction']) + " at " + markerDataTimeMomentFormatted;
+    }
+  } else {
+    windValStr = "Click on the nearest sensor to see wind measurements.";
+  }
+  infobarWind.innerHTML = windValStr;
+
+  // Show plume backtrace information
+  if (overlay) {
+    var overlayData = overlay.getData();
+    var infobarPlume = $infobarPlume[0];
+    var infoStr = "";
+    if (overlayData.hasData) {
+      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], "America/Denver").format("h:mm A (zz)");;
+    } else {
+      infoStr = "No pollution backtrace available at this time interval."
+    }
+    infobarPlume.innerHTML = infoStr;
+  }
 }
 
-function handleSensorMarkerClicked(marker) {
-  if (selectedLocation) { selectedLocation.setMap(null) };
+async function handleSensorMarkerClicked(marker) {
+  //if (selectedLocationPin) { selectedLocationPin.setMap(null) };
+
+  await drawFootprint(marker.getData()['latitude'], marker.getData()['longitude'], true);
 
   updateInfoBar(marker);
-
-  drawFootprint(marker.getData()['latitude'], marker.getData()['longitude'], true);
 }
 
-function handleTRAXMarkerClicked(marker) {
-  if (selectedLocation) { selectedLocation.setMap(null) };
+async function handleTRAXMarkerClicked(marker) {
+  // (selectedLocationPin) { selectedLocationPin.setMap(null) };
 
-  //set infobar header to name
-  //var infobarHeader = $("#infobar-header > h2")[0];
-  //infobarHeader.innerHTML = "TRAX "+ formatTRAXLineName(marker.traxId) + " Line";
-
-  //show sensor pollution value in infobar
-  //var infobarPollution = $("#infobar-pollution")[0];
-  //var currentMarkerData = traxDataByEpochTimeInMs[playbackTimeline.getPlaybackTimeInMs()][marker.traxId];
-
-  //infobarPollution.innerHTML = formatPM25(currentMarkerData.pm25.toFixed(2)) + " at time " + moment.tz(currentMarkerData.epochtimeInSec * 1000, "America/Denver").format("h:mm:ss A");
+  await drawFootprint(traxLocations[marker.traxId]['lat'], traxLocations[marker.traxId]['lng'], true);
 
   updateInfoBar(marker);
-
-  drawFootprint(traxLocations[marker.traxId]['lat'], traxLocations[marker.traxId]['lng'], true);
 }
 
 function formatTRAXLineName(traxID) {
@@ -1497,34 +1535,19 @@ function formatWind(speed,deg) {
 }
 
 
-function handleMapClicked(mapsMouseEvent) {
-  //drop pin
-  if (selectedLocation) { selectedLocation.setMap(null) };
+async function handleMapClicked(mapsMouseEvent) {
+  //if (selectedLocationPin) { selectedLocationPin.setMap(null) };
 
   selectedSensorMarker = null;
 
-  //set infobar header to lat/lng
-  var infobarHeader = $("#infobar-header > h2")[0];
-  var lat = roundTo(mapsMouseEvent.latLng.lat(), 5);
-  var lng = roundTo(mapsMouseEvent.latLng.lng(), 5);
-  infobarHeader.innerHTML = lat + ", " + lng;
-
-  //show default text for sensor pollution value in infobar
-  var infobarPollution = $("#infobar-pollution")[0];
-  infobarPollution.innerHTML = "<i>Click on the nearest sensor to see pollution measurements</i>";
-
-  //show default text for sensor wind in infobar
-  var infobarWind = $("#infobar-wind")[0];
-  infobarWind.innerHTML = "<i>Click on the nearest sensor to see wind measurements</i>";
-
-  drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng(), true);
+  await drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng(), true);
+  updateInfoBar(overlay)
 }
 
 function getWindDirFromDeg(deg) {
-  // TODO:
-  // The direction given by ACHD is the direction _from_ which the wind is coming.
-  // For them we have to reverse it to show where the wind is going to. (+180)
-  // Do we need to do the same for AirNow???
+  // NOTE:
+  // Wind information is reported in the direction _from_ which the wind is coming.
+  // We say _from_ in the info window but our wind icon is showing _to_
   var val = Math.round((deg/22.5)+.5);
   var arr = ["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   return arr[(val % 16)];
@@ -1547,20 +1570,16 @@ function roundTo(val, n) {
 
 function showSensorMarkersByTime(epochtime_milisec) {
   if (typeof epochtime_milisec == "undefined") return;
-  // Check if data exists in the cache
-  // If not, load data from the server
-  var r = sensors_cache[epochtime_milisec];
 
   // Check if current day
-  var date_str_sensor = (new Date(epochtime_milisec)).toDateString();
-  var date_str_now = (new Date()).toDateString();
-  var is_current_day = date_str_sensor === date_str_now;
+  var date_str_sensor = moment(epochtime_milisec).tz("America/Denver").format("YYYY-MM-DD");
+  var is_current_day = date_str_sensor === current_day_str;
 
   var markers_with_data_for_chosen_epochtime = [];
   for (sensorName in esdr_sensors) {
     var sensor = esdr_sensors[sensorName];
     if (sensor.data[epochtime_milisec]) {
-      markers_with_data_for_chosen_epochtime.push(sensor.marker)
+      markers_with_data_for_chosen_epochtime.push(sensor.marker);
       sensor.marker.setData(parseSensorMarkerData(sensor.data[epochtime_milisec], is_current_day, sensor.info));
       sensor.marker.updatePM25Marker(sensor.marker.getData())
     }
@@ -1570,14 +1589,6 @@ function showSensorMarkersByTime(epochtime_milisec) {
     // Make sensors markers visible on the map
     showMarkers(markers_with_data_for_chosen_epochtime);
   } else {
-    // For each sensor, load data from server and create a marker
-    sensors_cache[epochtime_milisec] = {
-      "markers": [],
-      "marker_table": []
-    };
-
-    // TODO: Begin here for ESDR api request overhall
-
     for (var i = 0; i < sensors_list.length; i++) {
       loadAndCreateSensorMarkers(epochtime_milisec, sensors_list[i], is_current_day, i);
     }
@@ -1589,6 +1600,8 @@ function handleTimelineToggling(e) {
   $("#playback-timeline-container .anchor").show();
   if ($("#controls").hasClass("playbackTimelineOff")) {
     if ($currentTarget.prop("id") == "calendar-btn") return;
+
+    playbackTimeline.setActiveState(true);
 
     // TODO
     if ($("#timeline-container .selected-block").data('label') == mostRecentDayStr) {
@@ -1607,6 +1620,9 @@ function handleTimelineToggling(e) {
 
   } else {
     if ($currentTarget.hasClass("playbackButton")) return;
+
+    playbackTimeline.setActiveState(false);
+
     $(".calendar-specific-day").addClass("hidden");
     $("#calendar-btn").removeClass("playbackTimelineOn calendar-specific-day-icon").addClass("force-hidden").prop("title", "Calendar");
     //$(".timestampPreview").removeClass("force-hidden");
@@ -1615,8 +1631,16 @@ function handleTimelineToggling(e) {
     $("#controls").addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
     // TODO: Perhaps leave the last hour that was up?
-    playbackTimeline.seekTo(0);
+    if ($("#timeline-container .selected-block").data('label') == mostRecentDayStr) {
+      var captureTimes = playbackTimeline.getCaptureTimes();
+      var captureTimeIdx = captureTimes.indexOf(mostRecentUpdateTimeForLocation);
+      playbackTimeline.seekTo(captureTimeIdx);
+    } else {
+      playbackTimeline.seekTo(0);
+    }
   }
+  updateSensorsByEpochTime(playbackTimeline.getPlaybackTimeInMs(), playbackTimeline.isActive());
+  updateInfoBar(selectedSensorMarker);
 
 }
 

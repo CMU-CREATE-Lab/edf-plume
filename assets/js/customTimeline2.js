@@ -95,6 +95,7 @@ var create = {};
     var lastFrameWasGroupEnd = false;
     var isAnimating = false;
     var animateInterval = null;
+    var isTimelineActive = false;
 
 
     var initPlayPause = function() {
@@ -224,32 +225,45 @@ var create = {};
     }
     this.setPlaybackTimeInMs = setPlaybackTimeInMs;
 
+    var isActive = function() {
+      return isTimelineActive;
+    }
+    this.isActive = isActive;
+
+    var setActiveState = function(state) {
+      isTimelineActive = state;
+    }
+    this.setActiveState = setActiveState;
+
     var getIncrementAmt = function() {
       return incrementAmtInMin;
     }
     this.getIncrementAmt = getIncrementAmt;
 
-    var updateTimelineSlider = function(frameNum, timeTick, fromSync) {
+    async function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus) {
       if (timeline) {
         var numMins = $(timeTick).data("frame") * $(timeTick).data("increment");
 
         var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, "America/Denver").add(numMins, 'minutes').valueOf(); //new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
-
-        if (newPlaybackTimeInMs != playbackTimeInMs) {
-          // TODO(!!): Need to select the closest available data. Currently if we go in verse from a timestamp that brings in new data we still see this new timestamp,
-          // rather than the old data that we saw before clicking this new timestamp.
-
+        if (newPlaybackTimeInMs != playbackTimeInMs && !fromRefocus) {
           playbackTimeInMs = newPlaybackTimeInMs;
           // animate trax data
           getTraxInfoByPlaybackTime();
-          // animate footprint
-          if (overlay && overlay.projection) {
-            drawFootprint(overlay.lat, overlay.lng, false)
-          }
           // animate ESDR (and eventually other) sensors
-          updateSensorsByEpochTime(playbackTimeInMs);
-          if (selectedSensorMarker) {
-            updateInfoBar(selectedSensorMarker, false)
+          updateSensorsByEpochTime(playbackTimeInMs, true);
+          var primaryInfoPopulator = selectedSensorMarker;
+
+          // animate footprint
+          if (overlay && (overlay.projection || selectedLocationPin)) {
+            var overlayData = overlay.getData();
+            await drawFootprint(overlayData.lat, overlayData.lng, false);
+            if (!primaryInfoPopulator) {
+              primaryInfoPopulator = overlay;
+            }
+          }
+          // TODO
+          if (primaryInfoPopulator) {
+            updateInfoBar(primaryInfoPopulator, false)
           }
         }
       }
@@ -378,7 +392,7 @@ var create = {};
     this.stopAnimate = stopAnimate;
 
     var refocusTimeline = function() {
-      updateTimelineSlider(null, $selectedTimelineTick, false);
+      updateTimelineSlider(null, $selectedTimelineTick, false, true);
     };
     this.refocusTimeline = refocusTimeline;
 
