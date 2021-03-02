@@ -816,6 +816,7 @@ async function initMap() {
     traxMarker.setVisible(false);
   }
 
+  expandInfobar();
   $(".infobar-component").hide();
   $("#infobar-initial").show();
 
@@ -1641,7 +1642,6 @@ function handleTimelineToggling(e) {
   }
   updateSensorsByEpochTime(playbackTimeline.getPlaybackTimeInMs(), playbackTimeline.isActive());
   updateInfoBar(selectedSensorMarker);
-
 }
 
 function pad(n) { return (n < 10 ? '0' : '') + n.toString(); };
