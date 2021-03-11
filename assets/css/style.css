@@ -403,8 +403,6 @@ button[disabled]{
   opacity: 1;
 }
 
-
-
 .timeline-container::-webkit-scrollbar {
   -webkit-appearance: none;
   background: transparent;

@@ -1,4 +1,5 @@
 var map;
+var playbackTimeline;
 //var isMobileDevice = navigator.userAgent.match(/CrOS/) != null && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Mobile/i.test(navigator.userAgent));
 
 var TRAX_COLLECTION_NAME = "trax-dev";
@@ -800,9 +801,6 @@ async function initMap() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
 
-  // TODO: Need pollyfill
-  new ResizeObserver(playbackTimeline.refocusTimeline).observe($(".materialTimeline")[0]);
-
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
   for (const traxid in traxLocations) {
@@ -834,6 +832,11 @@ async function initMap() {
 
   $(document).on("keydown",function(e) {
     switch (e.keyCode) {
+      case 32:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.togglePlayPause();
+        }
+        break;
       case 37:
         if (playbackTimeline.isActive()) {
           playbackTimeline.seekControlAction("left");
@@ -1046,7 +1049,6 @@ function loadSensorList(sensors) {
     }
   }
   initTimeline(options);
-  playbackTimeline = new create.CustomTimeline2();
   $("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
 }
 
@@ -1656,6 +1658,7 @@ function handleTimelineToggling(e) {
       playbackTimeline.seekTo(0);
     }
   }
+  resetAllTraxColors();
   updateSensorsByEpochTime(playbackTimeline.getPlaybackTimeInMs(), playbackTimeline.isActive());
   updateInfoBar(selectedSensorMarker);
 }

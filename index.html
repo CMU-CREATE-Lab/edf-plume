@@ -13,6 +13,7 @@
     <link href="./assets/css/TimelineHeatmap.css" media="screen" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/style.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/materialUI.css" />
+    <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.css" />
 
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
@@ -34,6 +35,7 @@
     <script src="./assets/js/Util.js"></script>
     <script src="./assets/lib/gmaps-utils/map_marker/CustomMapMarker.js"></script>
     <script src="./assets/lib/touchPunch/jquery.ui.touch-punch.min.js"></script>
+    <script src="./assets/lib/bootstrapFullscreenSelect/bootstrap-fullscreen-select.min.js"></script>
 
     <script src="./assets/lib/scrollIntoView/scrollIntoView.min.js"></script>
     <script src="./assets/js/customTimeline2.js"></script>
@@ -42,24 +44,22 @@
 
   </head>
   <body>
-
     <div id="controls" class="playbackTimelineOff">
       <div id="playback-timeline-container" class="noselect">
         <div class="materialTimelineContainerMain">
           <div class="materialTimelineContainer">
             <div class="timestampPreview disabled" title="Explore more hours in this day"></div>
             <div class="playbackButton" title="Play"></div>
-            <div class="leftSeekControl" title="Seek backwards"><span class="leftSeekControlIcon"></span></div>
+            <div class="leftSeekControl" title="Click to seek backward. Press and hold to jump to a different hour."><span class="leftSeekControlIcon"></span></div>
             <div class="materialTimeline"></div>
-            <div class="rightSeekControl" title="Seek forward"><span class="rightSeekControlIcon"></span></div>
+            <div class="rightSeekControl" title="Click to seek forward. Press and hold to jump to a different hour."><span class="rightSeekControlIcon"></span></div>
           </div>
         </div>
+        <div id="timeJumpControl" title="Jump to an hour"></div>
       </div>
-
       <div id="timeline-container" class="noselect timeline-container"></div>
       <button id="calendar-btn" title="Calendar" class="force-hidden custom-button-flat calendar-default-icon" disabled><div class="calendar-specific-day hidden"></div></button>
     </div>
-
     <div id="infobar" class='infocontainer'>
       <button id="infobar-close" title="Close">X</button>
       <div id="infobar-header">
@@ -80,7 +80,7 @@
       </div>
       <div id="infobar-close-handle"></div>
     </div>
-    
+
     <div class="custom-legend noselect" id="legend">
       <h3 class="legend-title">Legend</h3>
       <div class="legend-scale">

@@ -68,18 +68,19 @@ var create = {};
     // DOM elements
     var viewerDivId = "playback-timeline-container"
     var $timeline = $("#" + viewerDivId + " .materialTimeline");
-    var $speedControls = $("#" + viewerDivId + " #speedControlOptions");
+    //var $speedControls = $("#" + viewerDivId + " #speedControlOptions");
+    var $timeJumpOptions;
     var $rightSeekControl = $("#" + viewerDivId + " .rightSeekControl");
     var $leftSeekControl = $("#" + viewerDivId + " .leftSeekControl");
-    var $materialNowViewingContainer = $("#" + viewerDivId + " .materialNowViewingContainer");
-    var $materialNowViewingContent = $("#" + viewerDivId + " .materialNowViewingContent");
-    var $materialNowViewingText = $("#" + viewerDivId + " .materialNowViewingText");
-    var $materialNowViewingClose = $("#" + viewerDivId + " .materialNowViewingContent .close");
+    //var $materialNowViewingContainer = $("#" + viewerDivId + " .materialNowViewingContainer");
+    //var $materialNowViewingContent = $("#" + viewerDivId + " .materialNowViewingContent");
+    //var $materialNowViewingText = $("#" + viewerDivId + " .materialNowViewingText");
+    //var $materialNowViewingClose = $("#" + viewerDivId + " .materialNowViewingContent .close");
     var $timelineTicks;
     var $selectedTimelineTick;
-    var $shareButton = $("#" + viewerDivId + " .share");
-    var $timelineDisabledContainer = $("#" + viewerDivId + " .materialTimelineDisabled");
-    var $waypointDrawerContainerToggle = $("#" + viewerDivId + " .waypointDrawerContainerToggle");
+    //var $shareButton = $("#" + viewerDivId + " .share");
+    //var $timelineDisabledContainer = $("#" + viewerDivId + " .materialTimelineDisabled");
+    //var $waypointDrawerContainerToggle = $("#" + viewerDivId + " .waypointDrawerContainerToggle");
     var timelineGroupHTML = "";
     var timelineGroupSeparator = "<span class='materialTimelineDivider'>&#8226;</span>";
     var leftTimelineGroupWidth;
@@ -96,6 +97,8 @@ var create = {};
     var isAnimating = false;
     var animateInterval = null;
     var isTimelineActive = false;
+    var isTimelinePaused = true;
+    var seekHoldTimeout;
 
 
     var initPlayPause = function() {
@@ -138,29 +141,36 @@ var create = {};
 
     var createTimelineSlider = function() {
       var currentTimelineHTML = "";
-      // TODO
+      var timeSeekSelectOptionsHTML = "<select id='timeJumpOptions'>";
       captureTimes = [];
       var hour = -1;
       var multipler = 60/incrementAmtInMin;
       var numIntervals = 24*multipler;
       for (var i = 0; i < numIntervals; i++) {
         var min = i % multipler == 0 ? 0 : min + incrementAmtInMin;
-        hour = i % multipler == 0 ? hour + 1 : hour;
+        var newHour = i % multipler == 0 ? hour + 1 : hour;
+        var hourChange = false;
+        if (newHour != hour) {
+          hour = i % multipler == 0 ? hour + 1 : hour;
+          hourChange = true;
+        }
         var TimeStamp24Hour = pad(hour) + ":" + pad(min);
         var TimeStamp12Hour = convertFrom24To12Format(TimeStamp24Hour)
         captureTimes.push(TimeStamp12Hour);
+        currentTimelineHTML += "<span class='materialTimelineTick' data-increment='" + incrementAmtInMin + "' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
+        if (hourChange) {
+          timeSeekSelectOptionsHTML += `<option value='${i}'>${TimeStamp12Hour}</option>`;
+        }
       }
       numFrames = captureTimes.length;
-
-      for (var i = 0; i < captureTimes.length; i++) {
-        currentTimelineHTML += "<span class='materialTimelineTick' data-increment='" + incrementAmtInMin + "' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
-      }
       timelineGroupHTML = currentTimelineHTML;
       var $leftGroup = $("<div class='leftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
       var $rightGroup =  $("<div class='rightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
       var $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
       $timeline.append($leftGroup, $rightGroup, $anchor);
-
+      timeSeekSelectOptionsHTML += "</select>";
+      $("#timeJumpControl").append(timeSeekSelectOptionsHTML);
+      $timeJumpOptions = $("#" + viewerDivId + " #timeJumpOptions");
       $timeline.on("mousedown", function(e) {
         if (typeof(e.pageX) === "undefined") {
           startDownX = e.clientX;
@@ -205,7 +215,10 @@ var create = {};
       var startTimeElm = $("#" + viewerDivId + " .rightGroup").find(".materialTimelineTick:first");
       timelineTickWidth = startTimeElm.outerWidth(true);
 
-      updateTimelineSlider(0, startTimeElm);
+      //updateTimelineSlider(0, startTimeElm);
+
+      // TODO: Need pollyfill
+      new ResizeObserver(refocusTimeline).observe($(".materialTimeline")[0]);
 
       $(window).on("resize", refocusTimeline);
 
@@ -215,30 +228,45 @@ var create = {};
       //}
     };
 
+    var getNumFrames = function() {
+      return numFrames;
+    };
+    this.getNumFrames = getNumFrames;
+
     var getPlaybackTimeInMs = function() {
       return playbackTimeInMs;
-    }
+    };
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
 
     var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
       playbackTimeInMs = newPlaybackTimeInMs;
-    }
+    };
     this.setPlaybackTimeInMs = setPlaybackTimeInMs;
 
     var isActive = function() {
       return isTimelineActive;
-    }
+    };
     this.isActive = isActive;
 
     var setActiveState = function(state) {
       isTimelineActive = state;
-    }
+    };
     this.setActiveState = setActiveState;
 
     var getIncrementAmt = function() {
       return incrementAmtInMin;
-    }
+    };
     this.getIncrementAmt = getIncrementAmt;
+
+    var isPaused = function() {
+      return isTimelinePaused;
+    };
+    this.isPaused = isPaused;
+
+    var togglePlayPause = function() {
+      $customPlay.trigger("click");
+    };
+    this.togglePlayPause = togglePlayPause;
 
     async function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus) {
       if (timeline) {
@@ -265,6 +293,9 @@ var create = {};
           if (primaryInfoPopulator) {
             updateInfoBar(primaryInfoPopulator, false)
           }
+
+          // TODO
+          $timeJumpOptions.val($(timeTick).data("frame"));
         }
       }
       if (!timeTick || timeTick.length == 0) {
@@ -351,6 +382,23 @@ var create = {};
       }
     };
 
+    var createTimeJump = function() {
+      $timeJumpOptions.mobileSelect({
+        title : "Choose an hour to jump to:",
+        animation : "none",
+        buttonSave : "OK",
+        onOpen: function() {
+          // Need to delay some amount of time for UI to be ready
+          setTimeout(function() {
+            $(".mobileSelect-control.selected")[0].scrollIntoView();
+          }, 10);
+        }
+      });
+      $timeJumpOptions.on("change", function(e) {
+        seekTo($(".mobileSelect-control.selected").data("value"));
+      })
+    };
+
     var createSpeedToggle = function() {
       $speedControls.selectmenu({
         position: {
@@ -359,7 +407,7 @@ var create = {};
         }, change: function(e, ui) {
           // TODO
           console.log("change playback speed");
-          //timelapse.setPlaybackRate(ui.item.value);
+          timelapse.setPlaybackRate(ui.item.value);
         }
       }).val("0.5").selectmenu("refresh");
 
@@ -372,10 +420,24 @@ var create = {};
     var handleSeekControls = function() {
       $leftSeekControl.on("click", function() {
         seekControlAction("left");
+      }).on("mousedown", function() {
+        seekHoldTimeout = setTimeout(function() {
+          seekHoldTimeout = null;
+          $(".btn-mobileSelect-gen").trigger("click");
+        }, 500)
+      }).on("mouseup", function() {
+        clearTimeout(seekHoldTimeout)
       });
 
       $rightSeekControl.on("click", function() {
         seekControlAction("right");
+      }).on("mousedown", function() {
+        seekHoldTimeout = setTimeout(function() {
+          seekHoldTimeout = null;
+          $(".btn-mobileSelect-gen").trigger("click");
+        }, 500)
+      }).on("mouseup", function() {
+        clearTimeout(seekHoldTimeout)
       });
     };
 
@@ -392,7 +454,9 @@ var create = {};
     this.stopAnimate = stopAnimate;
 
     var refocusTimeline = function() {
-      updateTimelineSlider(null, $selectedTimelineTick, false, true);
+      if ($selectedTimelineTick) {
+        updateTimelineSlider(null, $selectedTimelineTick, false, true);
+      }
     };
     this.refocusTimeline = refocusTimeline;
 
@@ -439,6 +503,7 @@ var create = {};
         }).attr({
           "title": "Play"
         }).data("state", "paused");
+        isTimelinePaused = true;
       } else if (type == "play") {
         $customPlay.button({
           icons: {
@@ -448,10 +513,10 @@ var create = {};
         }).attr({
           "title": "Pause"
         }).data("state", "playing");
+        isTimelinePaused = false;
       }
     };
     this.setPlaybackButtonState = setPlaybackButtonState;
-
 
     var getCaptureTimes = function() {
       return captureTimes;
@@ -475,12 +540,13 @@ var create = {};
 
     createTimelineSlider();
 
-    createSpeedToggle();
+    //createSpeedToggle();
+
+    createTimeJump();
 
     handleSeekControls();
 
     initPlayPause();
-
 
   };
 })();

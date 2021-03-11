@@ -443,6 +443,10 @@
   border-left: 1px solid rgba(0, 0, 0, 0.12)
 }
 
+#timeJumpControl {
+  display: none;
+}
+
 .materialUI .speedControl .ui-selectmenu-button {
   background: white;
   width: 56px;
@@ -740,4 +744,14 @@
   top: 10px;
   cursor: pointer;
   display: block;
+}
+
+.mobileSelect-container.white .list-container .mobileSelect-control.selected {
+  background-color: #2979FF !important;
+  color: white !important;
+}
+
+.mobileSelect-container.white .list-container a {
+  color: #80868B !important;
+
 }
