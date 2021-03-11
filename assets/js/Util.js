@@ -136,6 +136,119 @@
     // Public methods
     //
 
+    this.isPointerDevice = function() {
+      return typeof(PointerEvent) !== "undefined";
+    };
+
+    this.isTouchDevice = function() {
+      return typeof(TouchEvent) !== "undefined";
+    };
+
+    // Map touch events to mouse events.
+    this.touch2Mouse = function(e) {
+      e.preventDefault();
+
+      var theTouch = e.changedTouches[0];
+      var thisTouchCount = e.touches.length;
+      if (thisTouchCount) {
+        currentTouchCount = thisTouchCount;
+      } else {
+        currentTouchCount = 0;
+      }
+      var mouseEvent;
+      var theMouse;
+
+      switch (e.type) {
+        case "touchstart":
+          mouseEvent = "mousedown";
+          touchStartTargetElement = theTouch;
+
+          if (tappedTimer && thisTouchCount == 2) {
+            // stop single tap callback
+            clearTimeout(tappedTimer);
+            tappedTimer = null;
+            return;
+          }
+
+          if (tappedTimer) {
+            clearTimeout(tappedTimer);
+            tappedTimer = null;
+
+            theMouse = document.createEvent("MouseEvent");
+            theMouse.initMouseEvent('dblclick', true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
+            theTouch.target.dispatchEvent(theMouse);
+          }
+
+          tappedTimer = setTimeout(function() {
+            tappedTimer = null;
+          }, 350);
+
+          isTouchMoving = false;
+          break;
+        case "touchcancel":
+        case "touchend":
+          mouseEvent = "mouseup";
+          lastDist = null;
+          // Take into account a slight epsilon due to a finger potentially moving just a few pixels when touching the screen
+          var notRealTouchMove = isTouchMoving && touchStartTargetElement && Math.abs(touchStartTargetElement.clientX - theTouch.clientX) < 10 && Math.abs(touchStartTargetElement.clientY - theTouch.clientY) < 10;
+          if (hasTouchSupport && (!isTouchMoving || notRealTouchMove) && touchStartTargetElement && touchStartTargetElement.target == document.elementFromPoint(theTouch.clientX, theTouch.clientY)) {
+            theMouse = document.createEvent("MouseEvent");
+            theMouse.initMouseEvent('click', true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
+            theTouch.target.dispatchEvent(theMouse);
+            // Dispatching a mouse click event does not give focus to some elements, such as input fields. Trigger focus ourselves.
+            $(theTouch.target).focus();
+          }
+
+          isTouchMoving = false;
+
+          if (thisTouchCount == 1) {
+            // Handle going from 2 fingers to 1 finger pan.
+            theTouch = e.touches[0];
+
+            theMouse = document.createEvent("MouseEvent");
+            theMouse.initMouseEvent("mouseup", true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
+            theTouch.target.dispatchEvent(theMouse);
+
+            theMouse = document.createEvent("MouseEvent");
+            theMouse.initMouseEvent("mousedown", true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
+            theTouch.target.dispatchEvent(theMouse);
+
+            return;
+          }
+          break;
+        case "touchmove":
+          mouseEvent = "mousemove";
+          isTouchMoving = true;
+
+          if (thisTouchCount == 1) {
+            // Translate
+          } else if (thisTouchCount == 2) {
+            if (!$(e.target).hasClass("dataPanesContainer")) return;
+
+            var dist = Math.abs(Math.sqrt((e.touches[0].pageX - e.touches[1].pageX) * (e.touches[0].pageX - e.touches[1].pageX) + (e.touches[0].pageY - e.touches[1].pageY) * (e.touches[0].pageY - e.touches[1].pageY)));
+            thisLocation = {
+              pageX: (e.touches[0].pageX + e.touches[1].pageX) / 2,
+              pageY: (e.touches[0].pageY + e.touches[1].pageY) / 2
+            };
+
+            lastDist = dist;
+            lastLocation = thisLocation;
+
+            return;
+          } else {
+            // TODO: More than 2 finger support
+            return;
+          }
+          break;
+        default:
+          return;
+      }
+
+      theMouse = document.createEvent("MouseEvent");
+      theMouse.initMouseEvent(mouseEvent, true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
+      theTouch.target.dispatchEvent(theMouse);
+    };
+
     // Get the the Google Analytics id
     this.getGoogleAnalyticsId = function () {
       var ga_id;

@@ -1,5 +1,5 @@
 /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
+  * element that contains the map. */
 #map {
   height: calc(100% - 76px);
 }
@@ -26,10 +26,10 @@ body {
   overflow: hidden;
   z-index: 1;
   visibility: hidden;
-  box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
+  -webkit-box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
+          box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -261,7 +261,8 @@ body {
     position: fixed;
     overflow: hidden;
     padding-bottom: 15px;
-    box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
+    -webkit-box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
+            box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
   }
 
   #infobar-component-container {
@@ -383,9 +384,9 @@ button[disabled]{
   left: 0;
   bottom: 0;
   z-index: 900;
- image-rendering: -webkit-optimize-contrast;
- -ms-interpolation-mode: nearest-neighbor;
- padding: 0px !important;
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+  padding: 0px !important;
 }
 
 #calendar-btn.playbackTimelineOn {
@@ -402,11 +403,11 @@ button[disabled]{
   position: absolute;
   width: 56px;
   height: 75px;
- image-rendering: crisp-edges;
- image-rendering: -moz-crisp-edges;
- image-rendering: -o-crisp-edges;
- image-rendering: -webkit-optimize-contrast;
- -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -o-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
 #calendar-btn.custom-button-flat {
@@ -440,7 +441,6 @@ button[disabled]{
 .noselect {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
@@ -509,6 +509,7 @@ button[disabled]{
 
 .timeline-container::-webkit-scrollbar-thumb {
   background-color: #ADADAD;
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
   -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
 }
 
@@ -517,6 +518,8 @@ button[disabled]{
 }
 
 #playback-timeline-container .materialTimelineContainerMain {
+  -webkit-transition: all 1.0s ease;
+  -o-transition: all 1.0s ease;
   transition: all 1.0s ease;
 }
 

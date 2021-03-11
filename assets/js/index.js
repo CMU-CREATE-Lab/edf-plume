@@ -1,6 +1,5 @@
 var map;
 var playbackTimeline;
-//var isMobileDevice = navigator.userAgent.match(/CrOS/) != null && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Mobile/i.test(navigator.userAgent));
 
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
@@ -301,16 +300,18 @@ var db;
 var mostRecentUpdateTimeForLocation;
 var mostRecentUpdateEpochTimeForLocation;
 var mostRecentDayStr;
+var mostRecentAvailableFootprintTimeInMs;
 
 var $infobarPollution;
 var $infobarWind;
 var $infobarPlume;
 
 var widgets = new edaplotjs.Widgets();
+var Util = new edaplotjs.Util();
 
 // Touch support
-var hasTouchSupport = isTouchDevice();
-var hasPointerSupport = isPointerDevice();
+var hasTouchSupport = Util.isTouchDevice();
+var hasPointerSupport = Util.isPointerDevice();
 var tappedTimer = null;
 var lastDist = null;
 var lastLocation;
@@ -322,9 +323,13 @@ var currentTouchCount = 0;
 var traxDataByEpochTimeInMs = {};
 var traxLocations = {};
 
+
+
+
 function getDefaultTZ() {
   return DEFAULT_TZ;
 }
+
 
 function resetAllTraxColors() {
   for (trax in traxLocations) {
@@ -339,9 +344,10 @@ function resetAllTraxColors() {
   }
 }
 
+
 function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   var opacity;
-  // 60000 ms in 1 minute
+  // 60000 ms = 1 minute
   var timeIntervalInMs = $playbackTimelineContainer.find(".materialTimelineTickSelected").data("increment") * 60000;
   var options = {};
   for (site in traxLocations) {
@@ -366,6 +372,7 @@ function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   }
 }
 
+
 async function getTraxLocations() {
   const snapshot = await db.collection('trax_location').get()
   let locations = {}
@@ -373,12 +380,14 @@ async function getTraxLocations() {
   return locations;
 }
 
+
 async function getTraxInfoByDateAndId(date, id) {
   date = "20210108224846";
   id = "g096";
   const doc = await db.collection(TRAX_COLLECTION_NAME).doc(date + "_" + id + "_TRX01").get()
   console.log(doc.data());
 }
+
 
 async function getTraxInfoByDay() {
   var d = moment(timeline.selectedDayInMs);
@@ -395,6 +404,7 @@ async function getTraxInfoByDay() {
     resetAllTraxColors();
   }
 }
+
 
 function findExactOrClosestTime(availableTimes, timeToFind, direction, exactOnly) {
   var low = 0, high = availableTimes.length - 1, i, newCompare;
@@ -433,6 +443,7 @@ function findExactOrClosestTime(availableTimes, timeToFind, direction, exactOnly
   }
 }
 
+
 function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   var markers_with_data_for_chosen_epochtime = [];
   for (sensorName in esdr_sensors) {
@@ -448,6 +459,7 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   }
   return markers_with_data_for_chosen_epochtime;
 }
+
 
 async function getTraxInfoByPlaybackTime() {
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
@@ -475,6 +487,7 @@ async function getTraxInfoByPlaybackTime() {
     resetAllTraxColors();
   }
 }
+
 
 async function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -676,10 +689,10 @@ async function initMap() {
 
   if (hasTouchSupport) {
     //var controlsElem = document.getElementById("controls");
-    $("#controls, #infobar").on("touchstart", touch2Mouse);
-    $("#controls, #infobar").on("touchmove", touch2Mouse);
-    $("#controls, #infobar").on("touchend", touch2Mouse);
-    $("#controls, #infobar").on("touchcancel", touch2Mouse);
+    $("#controls, #infobar").on("touchstart", Util.touch2Mouse);
+    $("#controls, #infobar").on("touchmove", Util.touch2Mouse);
+    $("#controls, #infobar").on("touchend", Util.touch2Mouse);
+    $("#controls, #infobar").on("touchcancel", Util.touch2Mouse);
   }
 
   //------------------- create custom map overlay to draw footprint ---------------------------------
@@ -857,6 +870,7 @@ async function initMap() {
   // END OF INIT
 }
 
+
 function initDomElms() {
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
@@ -865,33 +879,18 @@ function initDomElms() {
   $playbackTimelineContainer = $("#playback-timeline-container")
 }
 
- // Add horizontal scroll touch support to a jQuery HTML element.
-var touchHorizontalScroll = function($elem) {
-  var scrollStartPos = 0;
-  $elem.on("touchstart", function(e) {
-    scrollStartPos = this.scrollLeft + e.originalEvent.touches[0].pageX;
-    e.preventDefault();
-  }).on("touchmove", function(e) {
-    this.scrollLeft = scrollStartPos - e.originalEvent.touches[0].pageX;
-    e.preventDefault();
-  });
-};
 
-// Add vertical scroll touch support to an HTML element
-var verticalTouchScroll = function($elem){
-  var el = $elem[0];
-  var scrollStartPos = 0;
-  el.addEventListener("touchstart", function(e) {
-    if ($(this).hasClass("disableScroll")) return;
-    scrollStartPos = this.scrollTop + e.touches[0].pageY;
-    e.preventDefault();
-  }, false);
-  el.addEventListener("touchmove", function(e) {
-    if ($(this).hasClass("disableScroll")) return;
-    this.scrollTop = scrollStartPos - e.touches[0].pageY;
-    e.preventDefault();
-  }, false);
-};
+async function getMostRecentFootprintTimeInMs() {
+  if (mostRecentAvailableFootprintTimeInMs) {
+    return mostRecentAvailableFootprintTimeInMs;
+  }
+  var snapshot = await  db.collection("stilt-prod").orderBy("job_id").limitToLast(1).get();
+  var jobId = snapshot.docs[0].get("job_id");
+  var dataString = jobId.split("_")[0];
+  mostRecentAvailableFootprintTimeInMs = moment.tz(dataString, "YYYYMMDDhhmm", "UTC").valueOf();
+  return mostRecentAvailableFootprintTimeInMs;
+}
+
 
 async function drawFootprint(lat, lng, fromClicked) {
   if (!fromClicked && !selectedLocationPin) {
@@ -914,8 +913,6 @@ async function drawFootprint(lat, lng, fromClicked) {
   var m_date = moment(playbackTimeInMs).tz("America/Denver");
   // Check if current day
   //var is_current_day = m_date.format("YYYY-MM-DD") === current_day_str;
-
-
 
   // Footprints are hourly
   var m_closestDate = m_date.startOf("hour");
@@ -1014,6 +1011,7 @@ async function drawFootprint(lat, lng, fromClicked) {
 
 }
 
+
 function closeInfobar() {
   var infobar = $("#infobar")[0];
   infobar.style.visibility = 'hidden';
@@ -1024,6 +1022,7 @@ function closeInfobar() {
   }
 }
 
+
 function expandInfobar() {
   //get infobar element
   var infobar = $("#infobar")[0];
@@ -1032,9 +1031,6 @@ function expandInfobar() {
   $("#infobar-initial").hide();
 }
 
-//if ($(window).width() < 450) {
-//  $( ".custom-legend" ).accordion( "option", "active", false );
-//}
 
 function loadSensorList(sensors) {
   for (var i = 0; i < sensors.length; i++) {
@@ -1052,6 +1048,7 @@ function loadSensorList(sensors) {
   initTimeline(options);
   $("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
 }
+
 
 function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, i) {
   // Generate a list of urls that we need to request
@@ -1080,6 +1077,7 @@ function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, i) 
   });
 }
 
+
 function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i) {
   return new CustomMapMarker({
     "type": getSensorType(info),
@@ -1100,6 +1098,7 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     }
   });
 }
+
 
 function parseSensorMarkerDataForPlayback(data, info, is_current_day) {
   var sensor_type = getSensorType(info);
@@ -1142,6 +1141,7 @@ function parseSensorMarkerDataForPlayback(data, info, is_current_day) {
   }
   return marker_data;
 }
+
 
 function parseSensorMarkerData(data, is_current_day, info, i) {
   var sensor_type = getSensorType(info);
@@ -1204,6 +1204,7 @@ function parseSensorMarkerData(data, is_current_day, info, i) {
   return marker_data;
 }
 
+
 function getSensorType(info) {
   var sensor_type;
   if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
@@ -1215,6 +1216,7 @@ function getSensorType(info) {
   }
   return sensor_type;
 }
+
 
 function generateSensorDataUrlList(epochtime_milisec, info) {
   var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
@@ -1237,7 +1239,6 @@ function generateSensorDataUrlList(epochtime_milisec, info) {
       }
     }
   }
-
   // Assemble urls
   var urls = [];
   for (var f in feeds_to_channels) {
@@ -1246,6 +1247,7 @@ function generateSensorDataUrlList(epochtime_milisec, info) {
 
   return urls;
 }
+
 
 function loadSensorData(urls, callback) {
   var deferreds = [];
@@ -1261,6 +1263,7 @@ function loadSensorData(urls, callback) {
     }
   });
 }
+
 
 function formatAndMergeSensorData(responses, info, method) {
   // TODO: implement more methods for merging, e.g. average
@@ -1355,6 +1358,7 @@ function formatAndMergeSensorData(responses, info, method) {
   };
 }
 
+
 // Fill in missing values based on previous observed ones
 function rollSensorData(data, info) {
   var data = $.extend({}, data); // copy object
@@ -1385,6 +1389,7 @@ function rollSensorData(data, info) {
 
   return data;
 }
+
 
 // For faster sampling rates, we need to aggregate data points
 function aggregateSensorData(data, info) {
@@ -1429,11 +1434,13 @@ function aggregateSensorData(data, info) {
   return data_cp;
 }
 
+
 // Safely get the value from a variable, return a default value if undefined
 function safeGet(v, default_val) {
   if (typeof default_val === "undefined") default_val = "";
   return (typeof v === "undefined") ? default_val : v;
 }
+
 
 // TODO: Refactor so we are not passing in a marker but pulling state elsewhere.
 function updateInfoBar(marker) {
@@ -1461,7 +1468,6 @@ function updateInfoBar(marker) {
   // Show sensor pollution value (PM25) in infobar
   var infobarPollution = $infobarPollution;
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'];
-  var sensorValStr = "";
   if (selectedSensorMarker) {
     if (isDaySummary) {
       setInfobarSubheadings(infobarPollution,"",sensorVal,PM25_UNIT,"daily max")
@@ -1476,7 +1482,6 @@ function updateInfoBar(marker) {
   } else {
     setInfobarUnavailableSubheadings(infobarPollution,"Click on nearest sensor to see pollution readings")
   }
-  //infobarPollution.innerHTML = sensorValStr;
 
   // If time selected, show sensor wind in infobar
   var infobarWind = $infobarWind;
@@ -1485,7 +1490,6 @@ function updateInfoBar(marker) {
       setInfobarUnavailableSubheadings(infobarWind,"Click the clock icon to explore wind information for this past day.");
     } else {
       if(markerData['wind_direction']) {
-      //windValStr = formatWind(markerData['wind_speed'], markerData['wind_direction']) + " at " + markerDataTimeMomentFormatted;
         setInfobarSubheadings(infobarWind,"",getWindDirFromDeg(markerData['wind_direction']),markerData['wind_speed']+" mph",markerDataTimeMomentFormatted);
       }
       else {
@@ -1510,8 +1514,6 @@ function updateInfoBar(marker) {
       setInfobarUnavailableSubheadings(infobarPlume,infoStr);
       infobarPlume.children(".infobar-text").removeClass('display-unset');
     }
-    //infobarPlume.innerHTML = infoStr;
-    
   }
 }
 
@@ -1526,12 +1528,14 @@ function setInfobarSubheadings(element,text,data,unit,time) {
   element.children(" .infobar-time").show()
 }
 
+
 function setInfobarUnavailableSubheadings(element,text) {
   setInfobarSubheadings(element,text,"-","No Data","—");
   element.children(".infobar-data").hide();
   element.children(" .infobar-unit").addClass('mobile-only-error');
   element.children(" .infobar-time").hide();
 }
+
 
 async function handleSensorMarkerClicked(marker) {
   //if (selectedLocationPin) { selectedLocationPin.setMap(null) };
@@ -1541,6 +1545,7 @@ async function handleSensorMarkerClicked(marker) {
   updateInfoBar(marker);
 }
 
+
 async function handleTRAXMarkerClicked(marker) {
   // (selectedLocationPin) { selectedLocationPin.setMap(null) };
 
@@ -1548,6 +1553,7 @@ async function handleTRAXMarkerClicked(marker) {
 
   updateInfoBar(marker);
 }
+
 
 function formatTRAXLineName(traxID) {
   var lineID = traxID[0];
@@ -1559,6 +1565,7 @@ function formatTRAXLineName(traxID) {
   return idToName[lineID];
 }
 
+
 function formatPM25(val) {
   if (val){
     return val.toFixed(2) + " μg/m3";
@@ -1567,6 +1574,7 @@ function formatPM25(val) {
     return "No PM 2.5 data available ";
   }
 }
+
 
 function formatWind(speed,deg) {
   var returnString;
@@ -1594,6 +1602,7 @@ async function handleMapClicked(mapsMouseEvent) {
   updateInfoBar(overlay)
 }
 
+
 function getWindDirFromDeg(deg) {
   // NOTE:
   // Wind information is reported in the direction _from_ which the wind is coming.
@@ -1602,6 +1611,7 @@ function getWindDirFromDeg(deg) {
   var arr = ["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   return arr[(val % 16)];
 }
+
 
 //Object.keys(esdr_sensors).map(function(k){return esdr_sensors[k]['marker']})
 function showMarkers(markers) {
@@ -1613,10 +1623,6 @@ function showMarkers(markers) {
   }
 }
 
-function roundTo(val, n) {
-  var d = Math.pow(10, n);
-  return Math.round(parseFloat(val) * d) / d;
-}
 
 function showSensorMarkersByTime(epochtime_milisec) {
   if (typeof epochtime_milisec == "undefined") return;
@@ -1644,6 +1650,7 @@ function showSensorMarkersByTime(epochtime_milisec) {
     }
   }
 }
+
 
 function handleTimelineToggling(e) {
   var $currentTarget = $(e.currentTarget);
@@ -1694,6 +1701,43 @@ function handleTimelineToggling(e) {
   updateInfoBar(selectedSensorMarker);
 }
 
+
+// Add horizontal scroll touch support to a jQuery HTML element.
+var touchHorizontalScroll = function($elem) {
+  var scrollStartPos = 0;
+  $elem.on("touchstart", function(e) {
+    scrollStartPos = this.scrollLeft + e.originalEvent.touches[0].pageX;
+    e.preventDefault();
+  }).on("touchmove", function(e) {
+    this.scrollLeft = scrollStartPos - e.originalEvent.touches[0].pageX;
+    e.preventDefault();
+  });
+};
+
+
+// Add vertical scroll touch support to an HTML element
+var verticalTouchScroll = function($elem){
+  var el = $elem[0];
+  var scrollStartPos = 0;
+  el.addEventListener("touchstart", function(e) {
+    if ($(this).hasClass("disableScroll")) return;
+    scrollStartPos = this.scrollTop + e.touches[0].pageY;
+    e.preventDefault();
+  }, false);
+  el.addEventListener("touchmove", function(e) {
+    if ($(this).hasClass("disableScroll")) return;
+    this.scrollTop = scrollStartPos - e.touches[0].pageY;
+    e.preventDefault();
+  }, false);
+};
+
+
+function roundTo(val, n) {
+  var d = Math.pow(10, n);
+  return Math.round(parseFloat(val) * d) / d;
+}
+
+
 function pad(n) { return (n < 10 ? '0' : '') + n.toString(); };
 
 
@@ -1703,118 +1747,3 @@ function convertFrom24To12Format(time24) {
   var hours = +sHours % 12 || 12;
   return hours + ":" + minutes + " " + period;
 }
-
-
-function isPointerDevice() {
-  return typeof(PointerEvent) !== "undefined";
-};
-
-function isTouchDevice() {
-  return typeof(TouchEvent) !== "undefined";
-};
-
-
-// Map touch events to mouse events.
-var touch2Mouse = function(e) {
-  e.preventDefault();
-
-  var theTouch = e.changedTouches[0];
-  var thisTouchCount = e.touches.length;
-  if (thisTouchCount) {
-    currentTouchCount = thisTouchCount;
-  } else {
-    currentTouchCount = 0;
-  }
-  var mouseEvent;
-  var theMouse;
-
-  switch (e.type) {
-    case "touchstart":
-      mouseEvent = "mousedown";
-      touchStartTargetElement = theTouch;
-
-      if (tappedTimer && thisTouchCount == 2) {
-        // stop single tap callback
-        clearTimeout(tappedTimer);
-        tappedTimer = null;
-        return;
-      }
-
-      if (tappedTimer) {
-        clearTimeout(tappedTimer);
-        tappedTimer = null;
-
-        theMouse = document.createEvent("MouseEvent");
-        theMouse.initMouseEvent('dblclick', true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
-        theTouch.target.dispatchEvent(theMouse);
-      }
-
-      tappedTimer = setTimeout(function() {
-        tappedTimer = null;
-      }, 350);
-
-      isTouchMoving = false;
-      break;
-    case "touchcancel":
-    case "touchend":
-      mouseEvent = "mouseup";
-      lastDist = null;
-      // Take into account a slight epsilon due to a finger potentially moving just a few pixels when touching the screen
-      var notRealTouchMove = isTouchMoving && touchStartTargetElement && Math.abs(touchStartTargetElement.clientX - theTouch.clientX) < 10 && Math.abs(touchStartTargetElement.clientY - theTouch.clientY) < 10;
-      if (hasTouchSupport && (!isTouchMoving || notRealTouchMove) && touchStartTargetElement && touchStartTargetElement.target == document.elementFromPoint(theTouch.clientX, theTouch.clientY)) {
-        theMouse = document.createEvent("MouseEvent");
-        theMouse.initMouseEvent('click', true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
-        theTouch.target.dispatchEvent(theMouse);
-        // Dispatching a mouse click event does not give focus to some elements, such as input fields. Trigger focus ourselves.
-        $(theTouch.target).focus();
-      }
-
-      isTouchMoving = false;
-
-      if (thisTouchCount == 1) {
-        // Handle going from 2 fingers to 1 finger pan.
-        theTouch = e.touches[0];
-
-        theMouse = document.createEvent("MouseEvent");
-        theMouse.initMouseEvent("mouseup", true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
-        theTouch.target.dispatchEvent(theMouse);
-
-        theMouse = document.createEvent("MouseEvent");
-        theMouse.initMouseEvent("mousedown", true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
-        theTouch.target.dispatchEvent(theMouse);
-
-        return;
-      }
-      break;
-    case "touchmove":
-      mouseEvent = "mousemove";
-      isTouchMoving = true;
-
-      if (thisTouchCount == 1) {
-        // Translate
-      } else if (thisTouchCount == 2) {
-        if (!$(e.target).hasClass("dataPanesContainer")) return;
-
-        var dist = Math.abs(Math.sqrt((e.touches[0].pageX - e.touches[1].pageX) * (e.touches[0].pageX - e.touches[1].pageX) + (e.touches[0].pageY - e.touches[1].pageY) * (e.touches[0].pageY - e.touches[1].pageY)));
-        thisLocation = {
-          pageX: (e.touches[0].pageX + e.touches[1].pageX) / 2,
-          pageY: (e.touches[0].pageY + e.touches[1].pageY) / 2
-        };
-
-        lastDist = dist;
-        lastLocation = thisLocation;
-
-        return;
-      } else {
-        // TODO: More than 2 finger support
-        return;
-      }
-      break;
-    default:
-      return;
-  }
-
-  theMouse = document.createEvent("MouseEvent");
-  theMouse.initMouseEvent(mouseEvent, true, true, window, 1, theTouch.screenX, theTouch.screenY, theTouch.clientX, theTouch.clientY, false, false, false, false, 0, null);
-  theTouch.target.dispatchEvent(theMouse);
-};
