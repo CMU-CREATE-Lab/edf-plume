@@ -150,7 +150,7 @@ body {
 .backtrace-color-map {
   background-size: 100% 15px;
   background-repeat: no-repeat;
-  background-image: url('/assets/img/backtrace-color-map.png');
+  background-image: url('../img/backtrace-color-map.png');
 }
 
 #legend-smell-value .entry-title {
@@ -158,23 +158,23 @@ body {
 }
 
 .PM25-color-1 {
-  background-image: url("/assets/img/PM25_1_legend.png");
+  background-image: url("../img/PM25_1_legend.png");
 }
 
 .PM25-color-2 {
-  background-image: url("/assets/img/PM25_2_legend.png");
+  background-image: url("../img/PM25_2_legend.png");
 }
 
 .PM25-color-3 {
-  background-image: url("/assets/img/PM25_3_legend.png");
+  background-image: url("../img/PM25_3_legend.png");
 }
 
 .PM25-color-4 {
-  background-image: url("/assets/img/PM25_4_legend.png");
+  background-image: url("../img/PM25_4_legend.png");
 }
 
 .PM25-color-5 {
-  background-image: url("/assets/img/PM25_5_legend.png");
+  background-image: url("../img/PM25_5_legend.png");
 }
 
 .trax-color-1 {
@@ -202,7 +202,7 @@ body {
 }
 
 .wind-arrow {
-  background-image: url("/assets/img/wind_arrow.png");
+  background-image: url("../img/wind_arrow.png");
 }
 
 @media screen and (max-width: 450px) {
