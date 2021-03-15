@@ -62,22 +62,37 @@
 
     <div id="infobar" class='infocontainer'>
       <button id="infobar-close" title="Close">X</button>
-      <div id="infobar-header">
-        <h1>Air Tracker</h1>
-      </div>
+      <div id="infobar-header">Air Tracker</div>
       <div id="infobar-initial">Click on a circle to see pollution and wind measurements for that sensor. <br><br>Choose a day on the timeline and click the time block in the lower left to explore data within that day. <br><br> You can also click anywhere on the map to see a visualization of a pollution backtrace.</div>
+      <div id="infobar-component-container">
       <div id="infobar-plume-section" class="infobar-component">
-        <div class="infobar-component-header">Pollution Backtrace Info: </div>
-        <div id="infobar-plume"></div>
+        <div class="infobar-component-header">Backtrace: </div>
+        <div id="infobar-plume">
+          <div class="infobar-text"></div>
+          <div class="infobar-data"></div>
+          <div class="infobar-unit"></div>
+          <div class="infobar-time"></div>
+        </div>
       </div>
       <div id="infobar-pollution-section" class="infobar-component">
         <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
-        <div id="infobar-pollution" class="infobar-component-value"><i>Click on the nearest sensor to see pollution measurements</i></div>
+        <div id="infobar-pollution" class="infobar-component-value">
+          <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements</i></div>
+          <div class="infobar-data"></div>
+          <div class="infobar-unit"></div>
+          <div class="infobar-time"></div>
+        </div>
       </div>
       <div id="infobar-wind-section" class="infobar-component">
         <div class="infobar-component-header">Wind: </div>
-        <div id="infobar-wind" class="infobar-component-value"><i>Click on the nearest sensor to see wind measurements</i></div>
+        <div id="infobar-wind" class="infobar-component-value">
+          <div class="infobar-text"><i>Click on the nearest sensor to see wind measurements</i></div>
+          <div class="infobar-data"></div>
+          <div class="infobar-unit"></div>
+          <div class="infobar-time"></div>
+        </div>
       </div>
+    </div>
       <div id="infobar-close-handle"></div>
     </div>
     

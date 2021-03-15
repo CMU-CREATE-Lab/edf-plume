@@ -23,7 +23,7 @@ body {
   background-color: #f1f1f1;
   position: fixed;
   height: calc(100% - 76px);
-  overflow: auto;
+  overflow: hidden;
   z-index: 1;
   visibility: hidden;
   box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
@@ -35,9 +35,11 @@ body {
   user-select: none;
 }
 
-#infobar h1 {
+#infobar-header {
   font-size: 28px;
   text-align: center;
+  margin-top: 25px;
+  font-weight: bold;
 }
 
 #infobar h2 {
@@ -55,17 +57,21 @@ body {
   display: none;
 }
 
+#infobar-component-container {
+  height: 100%;
+}
+
 .infobar-component {
   display: block;
   height: 25%;
   padding: 10px;
-  border-top: solid #bbbbbb;
 }
 
 .infobar-component-header {
   font-size: large;
   font-weight: bold;
   padding: 10px 0 10px 0;
+  border-bottom: 1px solid black;
 }
 
 #infobar-error-icon {
@@ -74,6 +80,30 @@ body {
   margin-left: calc(50% - 15px);
   margin-top: 10px;
   margin-bottom: 10px;
+}
+
+.infobar-text {
+  margin-top: 8px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+.infobar-data {
+  font-weight: bold;
+  font-size: 3em;
+  text-align: center;
+  font-style: normal;
+}
+
+.infobar-unit {
+  text-align: center;
+  font-style: normal;
+}
+
+.infobar-time {
+  text-align: center;
+  font-style: normal;
+  color: gray;
 }
 
 #legend {
@@ -205,7 +235,18 @@ body {
   background-image: url("/assets/img/wind_arrow.png");
 }
 
+.mobile-only-error {
+  display: none;
+}
+
+
 @media screen and (max-width: 450px) {
+  .mobile-only-error {
+    display: revert;
+    padding-top: 10%;
+    font-size: 14px;
+  }
+
   #legend {
     bottom: 80px;
     top: unset;
@@ -213,15 +254,28 @@ body {
 
   #infobar {
     height: auto;
-    width: auto;
+    width: 100%;
+    width: -moz-available;          /* WebKit-based browsers will ignore this. */
+    width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+    width: fill-available;
     position: fixed;
     overflow: hidden;
     padding-bottom: 15px;
     box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
   }
 
+  #infobar-component-container {
+    display: flex;
+  }
+
   #infobar.maximized {
     height: 50%;
+  }
+
+  #infobar-header {
+    font-size: 24px;
+    margin-top: 5px;
+    margin-bottom: 5px;
   }
 
   #infobar h2 {
@@ -230,9 +284,9 @@ body {
     margin-bottom: 0;
   }
 
-  /*#infobar-close {
-    visibility: hidden;
-  }*/
+  #infobar-close {
+    display: none;
+  }
 
   #infobar-close-handle {
     background-color: #bbbbbb;
@@ -255,16 +309,46 @@ body {
     height: auto;
     padding: 5px;
     border-top: none;
+    border-right: 1px solid lightgray;
+    border-left: 1px solid lightgray;
+  }
+
+  #infobar-plume-section {
+    border-left: none;
+  }
+
+  .display-unset {
+    display: unset !important;
+  }
+
+  #infobar-wind-section {
+    border-right: none;
   }
 
   .infobar-component-header {
     font-size: medium;
-    display: inline;
     padding: 0 0 0 0;
   }
 
   .infobar-component-value {
     display: inline;
+  }
+
+  .infobar-text {
+    display: none;
+  }
+
+  .infobar-data {
+    padding-top: 3px;
+    font-size: 2em;
+  }
+
+  .infobar-unit {
+    font-size: 12px;
+  }
+
+  .infobar-time {
+    font-size: 12px;
   }
 }
 

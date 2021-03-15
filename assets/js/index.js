@@ -5,6 +5,7 @@ var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
 var DEFAULT_TZ = "America/Denver";
 var PLAYBACK_TIMELINE_TZ_LABEL = "(MST)";
+var PM25_UNIT = "ug/m3"
 
 var pm25ColorLookup = function(pm25) {
   var color;
@@ -635,7 +636,7 @@ async function initMap() {
     $(document).one("mouseup.infocontainer", function(e) {
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: "40%"
+          height: "27%"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
@@ -857,7 +858,7 @@ function initDomElms() {
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
-  $infobarHeader = $("#infobar-header > h1");
+  $infobarHeader = $("#infobar-header");
   $playbackTimelineContainer = $("#playback-timeline-container")
 }
 
@@ -1456,48 +1457,78 @@ function updateInfoBar(marker) {
   infobarHeader.innerHTML = markerName;
 
   // Show sensor pollution value (PM25) in infobar
-  var infobarPollution = $infobarPollution[0];
+  var infobarPollution = $infobarPollution;
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'];
   var sensorValStr = "";
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      sensorValStr = "Maxium reading for the day was " + formatPM25(sensorVal) + " at " + markerDataTimeMomentFormatted + ". <br><br> Click the clock icon to explore more readings for this past day.";
+      setInfobarSubheadings(infobarPollution,"",sensorVal,PM25_UNIT,"daily max")
     } else {
-      sensorValStr = formatPM25(sensorVal) + " at " + markerDataTimeMomentFormatted;
+      if(sensorVal) {
+        setInfobarSubheadings(infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted)
+      }
+      else {
+        setInfobarUnavailableSubheadings(infobarPollution,"No sensor data")
+      }
     }
   } else {
-    sensorValStr = "Click on the nearest sensor to see pollution measurements.";
-    //TODO: don't show null value on mobile
+    setInfobarUnavailableSubheadings(infobarPollution,"Click on nearest sensor to see pollution readings")
   }
-  infobarPollution.innerHTML = sensorValStr;
+  //infobarPollution.innerHTML = sensorValStr;
 
   // If time selected, show sensor wind in infobar
-  var infobarWind = $infobarWind[0];
-  var windValStr = "";
+  var infobarWind = $infobarWind;
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      windValStr = "Click the clock icon to explore wind information for this past day."
+      setInfobarUnavailableSubheadings(infobarWind,"Click the clock icon to explore wind information for this past day.");
     } else {
-      windValStr = formatWind(markerData['wind_speed'], markerData['wind_direction']) + " at " + markerDataTimeMomentFormatted;
+      if(markerData['wind_direction']) {
+      //windValStr = formatWind(markerData['wind_speed'], markerData['wind_direction']) + " at " + markerDataTimeMomentFormatted;
+        setInfobarSubheadings(infobarWind,"",getWindDirFromDeg(markerData['wind_direction']),markerData['wind_speed']+" mph",markerDataTimeMomentFormatted);
+      }
+      else {
+        setInfobarUnavailableSubheadings(infobarWind,"Click on the nearest wind arrow to see wind measurements.")
+      }
     }
   } else {
-    windValStr = "Click on the nearest sensor to see wind measurements.";
-    //TODO: don't show null value on mobile
+    setInfobarUnavailableSubheadings(infobarWind,"Click on the nearest wind arrow to see wind measurements.")
   }
-  infobarWind.innerHTML = windValStr;
 
   // Show plume backtrace information
   if (overlay) {
     var overlayData = overlay.getData();
-    var infobarPlume = $infobarPlume[0];
+    var infobarPlume = $infobarPlume;
     var infoStr = "";
     if (overlayData.hasData) {
-      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], "America/Denver").format("h:mm A (zz)");;
+      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], "America/Denver").format("h:mm A (zz)");
+      setInfobarSubheadings(infobarPlume,infoStr,"","","");
+      infobarPlume.children(".infobar-text").addClass('display-unset');
     } else {
       infoStr = "No pollution backtrace available at this time interval."
+      setInfobarUnavailableSubheadings(infobarPlume,infoStr);
+      infobarPlume.children(".infobar-text").removeClass('display-unset');
     }
-    infobarPlume.innerHTML = infoStr;
+    //infobarPlume.innerHTML = infoStr;
+    
   }
+}
+
+
+function setInfobarSubheadings(element,text,data,unit,time) {
+  element.children(".infobar-text")[0].innerHTML = text;
+  element.children(".infobar-data")[0].innerHTML = typeof(data) === "string" ? data : roundTo(data,2);
+  element.children(" .infobar-unit")[0].innerHTML = unit;
+  element.children(" .infobar-time")[0].innerHTML = time;
+  element.children(".infobar-data").show()
+  element.children(" .infobar-unit").removeClass('mobile-only-error');
+  element.children(" .infobar-time").show()
+}
+
+function setInfobarUnavailableSubheadings(element,text) {
+  setInfobarSubheadings(element,text,"-","No Data","—");
+  element.children(".infobar-data").hide();
+  element.children(" .infobar-unit").addClass('mobile-only-error');
+  element.children(" .infobar-time").hide();
 }
 
 async function handleSensorMarkerClicked(marker) {
