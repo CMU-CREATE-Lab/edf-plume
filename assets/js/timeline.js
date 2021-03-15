@@ -114,9 +114,9 @@ function createTimeline(data, options) {
   };
 
   timeline = new edaplotjs.TimelineHeatmap("timeline-container", chart_settings);
-  timeline.selectLastBlock();
+  //timeline.selectLastBlock();
   timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-  playbackTimeline.setPlaybackTimeInMs(mostRecentUpdateEpochTimeForLocation);
+  //playbackTimeline.setPlaybackTimeInMs(mostRecentUpdateEpochTimeForLocation);
 
   // Add horizontal scrolling to the timeline
   // Needed because Android <= 4.4 won't scroll without this
@@ -190,6 +190,8 @@ function addTouchHorizontalScroll(elem) {
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
     loadAndCreateTimeline(function() {
+      playbackTimeline = new create.CustomTimeline2();
+      timeline.selectLastBlock();
       $("#calendar-btn").prop("disabled", false);
       $("#timestampPreviewContent").text(mostRecentUpdateTimeForLocation);
       $(".timestampPreview").removeClass("disabled");
