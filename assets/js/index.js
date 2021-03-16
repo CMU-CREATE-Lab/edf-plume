@@ -113,7 +113,7 @@ var sensors = [{
     "marker_type": "esdr_feed"
   },
   {
-    "name": "Cooper View AirNow",
+    "name": "Copper View AirNow",
     "sensors": {
       "wind_speed": {
         "sources": [{
