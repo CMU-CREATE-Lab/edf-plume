@@ -6,8 +6,7 @@ var playbackTimeline;
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
 var DEFAULT_TZ = "America/Denver";
-var PLAYBACK_TIMELINE_TZ_LABEL = "(MST)";
-var PM25_UNIT = "ug/m3"
+var PM25_UNIT = "ug/m3";
 
 var pm25ColorLookup = function(pm25) {
   var color;

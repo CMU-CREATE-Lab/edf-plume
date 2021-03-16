@@ -243,6 +243,7 @@ var create = {};
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         playbackTimeInMs = newPlaybackTimeInMs;
         handleDraw(playbackTimeInMs);
+        $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, "America/Denver").zoneAbbr() + ")");
       }
 
       if (!timeTick || timeTick.length == 0) {

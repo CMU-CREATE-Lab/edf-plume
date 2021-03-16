@@ -182,7 +182,7 @@ function initTimeline(options) {
       $("#calendar-btn").prop("disabled", false);
       //$("#timestampPreviewContent").text(mostRecentUpdate12HourTimeForLocation);
       playbackTimeline.setPlaybackTimeInMs(Math.max(timeline.selectedDayInMs, await getMostRecentFootprintTimeInMs()));
-      $("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
+      //$("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
       $(".timestampPreview").removeClass("disabled");
       $(".playbackButton").button("enable");
     }, options);
