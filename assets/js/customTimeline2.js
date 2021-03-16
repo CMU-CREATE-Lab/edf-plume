@@ -59,6 +59,7 @@ var create = {};
     // Parameters
     var captureTimes;
     var numFrames;
+    var currentFrameNumber;
     var playbackTimeInMs = 0;
     // Change to make more/less coarse playback
     var incrementAmtInMin = 10;
@@ -168,6 +169,7 @@ var create = {};
       var $rightGroup =  $("<div class='rightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
       var $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
       $timeline.append($leftGroup, $rightGroup, $anchor);
+      $playbackTimelineAnchor = $("#playback-timeline-container .anchor");
       timeSeekSelectOptionsHTML += "</select>";
       $("#timeJumpControl").append(timeSeekSelectOptionsHTML);
       $timeJumpOptions = $("#" + viewerDivId + " #timeJumpOptions");
@@ -200,7 +202,7 @@ var create = {};
       });
 
       $timeline.on("click", ".materialTimelineTick", function() {
-        updateTimelineSlider(null, $(this), false);
+        updateTimelineSlider(null, $(this), false, false, true);
       });
 
       $timelineTicks = $("#" + viewerDivId + " .materialTimelineTick");
@@ -228,76 +230,21 @@ var create = {};
       //}
     };
 
-    var getNumFrames = function() {
-      return numFrames;
-    };
-    this.getNumFrames = getNumFrames;
 
-    var getPlaybackTimeInMs = function() {
-      return playbackTimeInMs;
-    };
-    this.getPlaybackTimeInMs = getPlaybackTimeInMs;
+    function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent) {
+      var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
+      var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, "America/Denver").add(numMins, 'minutes').valueOf();
 
-    var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
-      playbackTimeInMs = newPlaybackTimeInMs;
-    };
-    this.setPlaybackTimeInMs = setPlaybackTimeInMs;
-
-    var isActive = function() {
-      return isTimelineActive;
-    };
-    this.isActive = isActive;
-
-    var setActiveState = function(state) {
-      isTimelineActive = state;
-    };
-    this.setActiveState = setActiveState;
-
-    var getIncrementAmt = function() {
-      return incrementAmtInMin;
-    };
-    this.getIncrementAmt = getIncrementAmt;
-
-    var isPaused = function() {
-      return isTimelinePaused;
-    };
-    this.isPaused = isPaused;
-
-    var togglePlayPause = function() {
-      $customPlay.trigger("click");
-    };
-    this.togglePlayPause = togglePlayPause;
-
-    async function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus) {
-      if (timeline) {
-        var numMins = $(timeTick).data("frame") * $(timeTick).data("increment");
-
-        var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, "America/Denver").add(numMins, 'minutes').valueOf(); //new Date(timeline.selectedDayInMs).setHours($(timeTick).data("frame"));
-        if (newPlaybackTimeInMs != playbackTimeInMs && !fromRefocus) {
-          playbackTimeInMs = newPlaybackTimeInMs;
-          // animate trax data
-          getTraxInfoByPlaybackTime();
-          // animate ESDR (and eventually other) sensors
-          updateSensorsByEpochTime(playbackTimeInMs, true);
-          var primaryInfoPopulator = selectedSensorMarker;
-
-          // animate footprint
-          if (overlay && (overlay.projection || selectedLocationPin)) {
-            var overlayData = overlay.getData();
-            await drawFootprint(overlayData.lat, overlayData.lng, false);
-            if (!primaryInfoPopulator) {
-              primaryInfoPopulator = overlay;
-            }
-          }
-          // TODO
-          if (primaryInfoPopulator) {
-            updateInfoBar(primaryInfoPopulator, false)
-          }
-
-          // TODO
-          $timeJumpOptions.val($(timeTick).data("frame"));
-        }
+      if (newPlaybackTimeInMs == playbackTimeInMs && fromTickOnClickEvent) {
+        return;
       }
+
+      if (!fromRefocus) {
+        currentFrameNumber = parseInt($(timeTick).data("frame"));
+        playbackTimeInMs = newPlaybackTimeInMs;
+        handleDraw(playbackTimeInMs);
+      }
+
       if (!timeTick || timeTick.length == 0) {
         if ((lastFrameWasGroupEnd && frameNum == 0) ||
             (lastSelectedGroup.hasClass("rightGroup") && $selectedTimelineTick.parent().hasClass("leftGroup")) ||
@@ -311,7 +258,7 @@ var create = {};
       if (timeTick.length) {
         $selectedTimelineTick = timeTick;
         if (frameNum == null) {
-          frameNum = parseInt($selectedTimelineTick.attr("data-frame"));
+          frameNum = currentFrameNumber;
         }
         var scrollOptions = {
           time: 100,
@@ -382,6 +329,11 @@ var create = {};
       }
     };
 
+    var updateTimeJumpMenu = function() {
+      $timeJumpOptions.val(currentFrameNumber);
+    }
+    this.updateTimeJumpMenu = updateTimeJumpMenu;
+
     var createTimeJump = function() {
       $timeJumpOptions.mobileSelect({
         title : "Choose an hour to jump to:",
@@ -397,24 +349,6 @@ var create = {};
       $timeJumpOptions.on("change", function(e) {
         seekTo($(".mobileSelect-control.selected").data("value"));
       })
-    };
-
-    var createSpeedToggle = function() {
-      $speedControls.selectmenu({
-        position: {
-          at: "left bottom",
-          collision: 'flip',
-        }, change: function(e, ui) {
-          // TODO
-          console.log("change playback speed");
-          timelapse.setPlaybackRate(ui.item.value);
-        }
-      }).val("0.5").selectmenu("refresh");
-
-      // TODO
-      //if (UTIL.isIE()) {
-      //  $("#" + viewerDivId + " .speedControl").addClass("isIE");
-      //}
     };
 
     var handleSeekControls = function() {
@@ -524,12 +458,58 @@ var create = {};
     this.getCaptureTimes = getCaptureTimes;
 
     var seekTo = function(frameNum) {
+      frameNum |= 0;
       var $newTimelineTick = $timelineTicks.eq(frameNum);
       $timelineTicks.removeClass("materialTimelineTickSelected");
       $newTimelineTick.addClass("materialTimelineTickSelected");
       updateTimelineSlider(null, $newTimelineTick, true);
     };
     this.seekTo = seekTo;
+
+    var getNumFrames = function() {
+      return numFrames;
+    };
+    this.getNumFrames = getNumFrames;
+
+    var getPlaybackTimeInMs = function() {
+      return playbackTimeInMs;
+    };
+    this.getPlaybackTimeInMs = getPlaybackTimeInMs;
+
+    var getCurrentFrameNumber = function() {
+      return currentFrameNumber;
+    };
+    this.getCurrentFrameNumber = getCurrentFrameNumber;
+
+    var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
+      playbackTimeInMs = newPlaybackTimeInMs;
+    };
+    this.setPlaybackTimeInMs = setPlaybackTimeInMs;
+
+    var isActive = function() {
+      return isTimelineActive;
+    };
+    this.isActive = isActive;
+
+    var setActiveState = function(state) {
+      isTimelineActive = state;
+    };
+    this.setActiveState = setActiveState;
+
+    var getIncrementAmt = function() {
+      return incrementAmtInMin;
+    };
+    this.getIncrementAmt = getIncrementAmt;
+
+    var isPaused = function() {
+      return isTimelinePaused;
+    };
+    this.isPaused = isPaused;
+
+    var togglePlayPause = function() {
+      $customPlay.trigger("click");
+    };
+    this.togglePlayPause = togglePlayPause;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //

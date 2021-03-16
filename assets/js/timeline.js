@@ -1,86 +1,88 @@
-    var util = new edaplotjs.Util();
-    var timeline;
-    var date_to_index;
-    //var current_date = "2020-11-29"; // the default date
-    //var current_year = current_date.split("-")[0];
-    var widgets = new edaplotjs.Widgets();
-    var $calendar_dialog;
-    var $calendar_select;
-    var plume_viz_data;
+"use strict";
 
-    // Handles the sending of cross-domain iframe requests.
-    function post(type, data) {
-      pm({
-        target: window.parent,
-        type: type,
-        data: data,
-        origin: document.referrer
-      });
+var util = new edaplotjs.Util();
+var timeline;
+var date_to_index;
+//var current_date = "2020-11-29"; // the default date
+//var current_year = current_date.split("-")[0];
+var widgets = new edaplotjs.Widgets();
+var $calendar_dialog;
+var $calendar_select;
+var plume_viz_data;
+
+// Handles the sending of cross-domain iframe requests.
+/*function post(type, data) {
+  pm({
+    target: window.parent,
+    type: type,
+    data: data,
+    origin: document.referrer
+  });
+}
+
+// Send the query string to the parent page, so that the parent can set the query string
+function sendQueryStringToParent(updated_query_url) {
+  post("update-parent-query-url", updated_query_url);
+}*/
+
+function getShareQuery(date_str) {
+  return "?date=" + date_str;
+}
+
+function buildDateIndexMap(data) {
+  var m = {};
+  for (var k in data) {
+    var m_k = {}
+    var data_k = data[k]["data"];
+    var L = data_k.length;
+    for (var i = 0; i < L; i++) {
+      var d = data_k[i];
+      m_k[d[3]] = L - i - 1;
     }
+    m[k] = m_k;
+  }
+  return m;
+}
 
-    // Send the query string to the parent page, so that the parent can set the query string
-    function sendQueryStringToParent(updated_query_url) {
-      //post("update-parent-query-url", updated_query_url);
+function initCalendarBtn() {
+  // Create the calendar dialog
+  $calendar_dialog = widgets.createCustomDialog({
+    selector: "#calendar-dialog",
+    full_width_button: true,
+    show_cancel_btn: false
+  });
+
+  // Add event to the calendar button
+  $("#calendar-btn").on("click", function () {
+    if ($("#controls").hasClass("playbackTimelineOff")) {
+      $calendar_dialog.dialog("open");
     }
+  });
 
-    function getShareQuery(date_str) {
-      return "?date=" + date_str;
+  // Add event to the calendar select
+  $calendar_select = $("#calendar");
+  $calendar_select.on("change", function () {
+    $calendar_dialog.dialog("close");
+    var $selected = $calendar_select.find(":selected");
+    var selected_value = $selected.val();
+    if (selected_value != -1 && selected_value != current_year) {
+      current_year = selected_value;
+      createTimeline(plume_viz_data[current_year]);
+      timeline.selectFirstBlock();
     }
+    // Have selector go back to showing default option
+    $(this).prop("selectedIndex", 0);
+  });
+}
 
-    function buildDateIndexMap(data) {
-      var m = {};
-      for (var k in data) {
-        var m_k = {}
-        var data_k = data[k]["data"];
-        var L = data_k.length;
-        for (var i = 0; i < L; i++) {
-          var d = data_k[i];
-          m_k[d[3]] = L - i - 1;
-        }
-        m[k] = m_k;
-      }
-      return m;
-    }
-
-    function initCalendarBtn() {
-      // Create the calendar dialog
-      $calendar_dialog = widgets.createCustomDialog({
-        selector: "#calendar-dialog",
-        full_width_button: true,
-        show_cancel_btn: false
-      });
-
-      // Add event to the calendar button
-      $("#calendar-btn").on("click", function () {
-        if ($("#controls").hasClass("playbackTimelineOff")) {
-          $calendar_dialog.dialog("open");
-        }
-      });
-
-      // Add event to the calendar select
-      $calendar_select = $("#calendar");
-      $calendar_select.on("change", function () {
-        $calendar_dialog.dialog("close");
-        var $selected = $calendar_select.find(":selected");
-        var selected_value = $selected.val();
-        if (selected_value != -1 && selected_value != current_year) {
-          current_year = selected_value;
-          createTimeline(plume_viz_data[current_year]);
-          timeline.selectFirstBlock();
-        }
-        // Have selector go back to showing default option
-        $(this).prop("selectedIndex", 0);
-      });
-    }
-
-    function drawCalendar(year_list) {
-      $calendar_select.empty();
-      $calendar_select.append($('<option selected value="-1">Select...</option>'));
-      for (var i = year_list.length - 1; i >= 0; i--) {
-        var year = year_list[i];
-        $calendar_select.append($('<option value="' + year + '">' + year + '</option>'));
-      }
-    }
+function drawCalendar(year_list) {
+  $calendar_select.empty();
+  $calendar_select.append($('<option selected value="-1">Select...</option>'));
+  for (var i = year_list.length - 1; i >= 0; i--) {
+    var year = year_list[i];
+    $calendar_select.append($('<option value="' + year + '">' + year + '</option>'));
+  }
+}
 
 // Use the TimelineHeatmap charting library to draw the timeline
 function createTimeline(data, options) {
@@ -93,10 +95,8 @@ function createTimeline(data, options) {
       }
     },
     select: function ($e, obj) {
-      // Update selected day in the legend
-      //$("#selected-day").html(String(new Date($e.data("epochtime_milisec"))).substr(4, 11));
       handleTimelineButtonSelected(parseInt($e.data("epochtime_milisec")));
-      sendQueryStringToParent(obj);
+      //sendQueryStringToParent(obj);
     },
     data: data,
     useColorQuantiles: true,
@@ -114,9 +114,6 @@ function createTimeline(data, options) {
   };
 
   timeline = new edaplotjs.TimelineHeatmap("timeline-container", chart_settings);
-  //timeline.selectLastBlock();
-  timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-  //playbackTimeline.setPlaybackTimeInMs(mostRecentUpdateEpochTimeForLocation);
 
   // Add horizontal scrolling to the timeline
   // Needed because Android <= 4.4 won't scroll without this
@@ -130,34 +127,22 @@ function getCurrentSelectedDayInMs() {
 
 
 function handleTimelineButtonClicked(epochtime_milisec, day_label) {
-  // TODO
+  // This gets called after "handleTimelineButtonSelected"
   timeline.selectedDayInMs = epochtime_milisec;
   timeline.selectedDay = day_label;
-  ////playbackTimeline.setPlaybackTimeInMs(epochtime_milisec)
-  /*var timeString = "12:00 AM";
-  if (timeline.selectedDay == mostRecentDayStr) {
-    timeString = mostRecentUpdateTimeForLocation;
-  }
-  $("#timestampPreviewContent").text(timeString);
-  var captureTimes = playbackTimeline.getCaptureTimes();
-  var captureTimeIdx = captureTimes.indexOf(timeString);*/
-  ////playbackTimeline.seekTo(captureTimeIdx);
 }
 
-function handleTimelineButtonSelected(epochtime_milisec) {
-  //infowindow_smell.close();
-  //infowindow_PM25.close();
-  //console.log(epochtime_milisec)
-  hideSensorMarkersByTime(selected_day_start_epochtime_milisec);
-  showSensorMarkersByTime(epochtime_milisec);
+async function handleTimelineButtonSelected(epochtime_milisec) {
+  // This gets called before "handleTimelineButtonClicked"
+  await showSensorMarkersByTime(epochtime_milisec);
+  await sensorsLoadedPromise;
   selected_day_start_epochtime_milisec = epochtime_milisec;
-  playbackTimeline.setPlaybackTimeInMs(selected_day_start_epochtime_milisec)
+  playbackTimeline.setPlaybackTimeInMs(selected_day_start_epochtime_milisec);
+  var mostRecentDayStrFull = moment.tz(selected_day_start_epochtime_milisec, "UTC").format("MMM DD YYYY");
+  // Update selected day in the legend
+  $("#current-date-legend").text(mostRecentDayStrFull);
 }
 
-
-function hideSensorMarkersByTime(epochtime_milisec) {
-
-}
 
 function hideMarkers(markers) {
   markers = safeGet(markers, []);
@@ -189,11 +174,15 @@ function addTouchHorizontalScroll(elem) {
 
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
-    loadAndCreateTimeline(function() {
+    loadAndCreateTimeline(async function() {
       playbackTimeline = new create.CustomTimeline2();
       timeline.selectLastBlock();
+      timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+      //handleTimelineButtonSelected(timeline.selectedDayInMs);
       $("#calendar-btn").prop("disabled", false);
-      $("#timestampPreviewContent").text(mostRecentUpdateTimeForLocation);
+      //$("#timestampPreviewContent").text(mostRecentUpdate12HourTimeForLocation);
+      playbackTimeline.setPlaybackTimeInMs(Math.max(timeline.selectedDayInMs, await getMostRecentFootprintTimeInMs()));
+      $("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
       $(".timestampPreview").removeClass("disabled");
       $(".playbackButton").button("enable");
     }, options);
@@ -289,14 +278,20 @@ function loadTimelineDataToday(fullData,callback){
         // show midnight, and are marked as UTC, but are NOT actually UTC midnight.
         var date = parsed["utcDateTimes"].pop() + "Z";
         var mDate = moment(date);
-        var startTimeOfDate = moment(date).tz("America/Denver").startOf("day").format("YYYY-MM-DD HH:mm:ss");
-        mostRecentUpdateTimeForLocation = mDate.tz("America/Denver").format("h:mm A");
-        mostRecentUpdateEpochTimeForLocation = mDate.tz("America/Denver").valueOf();
-        mostRecentDayStr = mDate.tz("America/Denver").format("DD MMM");
+        var startTimeOfDate = moment(date).tz("America/Denver").startOf("day");
+        startOfLatestAvailableDay = startTimeOfDate.tz("America/Denver").valueOf();
+        var startTimeOfDateFormatted = startTimeOfDate.format("YYYY-MM-DD HH:mm:ss");
+        //mostRecentUpdate12HourTimeForLocation = mDate.clone();
+        //if (mDate.minute() > 30){
+        //  mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz("America/Denver").minute(30).second(0);
+        //} else{}
+        //mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz("America/Denver").format("h:mm A");
+        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz("America/Denver").valueOf();
+        //mostRecentDayStr = mDate.tz("America/Denver").format("MMM DD");
         var val = parsed["aqi"].pop();
         // We may be missing the previous day. Check and if so, get the max value
         // for the availabe time span.
-        var possiblePreviousDayStr = mDate.clone().tz("America/Denver").format("YYYY-MM-DD");
+        var possiblePreviousDayStr = mDate.tz("America/Denver").format("YYYY-MM-DD");
         var possiblePreviousDayTimeStr = possiblePreviousDayStr + " 00:00:00";
         var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, "America/Denver").format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
         if (!hasPreviousDayFromCurrent) {
@@ -309,7 +304,7 @@ function loadTimelineDataToday(fullData,callback){
           }
           fullData[possiblePreviousDayTimeStr] = max;
         }
-        fullData[startTimeOfDate] = val;
+        fullData[startTimeOfDateFormatted] = val;
         callback(fullData);
       }
     },
@@ -386,7 +381,7 @@ function formatDataForTimeline(data, pad_to_date_obj) {
     }
     // Push into the 2D array
     var label = day_obj.toDateString().replace(",", "").split(" ");
-    label = label[2] + " " + label[1];
+    label = label[1] + " " + label[2];
     var day_obj_time = day_obj.getTime();
     batch_2d.push([label, count, day_obj_time]);
     // Check if we need to pad missing days of the future
@@ -423,13 +418,6 @@ function getDiffDays(d1, d2) {
   var d2_time = d2.getTime() - d2.getTimezoneOffset() * 60000;
   var d1_time = d1.getTime() - d1.getTimezoneOffset() * 60000;
   return Math.ceil((d2_time - d1_time) / 86400000);*/
-}
-
-
-
-function roundTo(val, n) {
-  var d = Math.pow(10, n);
-  return Math.round(parseFloat(val) * d) / d;
 }
 
 function dateStringToObject(str, tz) {
