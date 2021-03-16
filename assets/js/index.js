@@ -1680,6 +1680,7 @@ function setInfobarSubheadings($element, text, data, unit, time) {
   $element.children(".infobar-unit")[0].innerHTML = unit;
   $element.children(".infobar-time")[0].innerHTML = time;
   $element.children(".infobar-data").show();
+  $element.children(".infobar-data-intro").show();
   $element.children(".infobar-unit").removeClass('mobile-only-error');
   $element.children(".infobar-time").show();
 }
