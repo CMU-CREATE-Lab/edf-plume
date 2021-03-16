@@ -19,7 +19,7 @@ body {
 #infobar {
   margin: 0;
   padding: 0 15px 0 15px;
-  width: 320px;
+  width: 250px;
   background-color: #f1f1f1;
   position: fixed;
   height: calc(100% - 76px);
