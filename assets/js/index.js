@@ -358,7 +358,9 @@ function resetAllTrax() {
     })
     marker.setVisible(false);
   }
-  selectedSensorMarker = null;
+  if (selectedSensorMarker && selectedSensorMarker.traxId) {
+    selectedSensorMarker = null;
+  }
 }
 
 
@@ -1623,36 +1625,35 @@ function updateInfoBar(marker) {
   infobarHeader.innerHTML = markerName;
 
   // Show sensor pollution value (PM25) in infobar
-  var infobarPollution = $infobarPollution;
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'];
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      setInfobarSubheadings(infobarPollution,"",sensorVal,PM25_UNIT,"daily max")
+      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max");
     } else {
       if (sensorVal) {
-        setInfobarSubheadings(infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted)
+        setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
       } else {
-        setInfobarUnavailableSubheadings(infobarPollution,"No sensor data")
+        // Clicked on a trax sensor, which is now invisible since the time does not match for it.
+        setInfobarUnavailableSubheadings($infobarPollution,"Click on nearest sensor to see pollution readings.");
       }
     }
   } else {
-    setInfobarUnavailableSubheadings(infobarPollution,"Click on nearest sensor to see pollution readings")
+    setInfobarUnavailableSubheadings($infobarPollution,"Click on nearest sensor to see pollution readings.")
   }
 
   // If time selected, show sensor wind in infobar
-  var infobarWind = $infobarWind;
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      setInfobarUnavailableSubheadings(infobarWind,"Click the clock icon to explore wind information for this past day.");
+      setInfobarUnavailableSubheadings($infobarWind,"Click the clock icon to explore wind information for this past day.");
     } else {
       if(markerData['wind_direction']) {
-        setInfobarSubheadings(infobarWind,"",getWindDirFromDeg(markerData['wind_direction']),markerData['wind_speed']+" mph",markerDataTimeMomentFormatted);
+        setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " at " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
       } else {
-        setInfobarUnavailableSubheadings(infobarWind,"Click on the nearest wind arrow to see wind measurements.")
+        setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest wind arrow to see wind measurements.")
       }
     }
   } else {
-    setInfobarUnavailableSubheadings(infobarWind,"Click on the nearest wind arrow to see wind measurements.")
+    setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest wind arrow to see wind measurements.")
   }
 
   // Show plume backtrace information
@@ -1673,22 +1674,23 @@ function updateInfoBar(marker) {
 }
 
 
-function setInfobarSubheadings(element,text,data,unit,time) {
-  element.children(".infobar-text")[0].innerHTML = text;
-  element.children(".infobar-data")[0].innerHTML = typeof(data) === "string" ? data : roundTo(data,2);
-  element.children(" .infobar-unit")[0].innerHTML = unit;
-  element.children(" .infobar-time")[0].innerHTML = time;
-  element.children(".infobar-data").show()
-  element.children(" .infobar-unit").removeClass('mobile-only-error');
-  element.children(" .infobar-time").show()
+function setInfobarSubheadings($element, text, data, unit, time) {
+  $element.children(".infobar-text")[0].innerHTML = text;
+  $element.children(".infobar-data")[0].innerHTML = typeof(data) === "string" ? data : roundTo(data,2);
+  $element.children(".infobar-unit")[0].innerHTML = unit;
+  $element.children(".infobar-time")[0].innerHTML = time;
+  $element.children(".infobar-data").show();
+  $element.children(".infobar-unit").removeClass('mobile-only-error');
+  $element.children(".infobar-time").show();
 }
 
 
-function setInfobarUnavailableSubheadings(element,text) {
-  setInfobarSubheadings(element,text,"-","No Data","—");
-  element.children(".infobar-data").hide();
-  element.children(" .infobar-unit").addClass('mobile-only-error');
-  element.children(" .infobar-time").hide();
+function setInfobarUnavailableSubheadings($element, text) {
+  setInfobarSubheadings($element,text,"-","No Data","—");
+  $element.children(".infobar-data").hide();
+  $element.children(".infobar-data-intro").hide();
+  $element.children(".infobar-unit").addClass('mobile-only-error');
+  $element.children(".infobar-time").hide();
 }
 
 
