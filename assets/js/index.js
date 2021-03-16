@@ -662,18 +662,19 @@ async function initMap() {
       }
       lastYPos = currentYPos;
       var dist = startYPos - currentYPos;
-      var maxHeight = Math.min(295, (startHeight - dist));
+      var max = selectedLocationPin ? 218 : 258;
+      var maxHeight = Math.min(max, (startHeight - dist));
       $infobar.height(maxHeight);
     });
     $(document).one("mouseup.infocontainer", function(e) {
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: "27%"
+          height: selectedLocationPin ? "210px" : "250px"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
         $infobar.stop(true, false).animate({
-          height: "0px"
+          height: "20px"
         }, function() {
           $infobar.removeClass("maximized");
         });

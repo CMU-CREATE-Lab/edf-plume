@@ -95,6 +95,7 @@ body {
 .infobar-data-intro {
   text-align: center;
   font-style: normal;
+  margin-top: 7px;
 }
 
 .infobar-data {
@@ -261,6 +262,12 @@ body {
 
 
 @media screen and (max-width: 450px) {
+
+  #infobar-initial {
+    margin-top: 0px;
+    margin-bottom: 25px;
+  }
+
   .mobile-only-error {
     display: revert;
     padding-top: 10%;
@@ -273,6 +280,7 @@ body {
   }
 
   #infobar {
+    font-size: 15px;
     height: auto;
     width: 100%;
     width: -moz-available;          /* WebKit-based browsers will ignore this. */
@@ -283,6 +291,8 @@ body {
     padding-bottom: 15px;
     -webkit-box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
             box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px;
   }
 
   #infobar-component-container {
@@ -295,7 +305,7 @@ body {
 
   #infobar-header {
     font-size: 24px;
-    margin-top: 5px;
+    margin-top: 7px;
     margin-bottom: 5px;
   }
 
@@ -320,6 +330,15 @@ body {
     display: block;
   }
 
+  #infobar-close-handle-container {
+    display: block;
+    position: absolute;
+    bottom: 0px;
+    height: 40px;
+    width: calc(100% - 30px);
+    background: inherit;
+  }
+
   #infobar-error-icon {
     width: 30px;
   }
@@ -336,6 +355,10 @@ body {
 
   #infobar-plume-section {
     border-left: none;
+  }
+
+  #infobar-pollution-section sub {
+    line-height: 0px;
   }
 
   .display-unset {
