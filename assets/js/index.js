@@ -1005,7 +1005,9 @@ async function drawFootprint(lat, lng, fromClicked) {
   }
 
   var latTrunc = lat.toFixed(2);
+  var latOffset = lat - latTrunc;
   var lngTrunc = lng.toFixed(2);
+  var lngOffset = lng - lngTrunc;
 
   var overlayData = {
     'is_current_day' : playbackTimeline.isActive(),
@@ -1041,8 +1043,8 @@ async function drawFootprint(lat, lng, fromClicked) {
     overlayData['epochtimeInMs'] = timeInMs;
     overlay.set('image', image);
     const bounds = new google.maps.LatLngBounds(
-      new google.maps.LatLng(extent.ymin, extent.xmin),
-      new google.maps.LatLng(extent.ymax, extent.xmax)
+      new google.maps.LatLng(extent.ymin + latOffset, extent.xmin + lngOffset),
+      new google.maps.LatLng(extent.ymax + latOffset, extent.xmax + lngOffset)
     );
     overlay.set('bounds', bounds);
     overlay.setMap(map);
