@@ -62,12 +62,14 @@ body {
 }
 
 #infobar-component-container {
-  height: 100%;
+  height: calc(100% - 102px);
+  overflow-y: auto;
 }
 
 .infobar-component {
   display: block;
   height: 25%;
+  min-height: 130px;
   padding: 10px;
 }
 
@@ -296,6 +298,7 @@ body {
   }
 
   #infobar-component-container {
+    height: 100%;
     display: flex;
   }
 
@@ -535,33 +538,33 @@ button[disabled]{
   opacity: 1;
 }
 
-.timeline-container::-webkit-scrollbar {
+.timeline-container::-webkit-scrollbar, #infobar-component-container::-webkit-scrollbar {
   -webkit-appearance: none;
   background: transparent;
   overflow: visible;
-  width: 14px;
+  width: 13px;
 }
 
 .timeline-container::-webkit-scrollbar:horizontal {
   border-width: 6px 4px;
-  min-height: 15px;
+  height: 13px;
 }
 
-.timeline-container::-webkit-scrollbar-track-piece {
+.timeline-container::-webkit-scrollbar-track-piece, #infobar-component-container::-webkit-scrollbar-track-piece {
   background-color: #f1f1f1;
 }
 
-.timeline-container::-webkit-scrollbar-corner {
+.timeline-container::-webkit-scrollbar-corner, #infobar-component-container::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-.timeline-container::-webkit-scrollbar-thumb {
+.timeline-container::-webkit-scrollbar-thumb, #infobar-component-container::-webkit-scrollbar-thumb {
   background-color: #ADADAD;
   box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
   -webkit-box-shadow: inset 1px 1px 0 rgba(0,0,0,0.10),inset 0 -1px 0 rgba(0,0,0,0.07);
 }
 
-.timeline-container::-webkit-scrollbar-thumb:hover {
+.timeline-container::-webkit-scrollbar-thumb:hover, #infobar-component-container::-webkit-scrollbar-thumb:hover {
   background-color: #999;
 }
 
