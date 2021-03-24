@@ -478,7 +478,11 @@ var create = {};
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
 
     var getCurrentFrameNumber = function() {
-      return currentFrameNumber;
+      if (currentFrameNumber >= 0) {
+        return currentFrameNumber;
+      } else {
+        return captureTimes.indexOf("12:00 PM");
+      }
     };
     this.getCurrentFrameNumber = getCurrentFrameNumber;
 
