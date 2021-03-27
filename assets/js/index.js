@@ -834,6 +834,47 @@ async function initMap() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
 
+  // Draw clickable bounds to obtain backtraces
+  /*var plumeClickRegion = new google.maps.Rectangle({
+    strokeColor: "#FF0000",
+    strokeOpacity: 0.2,
+    strokeWeight: 2,
+    fillColor: "#FF0000",
+    fillOpacity: 0.0,
+    map,
+    bounds: {
+      north: 40.905,
+      south: 40.39508,
+      east: -111.745,
+      west: -112.105,
+    },
+    clickable: false
+  });*/
+
+  var lineSymbol = {
+    path: 'M 0,-1 0,1',
+    strokeOpacity: 1,
+    scale: 2
+  };
+
+  var plumeClickRegion = new google.maps.Polyline({
+    strokeColor: '#000000',
+    strokeOpacity: 0,
+    icons: [{
+      icon: lineSymbol,
+      offset: '0',
+      repeat: '12px'
+    }],
+    path: [
+           {lat: 40.905, lng: -112.105}, {lat: 40.39508, lng: -112.105},
+           {lat: 40.39508, lng: -111.745},
+           {lat: 40.39508, lng: -111.745}, {lat: 40.905, lng: -111.745},
+           {lat: 40.905, lng: -112.105}
+          ],
+    map: map,
+    clickable: false
+  });
+
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
   for (var traxid in traxLocations) {
