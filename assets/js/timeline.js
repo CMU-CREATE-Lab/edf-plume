@@ -381,9 +381,9 @@ function formatDataForTimeline(data, pad_to_date_obj) {
       }
     }
     // Push into the 2D array
-    var label = day_obj.toDateString().replace(",", "").split(" ");
-    label = label[1] + " " + label[2];
-    var day_obj_time = day_obj.getTime();
+    var m = moment.tz(day_obj, "America/Denver");
+    var label = m.format("MMM DD");
+    var day_obj_time = m.valueOf();
     batch_2d.push([label, count, day_obj_time]);
     // Check if we need to pad missing days of the future
     var next_day_obj;
