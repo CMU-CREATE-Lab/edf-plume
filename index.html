@@ -63,7 +63,7 @@
     <div id="infobar" class='infocontainer'>
       <button id="infobar-close" title="Close">X</button>
       <div id="infobar-header">Air Tracker</div>
-      <div id="infobar-initial">Click on a circle to see pollution and wind measurements for that sensor. <br><br>Choose a day on the timeline and click the time block in the lower left to explore data within that day. <br><br> You can also click anywhere on the map to see a visualization of a pollution backtrace.</div>
+      <div id="infobar-initial">Click on a circle to see pollution and wind measurements for that sensor. <br><br>Choose a day on the timeline and click the time block in the lower left to explore data within that day. <br><br> You can also click anywhere in the shaded area of Salt Lake City to see a visualization of a pollution backtrace.</div>
       <div id="infobar-component-container">
       <div id="infobar-plume-section" class="infobar-component">
         <div class="infobar-component-header">Backtrace: </div>
@@ -109,11 +109,16 @@
           </tr>
           <tr>
             <td class="entry-title">Backtrace: </td>
-            <td colspan="6" class="backtrace-color-map"></td>
+            <td colspan="4" class="backtrace-color-map"></td>
+          </tr>
+          <tr>
+            <td class="entry-title"></td>
+            <td class="legend-label">Less Likely</td>
+            <td class="legend-label">More Likely</td>
           </tr>
           <tr>
             <td class="entry-title">AirNow PM<sub>2.5</sub>:</td>
-            <td>
+            <td colspan="2">
               <table>
                 <tr>
                   <td class="smell-color-td PM25-color-1"></td>
@@ -121,6 +126,13 @@
                   <td class="smell-color-td PM25-color-3"></td>
                   <td class="smell-color-td PM25-color-4"></td>
                   <td class="smell-color-td PM25-color-5"></td>
+                </tr>
+                <tr>
+                  <td class="legend-label">0+</td>
+                  <td class="legend-label">12+</td>
+                  <td class="legend-label">35+</td>
+                  <td class="legend-label">55+</td>
+                  <td class="legend-label">150+</td>
                 </tr>
               </table>
             </td>
@@ -155,6 +167,16 @@
     </div>
 
     <div id="map"></div>
+    <div id="footprint-first-click-dialog" title="Reminder!">
+      Clicking on the map will show you the <b>pollution backtrace</b> for that place at the selected time. <br><br>
+      The dark purple area is the area that the air parcels at your selected location most likely came <i>from.</i> <br><br>
+      As the color fades to white, this shows areas that are less and less likely to have contributed air parcels to the location you selected.
+      <br><br>
+      <div id="checkbox-container">
+      <input type="checkbox" id="dont-show-again" name="dont-show-again" value="Don't Show Me Again">
+      <label for="dont-show-again">Don't show me this reminder again</label>
+      </div>
+    </div>
     <div id="calendar-dialog" title="Calendar" data-role="none">
       <p>Select a year to explore:</p>
       <input type="hidden" autofocus="autofocus" />

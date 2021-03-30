@@ -11,19 +11,19 @@ var PM25_UNIT = "ug/m3";
 var pm25ColorLookup = function(pm25) {
   var color;
   if (pm25 >= 250.5) {
-    color = "#7e0023";
+    color = "#7e0023"; // dark maroon
   } else if (pm25 >= 150.5) {
-    color = "#99004c";
+    color = "#99004c"; //light maroon
   } else if (pm25 >= 55.5) {
-    color = "#ff0000";
+    color = "#ff0000"; //red
   } else if (pm25 >= 35.5) {
-    color = "#ff7e00";
+    color = "#ff7e00"; //orange
   } else if (pm25 >= 12.1) {
-    color = "#ffff00";
+    color = "#ffff00"; //yellow
   } else if (pm25 >= 0) {
-    color = "#00e400";
+    color = "#00e400"; //green
   } else {
-    color = "#000000";
+    color = "#000000"; //white
   }
   return color;
 }
@@ -315,6 +315,7 @@ var $infobarPollution;
 var $infobarWind;
 var $infobarPlume;
 var $playbackTimelineContainer;
+var $footprint_dialog;
 
 var widgets = new edaplotjs.Widgets();
 var Util = new edaplotjs.Util();
@@ -885,7 +886,7 @@ async function initMap() {
   });
 
   widgets.setCustomLegend($("#legend"));
-
+  initFootprintDialog();
   initDomElms();
   // END OF INIT
 }
@@ -964,6 +965,17 @@ async function drawFootprint(lat, lng, fromClicked) {
   if (!fromClicked && !selectedLocationPin) {
     return;
   }
+  if ( typeof drawFootprint.firstTime == 'undefined' && !localStorage.dontShowFootprintPopup ) {
+    $footprint_dialog.dialog("open");
+    $(" .custom-dialog-flat ").css('width','350px');
+    drawFootprint.firstTime = false; //do the initialisation 
+    $('input[type="checkbox"]').click(function(){
+      if($(this).prop("checked") == true){
+          localStorage.dontShowFootprintPopup = true;
+      }
+    });
+  } 
+  
   var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
   if (fromClicked) {
@@ -1840,6 +1852,17 @@ function handleTimelineToggling(e) {
     $(".selected-block")[0].scrollIntoView(false);
     handleDraw(mostRecentUpdateEpochTimeForLocationInMs, true, false);
   }
+}
+
+function initFootprintDialog() {
+  $footprint_dialog = widgets.createCustomDialog({
+    selector: "#footprint-first-click-dialog",
+    show_cancel_btn: false
+  });
+
+  $(".ui-dialog-titlebar-close").on("click",function(){
+    $footprint_dialog.hide();
+  })
 }
 
 

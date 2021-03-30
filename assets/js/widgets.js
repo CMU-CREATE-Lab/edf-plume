@@ -187,7 +187,7 @@
                   $body.addClass("no-x-scroll");
                 } else {
                   // This means that the page has no vertical scroll bar
-                  $body.addClass("no-scroll");
+                  //$body.addClass("no-scroll");
                 }
               }
               $selector_container.css({

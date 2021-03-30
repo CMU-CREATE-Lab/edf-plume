@@ -210,6 +210,11 @@ body {
   text-align: left;
 }
 
+.legend-label {
+  color: gray;
+  font-size: 9px;
+}
+
 .PM25-color-1 {
   background-image: url("../img/PM25_1_legend.png");
 }
@@ -487,6 +492,10 @@ button[disabled]{
 
 #calendar-dialog {
   display: none;
+}
+
+#checkbox-container {
+  font-size: 11px;
 }
 
 .noselect {
