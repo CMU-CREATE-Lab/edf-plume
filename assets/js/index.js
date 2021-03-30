@@ -1869,7 +1869,8 @@ function handleTimelineToggling(e) {
     $calendarChosenDayIndicator.text($(".selected-block").data("label")).removeClass("hidden");
     $calendarBtn.addClass("playbackTimelineOn calendar-specific-day-icon").removeClass("force-hidden").prop("title", "Choose a different day");
     $dayTimeToggle.addClass("force-no-visibility");
-    playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber())
+    $("#timeline-handle").slideUp(500);
+    playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber());
   } else {
     if ($currentTarget.hasClass("playbackButton")) return;
     playbackTimeline.setActiveState(false);
@@ -1879,6 +1880,7 @@ function handleTimelineToggling(e) {
     playbackTimeline.stopAnimate();
     $controls.addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
+    $("#timeline-handle").slideDown(500);
     handleDraw(mostRecentUpdateEpochTimeForLocationInMs, true, false);
   }
 }
