@@ -224,7 +224,7 @@
   height: 75px;
   overflow-x: auto;
   overflow-y: hidden;
-  z-index: 200;
+  z-index: 100;
   position: absolute;
   display: -webkit-box;
   display: -ms-flexbox;
