@@ -377,7 +377,7 @@ function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
     if (dataWithinPlaybackInterval) {
       var color = pm25ColorLookup(dataWithinPlaybackInterval.pm25);
       var timeDiff = Math.abs(currentPlaybackTimeInMs - (dataWithinPlaybackInterval.epochtimeInMs));
-      opacity = Math.min(1, (timeDiff / timeIntervalInMs) + .05);
+      opacity = Math.max(0, (1 - (timeDiff / timeIntervalInMs)) + .05);
       options.fillColor = color;
       options.strokeColor = color;
       options.fillOpacity = opacity;
@@ -491,10 +491,11 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   traxDataByEpochTimeInMs[playbackTimeInMs] = {};
 
   var mStartDate = moment.tz(playbackTimeInMs, "America/Denver");
-  var startDate = mStartDate.toDate();
-  var endDate = mStartDate.clone().add(playbackTimeline.getIncrementAmt(), 'minutes').toDate();
+  // For some reason we need to add/subtract an extra minute. The where clause does not seem to do what I would expect for the conditional...
+  var endDate = mStartDate.clone().add(1, 'minutes').toDate();
+  var startDate = mStartDate.clone().subtract(playbackTimeline.getIncrementAmt() - 1, 'minutes').toDate();
 
-  const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>=', startDate).where('time', '<', endDate).get();
+  const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>', startDate).where('time', '<', endDate).get();
   if (!snapshot.empty) {
     snapshot.forEach(doc => {
       var data = doc.data();
