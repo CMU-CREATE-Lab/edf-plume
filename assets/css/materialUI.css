@@ -187,7 +187,7 @@
 }
 
 .materialUI:not(.mobileUI) .materialTimeline {
-  overflow-x: hidden;
+  overflow-x: auto;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -548,6 +548,7 @@
   width: 8px;
   -ms-flex: 0 0 auto;
   flex: 0 0 auto;
+  margin-top: -7px;
 }
 
 .materialTimeline.isIE .materialTimelineDivider {
@@ -583,8 +584,8 @@
   line-height: 14px;
   align-items: center;
   justify-content: center;
-  height: 42px;
-  top: 6px;
+  height: 34px;
+  top: 3px;
 }
 
 .anchorTZ {
@@ -617,7 +618,7 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  height: 54px;
+  height: 42px;
   margin: 0px calc(50% - 107px);
   border-radius: 16px;
   color: transparent;
@@ -757,4 +758,23 @@
 
 .mobileSelect-container .list-container {
   box-shadow: 0px 5px 10px 0px #888888;
+}
+
+@media screen and (max-width: 450px) {
+  .materialUI:not(.mobileUI) .materialTimeline {
+    overflow-x: hidden;
+  }
+
+  .materialTimelineDivider {
+    margin-top: inherit;
+  }
+
+  .anchorHighlight {
+    height: 42px;
+    top: 6px;
+  }
+
+  .anchor {
+    height: 54px;
+  }
 }

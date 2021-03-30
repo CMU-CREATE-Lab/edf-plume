@@ -89,6 +89,7 @@ var create = {};
     var lastSelectedGroup;
     var startDownX;
     var $customPlay;
+    var $anchor;
 
 
 
@@ -100,6 +101,9 @@ var create = {};
     var isTimelineActive = false;
     var isTimelinePaused = true;
     var seekHoldTimeout;
+    var didScroll = false;
+    var scrollEndTimeout = null;
+    var mouseDown = false;
 
 
     var initPlayPause = function() {
@@ -167,13 +171,14 @@ var create = {};
       timelineGroupHTML = currentTimelineHTML;
       var $leftGroup = $("<div class='leftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
       var $rightGroup =  $("<div class='rightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-      var $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
+      $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
       $timeline.append($leftGroup, $rightGroup, $anchor);
       $playbackTimelineAnchor = $("#playback-timeline-container .anchor");
       timeSeekSelectOptionsHTML += "</select>";
       $("#timeJumpControl").append(timeSeekSelectOptionsHTML);
       $timeJumpOptions = $("#" + viewerDivId + " #timeJumpOptions");
       $timeline.on("mousedown", function(e) {
+        mouseDown = true;
         if (typeof(e.pageX) === "undefined") {
           startDownX = e.clientX;
         } else {
@@ -181,9 +186,40 @@ var create = {};
         }
       });
 
+      $timeline.on("scroll", function(e) {
+        didScroll = true;
+        window.clearTimeout(scrollEndTimeout);
+        // Set a timeout to run after scrolling ends
+        scrollEndTimeout = setTimeout(function() {
+          if (mouseDown) return;
+          $timeline.trigger("mouseup");
+        }, 100);
+      });
+
       $timeline.on("mouseup", function(e) {
         e.preventDefault();
         e.stopPropagation();
+        mouseDown = false;
+        if (didScroll) {
+          didScroll = false;
+          var selection = document.querySelector(".anchorHighlight");
+          var rectSelection = selection.getBoundingClientRect();
+          var intersect = [];
+          // Iterate over all LI elements.
+          [].forEach.call(document.querySelectorAll(".materialTimelineTick"), function(timeTick) {
+            var rect = timeTick.getBoundingClientRect();
+
+            if (rect.top + rect.height >= rectSelection.top
+              && rect.left + rect.width >= rectSelection.left
+              && rect.bottom - rect.height <= rectSelection.bottom
+              && rect.right - rect.width <= rectSelection.right) {
+                intersect.push(timeTick)
+            }
+          });
+          updateTimelineSlider(null, $(intersect.pop()), false, false, true);
+          refocusTimeline();
+          return;
+        }
         var endDownX;
         if (typeof(e.pageX) === "undefined") {
           endDownX = e.clientX;
@@ -312,7 +348,8 @@ var create = {};
             }
             // Add to the right
             var $newRightGroup = $("<div class='rightGroup newRightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-            $timeline.append($newRightGroup);
+            $newRightGroup.insertBefore($anchor);
+            //$timeline.append($newRightGroup);
             $timelineTicks = $("#" + viewerDivId + " .materialTimelineTick");
             if (doFixScroll) {
               scrollOptions.ease = null;

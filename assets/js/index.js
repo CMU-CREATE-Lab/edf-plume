@@ -510,8 +510,8 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
 
 async function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 40.758701, lng: -111.876183 },
-    zoom: 11,
+    center: { lat: 40.688701, lng: -111.876183 },
+    zoom: window.innerWidth <= 450 ? 10 : 11,
     streetViewControl: false,
     fullscreenControl: false,
     zoomControl: $(window).width() > 450,
@@ -834,6 +834,47 @@ async function initMap() {
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
+
+  // Draw clickable bounds to obtain backtraces
+  /*var plumeClickRegion = new google.maps.Rectangle({
+    strokeColor: "#FF0000",
+    strokeOpacity: 0.2,
+    strokeWeight: 2,
+    fillColor: "#FF0000",
+    fillOpacity: 0.0,
+    map,
+    bounds: {
+      north: 40.905,
+      south: 40.39508,
+      east: -111.745,
+      west: -112.105,
+    },
+    clickable: false
+  });*/
+
+  var lineSymbol = {
+    path: 'M 0,-1 0,1',
+    strokeOpacity: 1,
+    scale: 2
+  };
+
+  var plumeClickRegion = new google.maps.Polyline({
+    strokeColor: '#000000',
+    strokeOpacity: 0,
+    icons: [{
+      icon: lineSymbol,
+      offset: '0',
+      repeat: '12px'
+    }],
+    path: [
+           {lat: 40.905, lng: -112.105}, {lat: 40.39508, lng: -112.105},
+           {lat: 40.39508, lng: -111.745},
+           {lat: 40.39508, lng: -111.745}, {lat: 40.905, lng: -111.745},
+           {lat: 40.905, lng: -112.105}
+          ],
+    map: map,
+    clickable: false
+  });
 
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
@@ -1840,7 +1881,8 @@ function handleTimelineToggling(e) {
     $calendarChosenDayIndicator.text($(".selected-block").data("label")).removeClass("hidden");
     $calendarBtn.addClass("playbackTimelineOn calendar-specific-day-icon").removeClass("force-hidden").prop("title", "Choose a different day");
     $dayTimeToggle.addClass("force-no-visibility");
-    playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber())
+    $("#timeline-handle").slideUp(500);
+    playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber());
   } else {
     if ($currentTarget.hasClass("playbackButton")) return;
     playbackTimeline.setActiveState(false);
@@ -1850,6 +1892,7 @@ function handleTimelineToggling(e) {
     playbackTimeline.stopAnimate();
     $controls.addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
+    $("#timeline-handle").slideDown(500);
     handleDraw(mostRecentUpdateEpochTimeForLocationInMs, true, false);
   }
 }
