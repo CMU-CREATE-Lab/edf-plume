@@ -778,3 +778,49 @@
     height: 54px;
   }
 }
+
+.ui-tooltip {
+  background: #666;
+  color: white;
+  border: none;
+  padding: 0;
+  opacity: 1;
+  z-index: 100000;
+  word-break: break-word;
+  padding: 10px;
+  box-shadow: none;
+  font-size: 12px;
+  max-width: 168px;
+}
+
+.ui-tooltip-content::after {
+  content: '';
+  position: absolute;
+  border-style: solid;
+  display: block;
+  width: 0;
+}
+
+.ui-tooltip-content::after, .bottom .ui-tooltip-content::after {
+  top: 48px;
+  left: 82px;
+  border-color: transparent #666;
+  /* border-width: 0px 10px 10px 0px; */
+  /* padding: 20px; */
+  border-top: 10px solid #666;
+  /* border-top-color: inherit; */
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+}
+
+.ui-tooltip-content::after, .bottom-right .ui-tooltip-content::after {
+  top: 48px;
+  left: 164px;
+  border-color: transparent #666;
+  /* border-width: 0px 10px 10px 0px; */
+  /* padding: 20px; */
+  border-top: 10px solid #666;
+  /* border-top-color: inherit; */
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+}

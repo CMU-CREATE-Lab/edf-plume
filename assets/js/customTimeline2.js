@@ -100,6 +100,7 @@ var create = {};
     var didScroll = false;
     var scrollEndTimeout = null;
     var mouseDown = false;
+    var seekTooltipState = "none";
 
 
     var initPlayPause = function() {
@@ -364,7 +365,14 @@ var create = {};
     };
 
     var updateTimeJumpMenu = function() {
-      $timeJumpOptions.val(currentFrameNumber);
+      // The jump-to menu only shows hours, so we need to snap to the closest hour, rounding down.
+      var ignoreSnapTo = (currentFrameNumber / (60 / playbackTimeline.getIncrementAmt())) % 1 == 0;
+      var jumpFrame = currentFrameNumber;
+      if (!ignoreSnapTo) {
+        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), "America/Denver");
+        jumpFrame = captureTimes.indexOf(m.startOf('hour').format("h:mm A"));
+      }
+      $timeJumpOptions.val(jumpFrame);
     }
     this.updateTimeJumpMenu = updateTimeJumpMenu;
 
@@ -386,8 +394,31 @@ var create = {};
     };
 
     var handleSeekControls = function() {
+      $(document).on("touchstart", function() {
+        if (seekTooltipState == "shown") {
+          if ($leftSeekControl.data('ui-tooltip')) {
+            $leftSeekControl.tooltip("disable").tooltip("close");
+          } else if ($rightSeekControl.data('ui-tooltip')) {
+            $rightSeekControl.tooltip("disable").tooltip("close");
+          }
+          seekTooltipState = "disabled";
+        }
+      });
+
+      var jumpToTooltipStr = "You can also press and hold to jump to a specific hour.";
+
       $leftSeekControl.on("click", function() {
         seekControlAction("left");
+        if (seekTooltipState == "none") {
+          $(this).tooltip({
+            items: $(this),
+            position: { my: 'center bottom', at: 'center top-6', collision: "custom" },
+            tooltipClass: "bottom",
+            content: jumpToTooltipStr
+          });
+          $(this).tooltip("open");
+          seekTooltipState = "shown";
+        }
       }).on("mousedown", function() {
         seekHoldTimeout = setTimeout(function() {
           seekHoldTimeout = null;
@@ -395,10 +426,26 @@ var create = {};
         }, 500)
       }).on("mouseup", function() {
         clearTimeout(seekHoldTimeout)
+      }).on("mouseout", function(e) {
+        if (seekTooltipState == "shown") {
+          if ($(e.relatedTarget).parent()[0] == this) return;
+          $(this).tooltip("disable");
+          seekTooltipState = "disabled";
+        }
       });
 
       $rightSeekControl.on("click", function() {
         seekControlAction("right");
+        if (seekTooltipState == "none") {
+          $(this).tooltip({
+            items: $(this),
+            position: { my: 'center bottom', at: 'center-80 top-6', collision: "custom" },
+            tooltipClass: "bottom-right",
+            content: jumpToTooltipStr
+          });
+          $(this).tooltip("open");
+          seekTooltipState = "shown";
+        }
       }).on("mousedown", function() {
         seekHoldTimeout = setTimeout(function() {
           seekHoldTimeout = null;
@@ -406,6 +453,12 @@ var create = {};
         }, 500)
       }).on("mouseup", function() {
         clearTimeout(seekHoldTimeout)
+      }).on("mouseout", function(e) {
+        if (seekTooltipState == "shown") {
+          if ($(e.relatedTarget).parent()[0] == this) return;
+          $(this).tooltip("disable");
+          seekTooltipState = "disabled";
+        }
       });
     };
 
