@@ -509,8 +509,8 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
 
 async function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 40.758701, lng: -111.876183 },
-    zoom: 11,
+    center: { lat: 40.688701, lng: -111.876183 },
+    zoom: window.innerWidth <= 450 ? 10 : 11,
     streetViewControl: false,
     fullscreenControl: false,
     zoomControl: $(window).width() > 450,
