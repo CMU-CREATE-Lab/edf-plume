@@ -1036,7 +1036,12 @@ async function drawFootprint(lat, lng, fromClicked) {
 
   if (!playbackTimeline.isActive()) {
     if (timeline.selectedDayInMs == startOfLatestAvailableDay) {
-      playbackTimeInMs = await getMostRecentFootprintTimeInMs();
+      var latestFootprintTimeInMs = await getMostRecentFootprintTimeInMs();
+      if (moment.tz(latestFootprintTimeInMs, "UTC").isSame(moment.tz(timeline.selectedDayInMs, "UTC"), 'day')) {
+        playbackTimeInMs = latestFootprintTimeInMs;
+      } else {
+        playbackTimeInMs = timeline.selectedDayInMs;
+      }
     } else {
       playbackTimeInMs = timeline.selectedDayInMs;
     }
