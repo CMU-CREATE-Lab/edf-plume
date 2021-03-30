@@ -1008,17 +1008,17 @@ async function drawFootprint(lat, lng, fromClicked) {
   if (!fromClicked && !selectedLocationPin) {
     return;
   }
-  if ( typeof drawFootprint.firstTime == 'undefined' && !localStorage.dontShowFootprintPopup ) {
+  if ( typeof drawFootprint.firstTime == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
     $footprint_dialog.dialog("open");
     $(" .custom-dialog-flat ").css('width','350px');
-    drawFootprint.firstTime = false; //do the initialisation 
+    drawFootprint.firstTime = false; //do the initialisation
     $('input[type="checkbox"]').click(function(){
       if($(this).prop("checked") == true){
-          localStorage.dontShowFootprintPopup = true;
+          localStorage.dontShowFootprintPopup = "true";
       }
     });
-  } 
-  
+  }
+
   var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
   if (fromClicked) {
@@ -1723,7 +1723,7 @@ function updateInfoBar(marker) {
       setInfobarSubheadings(infobarPlume,infoStr,"","","");
       infobarPlume.children(".infobar-text").addClass('display-unset');
     } else {
-      infoStr = "No pollution backtrace available at this time interval."
+      infoStr = "No pollution backtrace available at " + moment.tz(playbackTimeline.getPlaybackTimeInMs(), "America/Denver").format("h:mm A (zz)");
       setInfobarUnavailableSubheadings(infobarPlume,infoStr);
       infobarPlume.children(".infobar-text").removeClass('display-unset');
     }
