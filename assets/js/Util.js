@@ -26,6 +26,7 @@
     var isSupportedChromeMobileVersion = matchChromeVersionString && matchChromeVersionString.length > 1 && parseInt(matchChromeVersionString[1]) >= 73;
     var isSamsungInternetUserAgent = ua.match(/SamsungBrowser/) != null;
     var isIEEdgeUserAgent = !!(isMSIEUserAgent && ua.match(/Edge\/([\d]+)/));
+    var transitionEndEventType = null;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -462,6 +463,29 @@
       var replaced = window.location.protocol + "//" + window.location.hostname + window.location.pathname + updated_query_url;
       window.history.replaceState("shareURL", "Title", replaced);
     };
+
+    this.getTransitionEndEventType = function() {
+      if (!transitionEndEventType) {
+        var t;
+        var el = document.createElement("fakeelement");
+
+        var transitions = {
+          "transition"      : "transitionend",
+          "OTransition"     : "oTransitionEnd",
+          "MozTransition"   : "transitionend",
+          "WebkitTransition": "webkitTransitionEnd"
+        }
+
+        for (t in transitions){
+          if (el.style[t] !== undefined){
+            transitionEndEventType = transitions[t];
+            break;
+          }
+        }
+      }
+      return transitionEndEventType;
+    };
+
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////

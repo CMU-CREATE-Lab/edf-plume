@@ -52,10 +52,6 @@ var create = {};
     // Class variables
     //
 
-    // Objects
-    //var UTIL = org.gigapan.Util;
-
-
     // Parameters
     var captureTimes;
     var numFrames;
@@ -200,7 +196,7 @@ var create = {};
         e.preventDefault();
         e.stopPropagation();
         mouseDown = false;
-        if (didScroll) {
+        if (didScroll && !isPlaybackTimelineToggling && isPaused()) {
           didScroll = false;
           var selection = document.querySelector(".anchorHighlight");
           var rectSelection = selection.getBoundingClientRect();
@@ -558,8 +554,6 @@ var create = {};
     // Constructor code
     //
 
-    $("#" + viewerDivId).addClass("materialUI");
-
     createTimelineSlider();
 
     //createSpeedToggle();
@@ -569,6 +563,10 @@ var create = {};
     handleSeekControls();
 
     initPlayPause();
+
+    $('#controls').on(Util.getTransitionEndEventType(), function() {
+      isPlaybackTimelineToggling = false;
+    });
 
   };
 })();

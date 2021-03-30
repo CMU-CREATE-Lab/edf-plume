@@ -175,6 +175,7 @@ function addTouchHorizontalScroll(elem) {
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
     loadAndCreateTimeline(async function() {
+      $("#timeline-handle").removeClass('force-no-visibility');
       playbackTimeline = new create.CustomTimeline2();
       timeline.selectLastBlock();
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');

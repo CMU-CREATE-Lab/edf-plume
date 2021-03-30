@@ -331,6 +331,8 @@ var isTouchMoving = false;
 var touchStartTargetElement;
 var currentTouchCount = 0;
 
+var isPlaybackTimelineToggling = false;
+
 var traxDataByEpochTimeInMs = {};
 var traxLocations = {};
 var traxMarkers = [];
@@ -1876,6 +1878,7 @@ function handleTimelineToggling(e) {
   $playbackTimelineAnchor.show();
   if ($controls.hasClass("playbackTimelineOff")) {
     if ($currentTarget.prop("id") == "calendar-btn") return;
+    isPlaybackTimelineToggling = true;
     playbackTimeline.setActiveState(true);
     $controls.removeClass("playbackTimelineOff");
     $calendarChosenDayIndicator.text($(".selected-block").data("label")).removeClass("hidden");
