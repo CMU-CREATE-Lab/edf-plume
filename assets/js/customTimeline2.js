@@ -58,7 +58,7 @@ var create = {};
     var currentFrameNumber;
     var playbackTimeInMs = 0;
     // Change to make more/less coarse playback
-    var incrementAmtInMin = 10;
+    var incrementAmtInMin = 15;
     // Change how fast it animates. Note that better caching will need to be involved if too low of a value is used.
     var animateIntervalInMs = 1000;
 
