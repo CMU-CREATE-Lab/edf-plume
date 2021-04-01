@@ -428,7 +428,8 @@ var create = {};
         clearTimeout(seekHoldTimeout)
       }).on("mouseout", function(e) {
         if (seekTooltipState == "shown") {
-          if ($(e.relatedTarget).parent()[0] == this) return;
+          var $relatedTarget = $(e.relatedTarget);
+          if ($relatedTarget.parent()[0] == this || $relatedTarget[0] == this) return;
           $(this).tooltip("disable");
           seekTooltipState = "disabled";
         }
@@ -455,7 +456,8 @@ var create = {};
         clearTimeout(seekHoldTimeout)
       }).on("mouseout", function(e) {
         if (seekTooltipState == "shown") {
-          if ($(e.relatedTarget).parent()[0] == this) return;
+          var $relatedTarget = $(e.relatedTarget);
+          if ($relatedTarget.parent()[0] == this || $relatedTarget[0] == this) return;
           $(this).tooltip("disable");
           seekTooltipState = "disabled";
         }
