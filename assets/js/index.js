@@ -2,6 +2,7 @@
 
 var map;
 var playbackTimeline;
+var $infobar
 
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
@@ -343,6 +344,8 @@ var $controls;
 var $calendarChosenDayIndicator;
 var $calendarBtn;
 var $dayTimeToggle;
+var $infobarComponentContainer;
+var $infobarInitial;
 
 function getDefaultTZ() {
   return DEFAULT_TZ;
@@ -642,10 +645,14 @@ async function initMap() {
     handleMapClicked(mapsMouseEvent);
   });
 
-  $("#infobar-close").on("click",closeInfobar);
+  $("#infobar-close-toggle-container").on("click", toggleInfobar);
 
-  var $infobar = $("#infobar");
+  $(".explanation-step-button").on("click", function(e) {
+    if ($(this).hasClass("disabled")) return;
+    stepThroughExplanation($(this).data("direction"));
+  });
 
+  $infobar = $("#infobar");
   $infobar.on("mousedown", function(e) {
     if ($(window).width() > 450) {
       return;
@@ -658,6 +665,7 @@ async function initMap() {
     var currentYPos;
     $infobar.addClass("disableScroll");
     $(document).on("mousemove.infocontainer", function(e) {
+      if ($(e.target).hasClass("initial") || $(e.target).parents("#infobar-initial").hasClass("initial")) return;
       currentYPos = e.pageY;
       if (lastYPos > e.pageY) {
         lastYDirection = "down";
@@ -678,7 +686,7 @@ async function initMap() {
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
         $infobar.stop(true, false).animate({
-          height: "20px"
+          height: "46px"
         }, function() {
           $infobar.removeClass("maximized");
         });
@@ -707,9 +715,6 @@ async function initMap() {
 
   $("#controls").on("click", "#calendar-btn, .timestampPreview", handleTimelineToggling);
 
-  //$("#timestampPreviewContent").text(current12HourString);
-  loadSensorList(sensors);
-
   if (hasTouchSupport) {
     //var controlsElem = document.getElementById("controls");
     $("#controls, #infobar").on("touchstart", Util.touch2Mouse);
@@ -717,6 +722,9 @@ async function initMap() {
     $("#controls, #infobar").on("touchend", Util.touch2Mouse);
     $("#controls, #infobar").on("touchcancel", Util.touch2Mouse);
   }
+
+  //$("#timestampPreviewContent").text(current12HourString);
+  loadSensorList(sensors);
 
   //------------------- create custom map overlay to draw footprint ---------------------------------
   class FootprintOverlay extends google.maps.OverlayView {
@@ -905,10 +913,6 @@ async function initMap() {
     traxMarkers.push(traxMarker)
   }
 
-  expandInfobar();
-  $(".infobar-component").hide();
-  $("#infobar-initial").show();
-
   $(document).on("keydown",function(e) {
     switch (e.keyCode) {
       case 32:
@@ -940,12 +944,15 @@ function initDomElms() {
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
-  $infobarHeader = $("#infobar-header");
+  $infobarHeader = $("#infobar-location-header");
   $playbackTimelineContainer = $("#playback-timeline-container")
   $controls = $("#controls");
   $calendarChosenDayIndicator = $(".calendar-specific-day");
   $calendarBtn = $("#calendar-btn");
   $dayTimeToggle = $(".timestampPreview");
+  $infobarComponentContainer = $("#infobar-component-container");
+  $infobarInitial = $("#infobar-initial");
+  verticalTouchScroll($infobarInitial);
 }
 
 async function handleDraw(timeInEpoch, doOverview, fromDaySelection) {
@@ -1149,26 +1156,40 @@ async function drawFootprint(lat, lng, fromClicked) {
     icon: iconPath
   });
 
+  google.maps.event.addListener(selectedLocationPin, 'click', function (e) {
+    if (selectedLocationPin) {
+      selectedLocationPin.setMap(null);
+      selectedLocationPin = null;
+    }
+    resetInfobar();
+  });
+
 }
 
 
-function closeInfobar() {
-  var infobar = $("#infobar")[0];
-  infobar.style.visibility = 'hidden';
-  overlay.setMap(null);
-  if (selectedLocationPin) {
-    selectedLocationPin.setMap(null);
-    selectedLocationPin = null;
-  }
+function toggleInfobar() {
+  $infobar.toggleClass("closed");
+  //var infobar = $("#infobar")[0];
+  //infobar.style.visibility = 'hidden';
+  //overlay.setMap(null);
+  //if (selectedLocationPin) {
+  //  selectedLocationPin.setMap(null);
+  //  selectedLocationPin = null;
+  //}
 }
 
 
 function expandInfobar() {
   //get infobar element
-  var infobar = $("#infobar")[0];
-  infobar.style.visibility = 'visible';
-  $(".infobar-component").show();
-  $("#infobar-initial").hide();
+  $infobar.removeClass("closed");
+  $infobarComponentContainer.show();
+  $infobarInitial.hide();
+}
+
+function resetInfobar() {
+  $infobarComponentContainer.hide();
+  $infobarInitial.show();
+  $infobarHeader.hide();
 }
 
 
@@ -1683,6 +1704,7 @@ function updateInfoBar(marker) {
   var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, "America/Denver").format("h:mm A (zz)");
 
   // Set infobar header to sensor name (if TRAX or AirNow) or clicked lat/lon coords otherwise
+  $infobarHeader.show();
   var infobarHeader = $infobarHeader[0];
   var markerName = markerData.sensorType ==  "trax" ? "TRAX "+ formatTRAXLineName(marker.traxId) + " Line" : markerData.name;
   infobarHeader.innerHTML = markerName;
@@ -1909,7 +1931,8 @@ function handleTimelineToggling(e) {
 function initFootprintDialog() {
   $footprint_dialog = widgets.createCustomDialog({
     selector: "#footprint-first-click-dialog",
-    show_cancel_btn: false
+    show_cancel_btn: false,
+    max_height: 405,
   });
 
   $(".ui-dialog-titlebar-close").on("click",function(){
@@ -1951,6 +1974,23 @@ var verticalTouchScroll = function($elem){
 function roundTo(val, n) {
   var d = Math.pow(10, n);
   return Math.round(parseFloat(val) * d) / d;
+}
+
+function stepThroughExplanation(direction) {
+  var $elm = $("#explanationstep-container");
+  $("#footprint-first-click-dialog").scrollTop(0);
+  var currentStep = parseInt($elm.data("current-step"));
+  var maxSteps = parseInt($elm.data("max-steps"));
+  currentStep += parseInt(direction);
+  $elm.data("current-step", currentStep);
+  $(".explanation-step-button").removeClass("disabled");
+  if (currentStep == 1) {
+    $("#explanationstep-back").addClass("disabled");
+  } else if (currentStep == maxSteps) {
+    $("#explanationstep-forward").addClass("disabled");
+  }
+  $('#footprint-first-click-dialog [id^="explanation-"].explanation-content').hide();
+  $("#explanation-" + currentStep).show();
 }
 
 

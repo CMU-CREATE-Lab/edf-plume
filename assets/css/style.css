@@ -19,30 +19,42 @@ body {
 #infobar {
   margin: 0;
   padding: 0 15px 0 15px;
-  width: 250px;
+  width: 288px;
   background-color: #f1f1f1;
   position: fixed;
   height: calc(100% - 76px);
-  overflow: hidden;
-  z-index: 1;
-  visibility: hidden;
-  -webkit-box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
-          box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.19);
+  /*overflow: hidden;*/
+  z-index: 100;
+  -webkit-box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.20);
+          box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.2), 8px 0 20px -10px rgba(0, 0, 0, 0.20);
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  left: 0px;
+  -webkit-transition: 0.5s;
+  -o-transition: 0.5s;
+  transition: 0.5s;
 }
 
 #infobar-initial {
-  margin-top: 20px;
+  height: calc(100% - 85px);
+  overflow-y: auto;
 }
 
 #infobar-header {
   font-size: 28px;
   text-align: center;
-  margin-top: 25px;
+  margin-top: 20px;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+#infobar-location-header {
+  font-size: 20px;
+  text-align: center;
+  margin-top: 15px;
   font-weight: bold;
 }
 
@@ -64,6 +76,7 @@ body {
 #infobar-component-container {
   height: calc(100% - 102px);
   overflow-y: auto;
+  display: none;
 }
 
 .infobar-component {
@@ -74,7 +87,7 @@ body {
 }
 
 .infobar-component-header {
-  font-size: large;
+  font-size: 16px;
   font-weight: bold;
   padding: 10px 0 10px 0;
   border-bottom: 1px solid black;
@@ -102,7 +115,7 @@ body {
 
 .infobar-data {
   font-weight: bold;
-  font-size: 3em;
+  font-size: 1.7em;
   text-align: center;
   font-style: normal;
 }
@@ -270,12 +283,104 @@ body {
   display: none;
 }
 
+.infobar-close-toggle-icon {
+  background: url(../img/left-arrow-black.png);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  -webkit-background-size: contain;
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  right: -2px;
+  top: 4px;
+  opacity: 0.685;
+  display: inline-block;
+  transform: translateZ(0)
+}
+
+#infobar-close-toggle-container:hover .infobar-close-toggle-icon{
+  opacity: 1.0;
+}
+
+#infobar.closed .infobar-close-toggle-icon {
+  background: url(../img/right-arrow-black.png);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  -webkit-background-size: contain;
+}
+
+#infobar-close-toggle-container {
+  width: 24px;
+  height: 38px;
+  background: #f1f1f1;
+  position: absolute;
+  right: -26px;
+  top: 20px;
+  z-index: 1002;
+  border-radius: 0px 4px 4px 0px;
+  -webkit-appearance: none;
+  -webkit-box-shadow: 2px 2px 3px rgb(0 0 0 / 30%);
+  box-shadow: 2px 2px 3px rgb(0 0 0 / 30%);
+  border: 1px solid #d3d3d3;
+  cursor: pointer;
+}
+
+#infobar.closed {
+  -webkit-transition: 0.5s;
+  -o-transition: 0.5s;
+  transition: 0.5s;
+  left: -318px;
+}
+
+#explanationstep-container {
+  float: right;
+  margin-top: 10px;
+}
+
+.explanation-content h4{
+  margin-top: 0px;
+}
+
+#explanation-content-container {
+  overflow-y: auto;
+  max-height: 265px;
+}
+
+#explanationstep-back {
+  text-decoration: none;
+  color: #009cff;
+  font-weight: bold;
+  outline: none;
+}
+
+#explanationstep-forward {
+  text-decoration: none;
+  color: #009cff;
+  font-weight: bold;
+  outline: none;
+}
+
+#dont-show-again, label[for=dont-show-again] {
+  cursor: pointer;
+}
+
+#explanationstep-back.disabled, #explanationstep-forward.disabled {
+  cursor: default;
+  color: #8d8d8d;
+}
+
+#footprint-first-click-dialog {
+  overflow: hidden;
+}
 
 @media screen and (max-width: 450px) {
 
   #infobar-initial {
     margin-top: 0px;
     margin-bottom: 25px;
+    height: calc(100% - 65px);
   }
 
   .mobile-only-error {
@@ -290,8 +395,8 @@ body {
   }
 
   #infobar {
-    font-size: 15px;
-    height: auto;
+    font-size: 14px;
+    height: 250px;
     width: 100%;
     width: -moz-available;          /* WebKit-based browsers will ignore this. */
     width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
@@ -303,6 +408,9 @@ body {
             box-shadow: 0 5px 10px -5px rgba(0, 0, 0, 0.2), 0 8px 20px -10px rgba(0, 0, 0, 0.19);
     border-bottom-right-radius: 20px;
     border-bottom-left-radius: 20px;
+    -webkit-transition: none;
+    -o-transition: none;
+    transition: none;
   }
 
   #infobar-component-container {
@@ -318,6 +426,10 @@ body {
     font-size: 24px;
     margin-top: 7px;
     margin-bottom: 5px;
+  }
+
+  #infobar-location-header {
+    margin-top: 5px
   }
 
   #infobar h2 {
@@ -345,7 +457,7 @@ body {
     display: block;
     position: absolute;
     bottom: 0px;
-    height: 40px;
+    height: 25px;
     width: calc(100% - 30px);
     background: inherit;
   }
@@ -381,7 +493,7 @@ body {
   }
 
   .infobar-component-header {
-    font-size: medium;
+    font-size: 16px;
     padding: 0 0 0 0;
   }
 
@@ -400,7 +512,7 @@ body {
 
   .infobar-data {
     padding-top: 3px;
-    font-size: 2em;
+    font-size: 1.2em;
   }
 
   .infobar-unit {

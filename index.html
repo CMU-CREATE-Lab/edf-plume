@@ -3,7 +3,6 @@
   <head>
     <title>Air Tracker</title>
     <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
-
     <link rel="stylesheet" media="screen" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" />
     <link rel="stylesheet" media="screen" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" />
     <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" media="screen" rel="stylesheet" type="text/css" />
@@ -14,34 +13,28 @@
     <link rel="stylesheet" type="text/css" href="./assets/css/style.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/materialUI.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.css" />
-
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGyX7QdJaQWBxWuXaCjwRBlanMLdFwygY&callback=initMap&libraries=&v=weekly"
       defer
-    ></script>
+      ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data-10-year-range.min.js" type="text/javascript"></script>
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.2/firebase-firestore.js"></script>
-
     <script src="./assets/js/TimelineHeatmap.js" type="text/javascript"></script>
     <script src="./assets/js/widgets.js"></script>
     <script src="./assets/js/Util.js"></script>
     <script src="./assets/lib/gmaps-utils/map_marker/CustomMapMarker.js"></script>
     <script src="./assets/lib/touchPunch/jquery.ui.touch-punch.min.js"></script>
     <script src="./assets/lib/bootstrapFullscreenSelect/bootstrap-fullscreen-select.min.js"></script>
-
     <script src="./assets/lib/scrollIntoView/scrollIntoView.min.js"></script>
     <script src="./assets/js/customTimeline2.js"></script>
     <script src="./assets/js/index.js"></script>
     <script src="./assets/js/timeline.js"></script>
-
   </head>
   <body>
     <div id="controls" class="playbackTimelineOff">
@@ -59,47 +52,66 @@
       </div>
       <div id="timeline-container" class="noselect timeline-container"></div>
       <div id="timeline-handle" class="noselect force-no-visibility"><span>Daily AQI</span></div>
-      <button id="calendar-btn" title="Calendar" class="force-hidden custom-button-flat calendar-default-icon" disabled><div class="calendar-specific-day hidden"></div></button>
+      <button id="calendar-btn" title="Calendar" class="force-hidden custom-button-flat calendar-default-icon" disabled>
+        <div class="calendar-specific-day hidden"></div>
+      </button>
     </div>
     <div id="infobar" class='infocontainer'>
-      <button id="infobar-close" title="Close">X</button>
       <div id="infobar-header">Air Tracker</div>
-      <div id="infobar-initial">Click on a circle to see pollution and wind measurements for that sensor. <br><br>Choose a day on the timeline and click the clock in the lower left to explore data within that day. <br><br> You can also click anywhere in the dotted region on the map to see a visualization of a pollution backtrace.</div>
+      <div id="infobar-location-header"></div>
+      <div id="infobar-initial" class="initial">
+        <p>That air you’re breathing, where’s it been?</p>
+        <p>AirTracker makes visual connections between the air you are breathing and the locations
+          of air pollution sources in the Salt Lake City valley. Users can view back traces, which show where
+          air comes from at any time.
+          <br><br>
+          Key interactive features include:
+        </p>
+        <ul>
+          <li>View real-time air pollution and wind measurements across the Salt Lake City valley. Click on a circle to see these sensor measurements.</li>
+          <br>
+          <li>Click anywhere in the SLC valley (dotted region) to create a back trace that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
+          <br>
+          <li>Explore past air pollution measurements and back traces to learn more about areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
+        </ul>
+      </div>
       <div id="infobar-component-container">
-      <div id="infobar-plume-section" class="infobar-component">
-        <div class="infobar-component-header">Backtrace: </div>
-        <div id="infobar-plume">
-          <div class="infobar-text"></div>
-          <div class="infobar-data"></div>
-          <div class="infobar-unit"></div>
-          <div class="infobar-time"></div>
+        <div id="infobar-plume-section" class="infobar-component">
+          <div class="infobar-component-header">Backtrace: </div>
+          <div id="infobar-plume">
+            <div class="infobar-text"></div>
+            <div class="infobar-data"></div>
+            <div class="infobar-unit"></div>
+            <div class="infobar-time"></div>
+          </div>
+        </div>
+        <div id="infobar-pollution-section" class="infobar-component">
+          <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
+          <div id="infobar-pollution" class="infobar-component-value">
+            <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements</i></div>
+            <div class="infobar-data"></div>
+            <div class="infobar-unit"></div>
+            <div class="infobar-time"></div>
+          </div>
+        </div>
+        <div id="infobar-wind-section" class="infobar-component">
+          <div class="infobar-component-header">Wind: </div>
+          <div id="infobar-wind" class="infobar-component-value">
+            <div class="infobar-text"><i>Click on the nearest sensor to see wind measurements</i></div>
+            <div class="infobar-data-intro">Coming from</div>
+            <div class="infobar-data"></div>
+            <div class="infobar-unit"></div>
+            <div class="infobar-time"></div>
+          </div>
         </div>
       </div>
-      <div id="infobar-pollution-section" class="infobar-component">
-        <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
-        <div id="infobar-pollution" class="infobar-component-value">
-          <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements</i></div>
-          <div class="infobar-data"></div>
-          <div class="infobar-unit"></div>
-          <div class="infobar-time"></div>
-        </div>
-      </div>
-      <div id="infobar-wind-section" class="infobar-component">
-        <div class="infobar-component-header">Wind: </div>
-        <div id="infobar-wind" class="infobar-component-value">
-          <div class="infobar-text"><i>Click on the nearest sensor to see wind measurements</i></div>
-          <div class="infobar-data-intro">Coming from</div>
-          <div class="infobar-data"></div>
-          <div class="infobar-unit"></div>
-          <div class="infobar-time"></div>
-        </div>
-      </div>
-    </div>
       <div id="infobar-close-handle-container">
         <div id="infobar-close-handle"></div>
       </div>
+      <div id="infobar-close-toggle-container" title="Show/Hide Infobar">
+        <div class="infobar-close-toggle-icon"></div>
+      </div>
     </div>
-
     <div class="custom-legend noselect" id="legend">
       <h3 class="legend-title">Legend</h3>
       <div class="legend-scale">
@@ -166,16 +178,39 @@
         </table>
       </div>
     </div>
-
     <div id="map"></div>
     <div id="footprint-first-click-dialog" title="Reminder!">
-      Clicking on the map will show you the <b>pollution backtrace</b> for that place at the selected time. <br><br>
-      The dark purple area is the area that the air parcels at your selected location most likely came <i>from.</i> <br><br>
-      As the color fades to white, this shows areas that are less and less likely to have contributed air parcels to the location you selected.
+      <div id="explanation-content-container" style="overflow-y: auto">
+        <div id="explanation-1" class="explanation-content">
+          Clicking on the map will show you the <b>pollution backtrace</b> for that place at the selected time. <br><br>
+          The dark purple area is the area that the air parcels at your selected location most likely came <i>from.</i> <br><br>
+          As the color fades to white, this shows areas that are less and less likely to have contributed air parcels to the location you selected.
+        </div>
+        <div id="explanation-2" style="display:none" class="explanation-content">
+          <h4>Wind:</h4>
+          The wind arrow points in the direction that the air is blowing. It is positioned based on real-time meteorological measurements at that site.
+          The back trace uses wind data from a weather model data developed by NOAA. While those weather models are quite good, they do not always match
+          measured data exactly. Here is what to look for:
+          <br><br>
+          <div><img src="assets/img/edf-wind-pt1.jpg"></div>
+          <br>
+          See how the wind arrow overlaps with the back trace, and they both point into the selected location (red pin)? That suggests that the model wind
+          direction agrees with the measured wind direction, and we have a lot of confidence that the back trace is correct.
+          <br><br>
+          When the wind arrow and the back trace don’t match:
+          <br><br>
+          <div><img src="assets/img/edf-wind-pt2.jpg"></div>
+          <br>
+          See how the arrow and the back trace don’t line up at all? This means we have less confidence that the back trace is correct.
+        </div>
+      </div>
+      <div id="explanationstep-container" data-max-steps="2" data-current-step="1">
+        <a id="explanationstep-back" class="explanation-step-button disabled" data-direction="-1" href="javascript:void(0)">&xlarr; BACK</a> | <a id="explanationstep-forward" class="explanation-step-button" data-direction="1" href="javascript:void(0)">NEXT &xrarr;</a>
+      </div>
       <br><br>
       <div id="checkbox-container">
-      <input type="checkbox" id="dont-show-again" name="dont-show-again" value="Don't Show Me Again">
-      <label for="dont-show-again">Don't show me this reminder again</label>
+        <input type="checkbox" id="dont-show-again" name="dont-show-again" value="Don't Show Me Again">
+        <label for="dont-show-again">Don't show me this reminder again</label>
       </div>
     </div>
     <div id="calendar-dialog" title="Calendar" data-role="none">
