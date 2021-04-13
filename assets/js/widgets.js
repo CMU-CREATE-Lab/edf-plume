@@ -111,6 +111,9 @@
       // Reverse the positions of the action and cancel buttons
       var reverse_button_positions = safeGet(settings["reverse_button_positions"], false);
 
+      // Specify the max height of the dialog window
+      var max_height = safeGet(settings["max_height"], "auto");
+
       // Specify buttons
       var buttons = [];
       if (show_cancel_btn) {
@@ -156,6 +159,7 @@
       // Create dialog
       var $selector_container;
       var dialog_settings = {
+        maxHeight: max_height,
         autoOpen: false,
         resizable: false,
         height: "auto",
@@ -169,6 +173,7 @@
         buttons: buttons,
         closeText: "",
         open: function (event, ui) {
+          $(event.target).scrollTop(0);
           var num_opened_dialog = 0;
           $(".ui-dialog-content").each(function () {
             if ($(this).dialog("isOpen")) num_opened_dialog += 1;
