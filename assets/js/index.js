@@ -1166,6 +1166,7 @@ async function drawFootprint(lat, lng, fromClicked) {
       selectedLocationPin.setMap(null);
       selectedLocationPin = null;
     }
+    overlay.setMap(null);
     resetInfobar();
   });
 
