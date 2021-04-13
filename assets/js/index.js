@@ -9,6 +9,10 @@ var STILT_COLLECTION_NAME = "stilt-prod";
 var DEFAULT_TZ = "America/Denver";
 var PM25_UNIT = "ug/m3";
 
+// Increase/decrease for more or less TRAX data to look back at
+var traxDataIntervalInMin = 60;
+var traxDataIntervalInMs = traxDataIntervalInMin * 60000;
+
 var pm25ColorLookup = function(pm25) {
   var color;
   if (pm25 >= 250.5) {
@@ -372,7 +376,7 @@ function resetAllTrax() {
 function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   var opacity;
   // 60000 ms = 1 minute
-  var timeIntervalInMs = playbackTimeline.getIncrementAmt() * 60000;
+  var timeIntervalInMs = traxDataIntervalInMs; //playbackTimeline.getIncrementAmt() * 60000;
   var options = {};
   for (var site in traxLocations) {
     var marker = traxLocations[site].marker;
@@ -496,7 +500,8 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   var mStartDate = moment.tz(playbackTimeInMs, "America/Denver");
   // For some reason we need to add/subtract an extra minute. The where clause does not seem to do what I would expect for the conditional...
   var endDate = mStartDate.clone().add(1, 'minutes').toDate();
-  var startDate = mStartDate.clone().subtract(playbackTimeline.getIncrementAmt() - 1, 'minutes').toDate();
+  //playbackTimeline.getIncrementAmt()
+  var startDate = mStartDate.clone().subtract(traxDataIntervalInMin - 1, 'minutes').toDate();
 
   const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>', startDate).where('time', '<', endDate).get();
   if (!snapshot.empty) {
