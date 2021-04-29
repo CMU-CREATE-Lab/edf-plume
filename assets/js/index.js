@@ -1740,7 +1740,7 @@ function updateInfoBar(marker) {
     if (isDaySummary) {
       setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max");
     } else {
-      if (sensorVal) {
+      if (sensorVal >= 0) {
         setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
       } else {
         // Clicked on a trax sensor, which is now invisible since the time does not match for it.
@@ -1756,7 +1756,7 @@ function updateInfoBar(marker) {
     if (isDaySummary) {
       setInfobarUnavailableSubheadings($infobarWind,"Click the clock icon to explore wind information for this past day.");
     } else {
-      if(markerData['wind_direction']) {
+      if (markerData['wind_direction']) {
         setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " at " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
       } else {
         setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest wind arrow to see wind measurements.")
