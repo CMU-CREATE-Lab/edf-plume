@@ -378,17 +378,25 @@ function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   // 60000 ms = 1 minute
   var timeIntervalInMs = traxDataIntervalInMs; //playbackTimeline.getIncrementAmt() * 60000;
   var options = {};
+  var mostRecentTraxLines = {'r' : {'marker' : null, 'timeInMs' : -1}, 'g' : {'marker' : null, 'timeInMs' : -1}, 'b' : {'marker' : null, 'timeInMs' : -1}};
   for (var site in traxLocations) {
     var marker = traxLocations[site].marker;
     var dataWithinPlaybackInterval = traxDataByEpochTimeInMs[currentPlaybackTimeInMs][site];
     if (dataWithinPlaybackInterval) {
+      var traxLine = site[0];
+      var markerEpochTimeInMs = dataWithinPlaybackInterval.epochtimeInMs;
+      if (markerEpochTimeInMs > mostRecentTraxLines[traxLine].timeInMs) {
+        mostRecentTraxLines[traxLine].marker = marker;
+        mostRecentTraxLines[traxLine].timeInMs = markerEpochTimeInMs;
+      }
       var color = pm25ColorLookup(dataWithinPlaybackInterval.pm25);
-      var timeDiff = Math.abs(currentPlaybackTimeInMs - (dataWithinPlaybackInterval.epochtimeInMs));
-      opacity = Math.max(0, (1 - (timeDiff / timeIntervalInMs)) + .05);
+      var timeDiff = Math.abs(currentPlaybackTimeInMs - markerEpochTimeInMs);
+      opacity = Math.min(1, Math.max(0, (1 - (timeDiff / timeIntervalInMs)) + .05));
       options.fillColor = color;
       options.strokeColor = color;
       options.fillOpacity = opacity;
       options.strokeOpacity = Math.max(0, opacity - 0.2);
+      options.radius = 90;
     } else {
       opacity = 0;
       options.fillOpacity = opacity;
@@ -398,6 +406,17 @@ function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
     var visiblity = opacity != 0;
     marker.setVisible(visiblity);
   }
+  var mostRecentTraxLineMarkers = Object.values(mostRecentTraxLines).map(traxLine => traxLine.marker);
+  // Make the most recent trax reading a bigger sizes circle with a black outline
+  var specialOptions = {
+    strokeColor: "#000000",
+    radius: 120,
+  }
+  mostRecentTraxLineMarkers.forEach(marker => {
+    if (marker) {
+      marker.setOptions(specialOptions);
+    }
+  });
 }
 
 
