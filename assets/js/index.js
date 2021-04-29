@@ -911,6 +911,37 @@ async function initMap() {
     clickable: false
   });
 
+  $(document).on("keydown",function(e) {
+    switch (e.keyCode) {
+      case 32:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.togglePlayPause();
+        }
+        break;
+      case 37:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.seekControlAction("left");
+        }
+        break;
+      case 39:
+        if (playbackTimeline.isActive()) {
+          playbackTimeline.seekControlAction("right");
+        }
+        break;
+    }
+  });
+
+  widgets.setCustomLegend($("#legend"));
+  if ($(window).width() < 450) {
+    $( ".custom-legend" ).accordion( "option", "active", false );
+  }
+
+  initFootprintDialog();
+  initDomElms();
+
+
+  // DO LAST
+
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
   for (var traxid in traxLocations) {
@@ -936,31 +967,6 @@ async function initMap() {
     traxMarker.setVisible(false);
     traxMarkers.push(traxMarker)
   }
-
-  $(document).on("keydown",function(e) {
-    switch (e.keyCode) {
-      case 32:
-        if (playbackTimeline.isActive()) {
-          playbackTimeline.togglePlayPause();
-        }
-        break;
-      case 37:
-        if (playbackTimeline.isActive()) {
-          playbackTimeline.seekControlAction("left");
-        }
-        break;
-      case 39:
-        if (playbackTimeline.isActive()) {
-          playbackTimeline.seekControlAction("right");
-        }
-        break;
-    }
-  });
-
-  widgets.setCustomLegend($("#legend"));
-  initFootprintDialog();
-  initDomElms();
-  // END OF INIT
 }
 
 
