@@ -251,6 +251,30 @@ body {
   background-image: url("../img/PM25_5_legend.png");
 }
 
+#purple-air-legend-row {
+  display: none;
+}
+
+.PM25-color-1b {
+  background-image: url("../img/square_1.png");
+}
+
+.PM25-color-2b {
+  background-image: url("../img/square_2.png");
+}
+
+.PM25-color-3b {
+  background-image: url("../img/square_3.png");
+}
+
+.PM25-color-4b {
+  background-image: url("../img/square_4.png");
+}
+
+.PM25-color-5b {
+  background-image: url("../img/square_5.png");
+}
+
 .trax-color-1 {
   background-color: #00e400;
 }

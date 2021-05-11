@@ -33,6 +33,8 @@ var pm25ColorLookup = function(pm25) {
   return color;
 }
 
+var dataFormatWorker;
+
 var sensors = [{
   "name": "Salt Lake City",
   "state_code": "UT",
@@ -290,7 +292,9 @@ var sensors = [{
   },]
 }];
 
+
 var sensors_list = [];
+var purpleair_list = [];
 var esdr_sensors = {};
 var plume_backtraces = {};
 
@@ -301,6 +305,8 @@ var current_day_str = moment().tz("America/Denver").format("YYYY-MM-DD");
 var selectedLocationPin;
 var selectedSensorMarker;
 var overlay;
+var purpleAirLoadInterval;
+var showPurpleAir = false;
 
 var db;
 
@@ -335,8 +341,10 @@ var thisLocation;
 var isTouchMoving = false;
 var touchStartTargetElement;
 var currentTouchCount = 0;
+var drewMarkersAtLeastOnce = false;
 
 var isPlaybackTimelineToggling = false;
+var dataFormatWorkerIsProcessing = false;
 
 var traxDataByEpochTimeInMs = {};
 var traxLocations = {};
@@ -747,6 +755,12 @@ async function initMap() {
     $("#controls, #infobar").on("touchcancel", Util.touch2Mouse);
   }
 
+  var urlVars = Util.parseVars(window.location.href);
+  showPurpleAir = urlVars.showPurpleAir == "true";
+  if (showPurpleAir) {
+    $("#purple-air-legend-row").show();
+  }
+
   //$("#timestampPreviewContent").text(current12HourString);
   loadSensorList(sensors);
 
@@ -939,8 +953,9 @@ async function initMap() {
   initFootprintDialog();
   initDomElms();
 
+  createDataPullWebWorker();
 
-  // DO LAST
+  // !!DO LAST!!
 
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
@@ -955,8 +970,6 @@ async function initMap() {
       radius: 90,
       getData: function() { return traxDataByEpochTimeInMs[playbackTimeline.getPlaybackTimeInMs()][this.traxId]; }
     });
-    //tra
-    //cityCircle.traxId = traxid;
     traxLocations[traxid].marker = traxMarker;
     traxLocations[traxid].marker['traxId'] = traxid;
     google.maps.event.addListener(traxMarker, 'click', function (e) {
@@ -967,6 +980,13 @@ async function initMap() {
     traxMarker.setVisible(false);
     traxMarkers.push(traxMarker)
   }
+}
+
+function createDataPullWebWorker() {
+  // Create the worker.
+  dataFormatWorker = new Worker("./assets/js/formatAndMergeSensorDataWorker.js");
+  // Hook up to the onMessage event, so you can receive messages from the worker.
+  dataFormatWorker.onmessage = receivedWorkerMessage;
 }
 
 
@@ -1224,13 +1244,21 @@ function resetInfobar() {
 }
 
 
-function loadSensorList(sensors) {
+async function loadSensorList(sensors) {
   for (var i = 0; i < sensors.length; i++) {
     var markers = sensors[i].markers;
     for (var j = 0; j < markers.length; j++) {
       sensors_list.push(markers[j]);
     }
   }
+
+  if (showPurpleAir) {
+    var purple_airs = await loadPurpleAirSensorList();
+    for (var j = 0; j < purple_airs.length; j++) {
+      purpleair_list.push(purple_airs[j]);
+    }
+  }
+
   // TODO: timeline block click events
   var options = {
     clickEvent: function() {
@@ -1239,6 +1267,28 @@ function loadSensorList(sensors) {
     }
   }
   initTimeline(options);
+}
+
+async function receivedWorkerMessage(event) {
+  var result = event.data.result;
+  var info = event.data.info;
+  var epochtime_milisec = event.data.epochtime_milisec;
+  var is_current_day = event.data.is_current_day;
+  var sensor_names = Object.keys(result);
+  for (var i = 0; i < info.length; i++) {
+    var sensor = esdr_sensors[info[i]['name']];
+    if (sensor) {
+      var marker = sensor['marker'];
+      marker.setData(parseSensorMarkerData(result[sensor_names[i]].data[epochtime_milisec], is_current_day, info[i]));
+      marker.updateMarker();
+    } else {
+      createAndShowSensorMarker(result[sensor_names[i]].data[epochtime_milisec], epochtime_milisec, is_current_day, info[i]);
+    }
+  }
+
+  jQuery.extend(true, esdr_sensors, result);
+  dataFormatWorkerIsProcessing = false;
+  sensorsLoadedResolver(null);
 }
 
 async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day) {
@@ -1251,7 +1301,7 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
       d.push([data['data'][a][0], data['data'][a].slice(lastIdx + 1, resultsMapping[i] + 1)].flat());
     }
     var dataSegment = {
-      "channel_names" :data['channel_names'].slice(lastIdx, resultsMapping[i] + 1),
+      "channel_names" :data['channel_names'].slice(lastIdx, resultsMapping[i]),
       "data" : d
     }
     lastIdx = resultsMapping[i];
@@ -1304,6 +1354,7 @@ async function loadAndCreateSensorMarker(epochtime_milisec, info, is_current_day
 function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i) {
   return new CustomMapMarker({
     "type": getSensorType(info),
+    "sensor_type" : info['marker_type'],
     "data": parseSensorMarkerData(data, is_current_day, info),
     "click": function (marker) {
       selectedSensorMarker = marker;
@@ -1521,6 +1572,21 @@ async function loadSensorData(urls, callback) {
   });
 }
 
+
+async function loadPurpleAirSensorList() {
+  let result;
+  try {
+      result = await $.ajax({
+        url: "purpleair.json",
+        dataType : 'json',
+      });
+      return result;
+  } catch (error) {
+      console.error(error);
+      return {};
+  }
+}
+
 async function loadMultiSensorData(url) {
   let result;
   try {
@@ -1533,6 +1599,37 @@ async function loadMultiSensorData(url) {
       console.error(error);
       return {};
   }
+}
+
+function formatAndMergeSensorDataLite(responses, info) {
+  if (!Array.isArray(responses)) {
+    responses = [responses];
+  }
+  console.log(responses)
+  var channels = Object.keys(info['sensors']);
+  // Add to start of array
+  channels.unshift("time")
+  var formatted_data = [];
+  var max_data = {};
+  for (var i = 0; i < responses.length; i++) {
+    for (var row of responses[i].data) {
+      var data = {};
+      for (var col = 0; col < row.length; col++) {
+        var channel_name = channels[col];
+        data[channel_name]= row[col];
+        if (col > 0 && (!max_data[channel_name] || row[col] > max_data[channel_name].value)) {
+          max_data[channel_name] = {time: row[0], value : row[col]};
+        }
+      }
+      formatted_data.push(data);
+    }
+  }
+  return {
+    data : formatted_data,
+    summary : {
+      max: max_data
+    }
+  };
 }
 
 
@@ -1664,48 +1761,40 @@ function rollSensorData(data, info) {
   return data;
 }
 
-
-// For faster sampling rates, we need to aggregate data points
 function aggregateSensorData(data, info) {
   var sensor_type = getSensorType(info);
-  if (sensor_type == "PM25" || sensor_type == "WIND_ONLY") {
+  if (info['marker_type'] != "purple_air" && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
     return data;
   }
-  if (data["data"].length <= 1) {
+  if (data.length <= 1) {
     return data;
   }
 
-  var data_cp = $.extend({}, data); // copy object
-  data_cp["data"] = [];
-  var L = data["data"].length;
-  var current_time = data["data"][L - 1]["time"];
-  var current_sum = data["data"][L - 1][sensor_type];
-  var current_counter = 1;
-  var threshold = 1800; // average previous 30 minutes of data
-  for (var i = L - 2; i >= 0; i--) {
-    var time = data["data"][i]["time"];
-    var value = data["data"][i][sensor_type];
-    if (current_time - time < threshold) {
-      current_sum += value;
-      current_counter++;
-    } else {
-      var pt = {
-        "time": current_time
-      };
-      pt[sensor_type] = roundTo(current_sum / current_counter, 0);
-      data_cp["data"].unshift(pt);
-      current_time = time;
-      current_sum = value;
-      current_counter = 1;
+  function round(date, duration, method) {
+    return moment(Math[method]((+date) / (+duration)) * (+duration));
+  }
+
+  var new_data = [];
+  //var threshold = 1800; // average previous 30 minutes of data
+  var threshold = 900; // average previous 15 minutes of data
+  var current_time = round(moment(data[0][0] * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
+  var current_sum = 0;
+  var count = 0;
+  for (var col = 1; col < data[0].length; col++) {
+    for (var row = 0; row < data.length; row++) {
+      var time = data[row][0];
+      if (time - current_time <= threshold) {
+        current_sum +=  data[row][col];
+        count++;
+      } else {
+        new_data.push([current_time, current_sum / count]);
+        current_sum = data[row][col];
+        count = 1;
+        current_time += threshold;
+      }
     }
   }
-  var pt = {
-    "time": current_time
-  };
-  pt[sensor_type] = roundTo(current_sum / current_counter, 0);
-  data_cp["data"].unshift(pt);
-
-  return data_cp;
+  return new_data;
 }
 
 
@@ -1891,6 +1980,7 @@ function getWindDirFromDeg(deg) {
 
 //Object.keys(esdr_sensors).map(function(k){return esdr_sensors[k]['marker']})
 function showMarkers(markers) {
+  drewMarkersAtLeastOnce = true;
   markers = safeGet(markers, []);
   for (var i = 0; i < markers.length; i++) {
     if (typeof markers[i] !== "undefined") {
@@ -1923,10 +2013,35 @@ async function showSensorMarkersByTime(epochtime_milisec) {
   } else {
     sensorsLoadedResolver = undefined;
     sensorsLoadedPromise = new Promise((resolve, reject) => { sensorsLoadedResolver = resolve});
-    await loadAndCreateSensorMarkers(epochtime_milisec, sensors_list, is_current_day);
-    //for (var i = 0; i < sensors_list.length; i++) {
-    //  await loadAndCreateSensorMarker(epochtime_milisec, sensors_list[i], is_current_day, i);
-    //}
+    // The worker may already be processing so terminate it and create a new one.
+    // There is overhead to this but significantly less than having it finish
+    // the whatever the last worker was doing.
+    if (dataFormatWorkerIsProcessing) {
+      dataFormatWorker.terminate();
+      createDataPullWebWorker();
+      dataFormatWorkerIsProcessing = false;
+    }
+    dataFormatWorkerIsProcessing = true;
+      dataFormatWorker.postMessage(
+      { epochtime_milisec: epochtime_milisec,
+        sensors_list: sensors_list,
+        is_current_day : is_current_day }
+      );
+
+    if (showPurpleAir) {
+      clearInterval(purpleAirLoadInterval);
+      purpleAirLoadInterval = setInterval(function() {
+        if (!dataFormatWorkerIsProcessing) {
+          clearInterval(purpleAirLoadInterval);
+            dataFormatWorker.postMessage(
+            { epochtime_milisec: epochtime_milisec,
+              sensors_list: purpleair_list,
+              is_current_day : is_current_day }
+            );
+        }
+      }, 50);
+    }
+
   }
 }
 
