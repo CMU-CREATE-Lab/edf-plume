@@ -1830,7 +1830,7 @@ function updateInfoBar(marker) {
   infobarHeader.innerHTML = markerName;
 
   // Show sensor pollution value (PM25) in infobar
-  var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'];
+  var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'] || 0;
   if (selectedSensorMarker) {
     if (isDaySummary) {
       setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max");
