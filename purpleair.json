@@ -68,6 +68,23 @@
     "marker_type":"purple_air"
   },
   {
+    "name":"96278_040482N112017W PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":65482,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":10,
+    "latitude":40.482093,
+    "longitude":-112.017335,
+    "marker_type":"purple_air"
+  },
+  {
     "name":"94766_040717N111806W PurpleAir",
     "sensors":{
       "PM25":{
@@ -612,6 +629,23 @@
     "marker_type":"purple_air"
   },
   {
+    "name":"36146_040899N111852W PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":43193,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":81,
+    "latitude":40.899495,
+    "longitude":-111.851906,
+    "marker_type":"purple_air"
+  },
+  {
     "name":"West Valley Granger High powered by UTOPIA Fiber B PurpleAir",
     "sensors":{
       "PM25":{
@@ -983,6 +1017,23 @@
     "id":125,
     "latitude":40.428238,
     "longitude":-111.800655,
+    "marker_type":"purple_air"
+  },
+  {
+    "name":"44158_040574N111959W PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":36731,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":127,
+    "latitude":40.574076,
+    "longitude":-111.958805,
     "marker_type":"purple_air"
   },
   {
@@ -1901,6 +1952,23 @@
     "id":225,
     "latitude":40.47583,
     "longitude":-111.886958,
+    "marker_type":"purple_air"
+  },
+  {
+    "name":"Oaks B PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":29682,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":227,
+    "latitude":40.778871,
+    "longitude":-111.757519,
     "marker_type":"purple_air"
   },
   {
@@ -3383,6 +3451,23 @@
     "marker_type":"purple_air"
   },
   {
+    "name":"Traverse Mountain 2 B PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":14454,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":407,
+    "latitude":40.452123,
+    "longitude":-111.890361,
+    "marker_type":"purple_air"
+  },
+  {
     "name":"terrace hills drive salt lake city B PurpleAir",
     "sensors":{
       "PM25":{
@@ -3414,6 +3499,23 @@
     "id":411,
     "latitude":40.750817,
     "longitude":-111.825285,
+    "marker_type":"purple_air"
+  },
+  {
+    "name":"Orchard Elementary B PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":13823,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":412,
+    "latitude":40.843392,
+    "longitude":-111.906374,
     "marker_type":"purple_air"
   },
   {
@@ -3516,6 +3618,23 @@
     "id":423,
     "latitude":40.774964,
     "longitude":-111.846941,
+    "marker_type":"purple_air"
+  },
+  {
+    "name":"5003T acdd B PurpleAir",
+    "sensors":{
+      "PM25":{
+        "sources":[
+          {
+            "feed":12710,
+            "channel":"PM2_5"
+          }
+        ]
+      }
+    },
+    "id":425,
+    "latitude":40.47382,
+    "longitude":-111.886311,
     "marker_type":"purple_air"
   },
   {
