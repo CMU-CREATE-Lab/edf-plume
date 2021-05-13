@@ -1355,7 +1355,8 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
   return new CustomMapMarker({
     "type": getSensorType(info),
     "sensor_type" : info['marker_type'],
-    "marker_icon_size" : info['marker_type'] == "purple_air" ? 15 : null,
+    "marker_icon_size" : info['marker_type'] == "purple_air" ? 12 : null,
+    "marker_draw_level_padding" : info['marker_type'] != "purple_air" ? 10 : null,
     "data": parseSensorMarkerData(data, is_current_day, info),
     "click": function (marker) {
       selectedSensorMarker = marker;
