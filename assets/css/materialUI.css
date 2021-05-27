@@ -120,7 +120,7 @@
 }
 
 .materialUI .share {
-  background: white;
+  background: #f1f1f1;
   width: 0px;
   height: 40px;
   padding: 0px;
@@ -159,7 +159,7 @@
   display: block;
   width: 40px;
   height: 40px;
-  background: white;
+  background: #f1f1f1;
   -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
   box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
   outline: none;
@@ -172,7 +172,7 @@
 }
 
 .materialUI .share .ui-icon-custom-share-black {
-  background: url(../img/buttons/share-black.png);
+  background: url('../img/share-black.png');
   width: 24px;
   height: 24px;
   opacity: 0.6;

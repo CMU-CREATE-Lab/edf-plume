@@ -266,7 +266,7 @@ var create = {};
 
     function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent) {
       var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
-      var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, "America/Denver").add(numMins, 'minutes').valueOf();
+      var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, DEFAULT_TZ).add(numMins, 'minutes').valueOf();
 
       if (newPlaybackTimeInMs == playbackTimeInMs && fromTickOnClickEvent) {
         return;
@@ -276,7 +276,7 @@ var create = {};
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         playbackTimeInMs = newPlaybackTimeInMs;
         handleDraw(playbackTimeInMs);
-        $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, "America/Denver").zoneAbbr() + ")");
+        $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, DEFAULT_TZ).zoneAbbr() + ")");
       }
 
       if (!timeTick || timeTick.length == 0) {
@@ -369,7 +369,7 @@ var create = {};
       var ignoreSnapTo = (currentFrameNumber / (60 / playbackTimeline.getIncrementAmt())) % 1 == 0;
       var jumpFrame = currentFrameNumber;
       if (!ignoreSnapTo) {
-        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), "America/Denver");
+        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), DEFAULT_TZ);
         jumpFrame = captureTimes.indexOf(m.startOf('hour').format("h:mm A"));
       }
       $timeJumpOptions.val(jumpFrame);
@@ -564,6 +564,19 @@ var create = {};
       return playbackTimeInMs;
     };
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
+
+    var getFrameNumberFromPlaybackTime = function(playbackTimeInMs) {
+      var startofDayInMs = moment.tz(timeline.selectedDayInMs, DEFAULT_TZ).valueOf();
+      var timeDiffInMin = (playbackTimeInMs - startofDayInMs) / 60000;
+      var newFrameNum = timeDiffInMin/ incrementAmtInMin;
+      return newFrameNum;
+    }
+    this.getFrameNumberFromPlaybackTime = getFrameNumberFromPlaybackTime;
+
+    var setCurrentFrameNumber = function(newFrameNumber) {
+      currentFrameNumber = newFrameNumber;
+    }
+    this.setCurrentFrameNumber = setCurrentFrameNumber;
 
     var getCurrentFrameNumber = function() {
       if (currentFrameNumber >= 0) {

@@ -172,23 +172,30 @@ function addTouchHorizontalScroll(elem) {
   });
 }
 
+
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
     loadAndCreateTimeline(async function() {
       $("#timeline-handle").removeClass('force-no-visibility');
       playbackTimeline = new create.CustomTimeline2();
-      timeline.selectLastBlock();
+      var startTime;
+      if (selected_day_start_epochtime_milisec) {
+        startTime = options.playbackTimeInMs;
+        timeline.selectBlockByEpochTime(selected_day_start_epochtime_milisec);
+      } else {
+        startTime = Math.max(timeline.selectedDayInMs, await getMostRecentFootprintTimeInMs());
+        timeline.selectLastBlock();
+      }
       timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-      //handleTimelineButtonSelected(timeline.selectedDayInMs);
-      $("#calendar-btn").prop("disabled", false);
-      //$("#timestampPreviewContent").text(mostRecentUpdate12HourTimeForLocation);
-      playbackTimeline.setPlaybackTimeInMs(Math.max(timeline.selectedDayInMs, await getMostRecentFootprintTimeInMs()));
-      //$("#playback-timeline-container .anchorTZ").text(PLAYBACK_TIMELINE_TZ_LABEL);
+
+      if (selected_day_start_epochtime_milisec) {
+        playbackTimeline.setCurrentFrameNumber(playbackTimeline.getFrameNumberFromPlaybackTime(options.playbackTimeInMs));
+      }
+
       $(".timestampPreview").removeClass("disabled");
       $(".playbackButton").button("enable");
+      $("#calendar-btn").prop("disabled", false);
     }, options);
-    // Set the calendar button eventss
-    //initCalendarBtn();
 }
 
 
@@ -279,22 +286,22 @@ function loadTimelineDataToday(fullData,callback){
         // show midnight, and are marked as UTC, but are NOT actually UTC midnight.
         var date = parsed["utcDateTimes"].pop() + "Z";
         var mDate = moment(date);
-        var startTimeOfDate = moment(date).tz("America/Denver").startOf("day");
-        startOfLatestAvailableDay = startTimeOfDate.tz("America/Denver").valueOf();
+        var startTimeOfDate = moment(date).tz(DEFAULT_TZ).startOf("day");
+        startOfLatestAvailableDay = startTimeOfDate.tz(DEFAULT_TZ).valueOf();
         var startTimeOfDateFormatted = startTimeOfDate.format("YYYY-MM-DD HH:mm:ss");
         //mostRecentUpdate12HourTimeForLocation = mDate.clone();
         //if (mDate.minute() > 30){
-        //  mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz("America/Denver").minute(30).second(0);
+        //  mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).minute(30).second(0);
         //} else{}
-        //mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz("America/Denver").format("h:mm A");
-        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz("America/Denver").valueOf();
-        //mostRecentDayStr = mDate.tz("America/Denver").format("MMM DD");
+        //mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).format("h:mm A");
+        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz(DEFAULT_TZ).valueOf();
+        //mostRecentDayStr = mDate.tz(DEFAULT_TZ).format("MMM DD");
         var val = parsed["aqi"].pop();
         // We may be missing the previous day. Check and if so, get the max value
         // for the availabe time span.
-        var possiblePreviousDayStr = mDate.tz("America/Denver").format("YYYY-MM-DD");
+        var possiblePreviousDayStr = mDate.tz(DEFAULT_TZ).format("YYYY-MM-DD");
         var possiblePreviousDayTimeStr = possiblePreviousDayStr + " 00:00:00";
-        var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, "America/Denver").format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
+        var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, DEFAULT_TZ).format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
         if (!hasPreviousDayFromCurrent) {
           var max = 0;
           for (var i = 0; i < parsed['aqi'].length; i++) {
@@ -381,7 +388,7 @@ function formatDataForTimeline(data, pad_to_date_obj) {
       }
     }
     // Push into the 2D array
-    var m = moment.tz(day_obj, "America/Denver");
+    var m = moment.tz(day_obj, DEFAULT_TZ);
     var label = m.format("MMM DD");
     var day_obj_time = m.valueOf();
     batch_2d.push([label, count, day_obj_time]);

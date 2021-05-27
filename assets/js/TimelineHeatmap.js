@@ -339,6 +339,14 @@
     };
     this.clearBlockSelection = clearBlockSelection;
 
+    var selectBlockByEpochTime = function (epochTimeInMs) {
+      if ($blocks_click_region.length == 0) { // This means that data is not plotted
+        plot(data);
+      }
+      selectBlock($($blocks_click_region.filter("div[data-epochtime_milisec=" + epochTimeInMs + "]")[0]), true);
+    }
+    this.selectBlockByEpochTime = selectBlockByEpochTime;
+
     var selectBlockByIndex = function (index) {
       if ($blocks_click_region.length == 0) { // This means that data is not plotted
         plot(data);

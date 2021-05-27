@@ -401,6 +401,14 @@ body {
 
 @media screen and (max-width: 450px) {
 
+  #infobar-close-toggle-container {
+    display: none;
+  }
+
+  .side-controls-container {
+    display: none !important;
+  }
+
   #infobar-initial {
     margin-top: 0px;
     margin-bottom: 25px;
@@ -573,6 +581,10 @@ body {
 button[disabled]{
   opacity: 0.2 !important;
 }*/
+
+.waiting {
+  cursor: wait !important;
+}
 
 #calendar-btn {
   position: absolute;
@@ -791,4 +803,196 @@ button[disabled]{
 #timeline-handle span {
   font-size: 12px;
   white-space: nowrap;
+}
+
+.side-controls-container {
+  position: absolute;
+  right: 0px;
+  top: 20px;
+  width: auto;
+  float: left;
+  height: 40px;
+  right: -95px;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: reverse;
+  -ms-flex-direction: row-reverse;
+  flex-direction: row-reverse;
+  display: -webkit-flex;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+}
+
+.side-controls-container > div, .side-controls-container > button {
+  margin-right: 10px;
+}
+
+#get-screenshot-description {
+  font-size: 10px;
+  font-style: italic;
+}
+
+#get-screenshot {
+  cursor: pointer;
+  width: 100%;
+  height: 35px;
+  font-size: 14px;
+  background-color: #787878;
+  color: white;
+  border: 1px solid #3c3c3c;
+  /* text-align: center; */
+  /* vertical-align: middle; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.75
+}
+
+#get-screenshot:hover {
+  opacity: 1;
+}
+
+.thumbnail-copy-text-button-tooltip {
+  z-index: 100001;
+  position: absolute;
+  line-height: 18px;
+  background-color: #3a3a3a;
+  border: 1px solid #3a3a3a;
+  opacity: 1;
+  border-radius: 2px;
+  overflow: visible;
+  -moz-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+  -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  display: none;
+}
+
+.thumbnail-copy-text-button-tooltip p {
+  white-space: nowrap;
+  margin-top: 0px;
+  margin-bottom: -11px;
+  margin-left: 0px;
+  margin-right: 0px;
+  padding-top: 9px;
+  padding-bottom: 19px;
+  padding-left: 14px;
+  padding-right: 14px;
+  background-repeat: no-repeat;
+  background-position: 50% 100%;
+  background-image: url('../img/bubble_edge_horizontal.png');
+  font: 13px "Helvetica Neue", Sans-Serif;
+  color: white;
+}
+
+.always-selectable {
+  -webkit-user-select: auto;
+  -khtml-user-select: auto;
+  -moz-user-select: text;
+  -ms-user-select: element;
+  -o-user-select: auto;
+  user-select: text;
+}
+
+.customDialog {
+  background-color: #f1f1f1;
+}
+
+.shareViewModal.ui-dialog-content {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  overflow: hidden;
+  padding-bottom: 20px;
+}
+
+.shareViewModal .share-link-container, .shareViewModal .embed-link-container {
+  font-size: 13px;
+  border: 1px solid #e0e0e0;
+  background-color: #e0e0e0;
+  border-radius: 8px;
+  color: #1e88e5;
+  width: 255px !important;
+  padding: 8px;
+}
+
+.shareViewModal .shareurl, .shareViewModal .shareembed {
+  width: 230px !important;
+  height: 16px !important;
+  overflow: hidden;
+  margin: 0px !important;
+  word-break: break-all;
+}
+
+.shareViewModal .close-share {
+  background: url('../img/close.png') center center no-repeat;
+  background-size: 20px 20px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  cursor: default;
+  opacity: 0.67;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  cursor: pointer;
+}
+
+.shareViewModal .close-share:hover {
+  opacity: 0.9;
+}
+
+.shareViewModal .close-share:after {
+  content:'';
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: -12px;
+  right: -12px;
+}
+
+.shareViewModal .copy-text-button {
+  background: url('../img/copy.png') center center no-repeat;
+  background-size: 20px 20px;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  cursor: default;
+  opacity: 0.67;
+  position: absolute;
+  right: 22px;
+  margin-top: -18px;
+  cursor: pointer;
+}
+
+.shareViewModal .copy-text-button:hover {
+  opacity: 0.9;
+}
+
+.shareViewModal .copy-text-button:after {
+  content:'';
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: -12px;
+  right: -12px;
+}
+
+.shareViewModal #share-link-container-main p.heading {
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+  font-size: 18px;
+}
+
+.shareViewModal #embed-link-container-main p.heading {
+  font-family: 'Open Sans', Helvetica, Arial, sans-serif;
+  font-size: 18px;
 }

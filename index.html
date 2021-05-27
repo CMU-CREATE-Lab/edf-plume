@@ -35,8 +35,10 @@
     <script src="./assets/js/customTimeline2.js"></script>
     <script src="./assets/js/index.js"></script>
     <script src="./assets/js/timeline.js"></script>
+    <script src="./assets/lib/html2canvas/html2canvas.min.js"></script>
+    <script src="./assets/lib/downloadjs/download.min.js"></script>
   </head>
-  <body>
+  <body class="materialUI">
     <div id="controls" class="playbackTimelineOff">
       <div id="playback-timeline-container" class="noselect materialUI">
         <div class="materialTimelineContainerMain">
@@ -110,6 +112,11 @@
       </div>
       <div id="infobar-close-toggle-container" title="Show/Hide Infobar">
         <div class="infobar-close-toggle-icon"></div>
+      </div>
+      <div class='side-controls-container'>
+        <button class="share" title="Share">
+          Share
+        </button>
       </div>
     </div>
     <div class="custom-legend noselect" id="legend">
@@ -239,5 +246,26 @@
       <input type="hidden" autofocus="autofocus" />
       <select id="calendar" data-role="none"></select>
     </div>
+    <div class="shareViewModal">
+      <div id="share-link-container-main">
+        <p class="heading">Share URL</p>
+        <div class="share-link-container">
+          <div class="shareurl always-selectable"></div>
+          <span class="copy-text-button shareurl-copy-text-button" title="Click to copy to clipboard"></span>
+        </div>
+      </div>
+      <div id="embed-link-container-main">
+        <br>
+        <p class="heading">Share Screenshot</p>
+        <div id='get-screenshot-container'>
+          <div id='get-screenshot'>Capture Screenshot</div>
+          <span id='get-screenshot-description'>(Download an image of the current viewport. <br>Make your browser window larger or smaller to change the output resolution.)</span>
+        </div>
+      </div>
+      <span class="close-share" title="Close"></span>
+    </div>
+    <span class="thumbnail-copy-text-button-tooltip">
+      <p></p>
+    </span>
   </body>
 </html>

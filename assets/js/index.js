@@ -299,8 +299,8 @@ var esdr_sensors = {};
 var plume_backtraces = {};
 
 var selected_day_start_epochtime_milisec;
-var end_of_current_day_epoch = moment().tz("America/Denver").endOf("day").valueOf();
-var current_day_str = moment().tz("America/Denver").format("YYYY-MM-DD");
+var end_of_current_day_epoch = moment().tz(DEFAULT_TZ).endOf("day").valueOf();
+var current_day_str = moment().tz(DEFAULT_TZ).format("YYYY-MM-DD");
 
 var selectedLocationPin;
 var selectedSensorMarker;
@@ -358,6 +358,7 @@ var $calendarBtn;
 var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
+
 
 function getDefaultTZ() {
   return DEFAULT_TZ;
@@ -524,7 +525,7 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   }
   traxDataByEpochTimeInMs[playbackTimeInMs] = {};
 
-  var mStartDate = moment.tz(playbackTimeInMs, "America/Denver");
+  var mStartDate = moment.tz(playbackTimeInMs, DEFAULT_TZ);
   // For some reason we need to add/subtract an extra minute. The where clause does not seem to do what I would expect for the conditional...
   var endDate = mStartDate.clone().add(1, 'minutes').toDate();
   //playbackTimeline.getIncrementAmt()
@@ -547,9 +548,32 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
 
 
 async function initMap() {
+  var startingView = {lat: 40.688701, lng: -111.876183, zoom: window.innerWidth <= 450 ? 10 : 11};
+  var urlVars = Util.parseVars(window.location.href);
+  showPurpleAir = urlVars.showPurpleAir == "true";
+  if (showPurpleAir) {
+    $("#purple-air-legend-row").show();
+  }
+  var shareView = urlVars.v;
+  var shareTimeInMs = parseInt(urlVars.t);
+
+  if (shareTimeInMs) {
+    selected_day_start_epochtime_milisec = moment(shareTimeInMs).tz(DEFAULT_TZ).startOf("day").valueOf();
+  }
+
+  if (shareView) {
+    var tmp = shareView.split(",");
+    startingView.lat = parseFloat(tmp[0]);
+    startingView.lng = parseFloat(tmp[1]);
+    startingView.zoom = parseFloat(tmp[2]);
+  }
+
   map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 40.688701, lng: -111.876183 },
-    zoom: window.innerWidth <= 450 ? 10 : 11,
+    options: {
+      gestureHandling: 'greedy'
+    },
+    center: { lat: startingView.lat, lng: startingView.lng },
+    zoom: startingView.zoom,
     streetViewControl: false,
     fullscreenControl: false,
     zoomControl: $(window).width() > 450,
@@ -755,14 +779,17 @@ async function initMap() {
     $("#controls, #infobar").on("touchcancel", Util.touch2Mouse);
   }
 
-  var urlVars = Util.parseVars(window.location.href);
-  showPurpleAir = urlVars.showPurpleAir == "true";
-  if (showPurpleAir) {
-    $("#purple-air-legend-row").show();
-  }
-
   //$("#timestampPreviewContent").text(current12HourString);
-  loadSensorList(sensors);
+  await loadSensorList(sensors);
+
+  var options = {
+    playbackTimeInMs: shareTimeInMs,
+    clickEvent: function() {
+      handleDraw(timeline.selectedDayInMs, true, true);
+      //closeInfobar();
+    }
+  }
+  initTimeline(options);
 
   //------------------- create custom map overlay to draw footprint ---------------------------------
   class FootprintOverlay extends google.maps.OverlayView {
@@ -884,23 +911,6 @@ async function initMap() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
 
-  // Draw clickable bounds to obtain backtraces
-  /*var plumeClickRegion = new google.maps.Rectangle({
-    strokeColor: "#FF0000",
-    strokeOpacity: 0.2,
-    strokeWeight: 2,
-    fillColor: "#FF0000",
-    fillOpacity: 0.0,
-    map,
-    bounds: {
-      north: 40.905,
-      south: 40.39508,
-      east: -111.745,
-      west: -112.105,
-    },
-    clickable: false
-  });*/
-
   var lineSymbol = {
     path: 'M 0,-1 0,1',
     strokeOpacity: 1,
@@ -955,6 +965,113 @@ async function initMap() {
 
   createDataPullWebWorker();
 
+
+  $(".shareViewModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    open: function() {
+      var parentUrl = "";
+      var sourceUrl = window.location.href.split("?")[0];
+      if (window.top === window.self) {
+        // no iframe
+        parentUrl = sourceUrl;
+      } else {
+        // inside iframe
+        try {
+          parentUrl = window.top.location.href.split("?")[0];
+        } catch(e) {
+          parentUrl = document.referrer.split("?")[0];
+        }
+      }
+      // View is saved as a center view (lat, lng, zoom)
+      var viewStr = map.getCenter().toString().replace(/\(|\)| /g, '') + "," + map.getZoom();
+      var timeStr = playbackTimeline.getPlaybackTimeInMs();
+      //var isDaylineOpen = playbackTimeline.isActive();
+      var urlVars = Util.parseVars(window.location.href);
+      urlVars.v = viewStr;
+      urlVars.t = timeStr;
+      var urlVarsString = "?";
+      for (var urlVar in urlVars) {
+        urlVarsString += urlVar + "=" + urlVars[urlVar] + "&";
+      }
+      // Remove trailing &
+      urlVarsString = urlVarsString.slice(0, -1);
+      $(".shareurl").text(parentUrl + urlVarsString);
+    }
+  });
+
+  $(".close-share").on("click", function() {
+    $( ".shareViewModal" ).dialog('close');
+  })
+
+  $(window).resize(function() {
+    $(".shareViewModal").dialog("option", "position", {my: "center", at: "center", of: window});
+  });
+
+
+
+  $(".shareurl-copy-text-button").click(function(event) {
+    var $this = $(this);
+    var element = $this.prev(".always-selectable")[0];
+    var range, select;
+    if (document.body.createTextRange) {
+      range = document.body.createTextRange();
+      range.moveToElementText(element);
+      range.select();
+    } else if (document.createRange) {
+      range = document.createRange();
+      range.selectNode(element)
+      select = window.getSelection();
+      select.removeAllRanges();
+      select.addRange(range);
+    }
+    document.execCommand('copy');
+    setButtonTooltip("Copied", $this, 1000);
+    window.getSelection().removeAllRanges();
+  });
+
+  $("#get-screenshot").on("click", async function() {
+    /*var tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = 1920;
+    tmpCanvas.height = 1080;*/
+
+    if ($(this).hasClass("waiting")) return;
+
+    $(this).addClass("waiting").text("Generating...");
+    //var ratio = Math.max(1920/$("#map").width(), 1080/$("#map").height());
+
+    var canvas = await html2canvas(document.getElementById('map'),
+    {
+      /*canvas: tmpCanvas,*/
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      /*scale: ratio,*/
+      /*onclone: function() {
+        var tmpCanvasCtx = tmpCanvas.getContext("2d");
+        var ratio = [1920/$("#map").width(), 1080/$("#map").height()];
+        ratio = Math.max(ratio[0], ratio[1]);
+        tmpCanvasCtx.scale(ratio, ratio);
+      },*/
+      ignoreElements: function( element ) {
+        // Ignore the zoom controls on Google Maps
+        if (element.classList.contains('gm-bundled-control')) {
+          return true;
+        }
+      }
+    });
+    var exportImage = canvas.toDataURL();
+    var currentPlaybackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+    var isDaylineOpen = playbackTimeline.isActive();
+    var momentTime = moment.tz(currentPlaybackTimeInMs, DEFAULT_TZ);
+    var dateStr = isDaylineOpen ? momentTime.format("YYYYMMDDHHmm") : momentTime.startOf("day").format("YYYYMMDDHHmm");
+    download(exportImage, dateStr + ".png", "image/png");
+    $(this).removeClass("waiting").text("Capture Screenshot");
+  });
+
+
   // !!DO LAST!!
 
   // Draw TRAX locations on the map
@@ -982,6 +1099,41 @@ async function initMap() {
   }
 }
 
+var setButtonTooltip = function(text, $target, duration) {
+
+  var $thumbnailPreviewCopyTextButtonTooltip = $(".thumbnail-preview-copy-text-button-tooltip");
+  var $thumbnailPreviewCopyTextButtonTooltipContent = $(".thumbnail-preview-copy-text-button-tooltip").find("p");
+
+  if ($target && ($target.hasClass("ui-button") && $target.button("option", "disabled"))) {
+    return;
+  }
+
+  var targetOffset = $target.offset();
+  var tooltipWidth;
+  // The container is the body, so just use 0, 0
+  var containerOffset = {left: 0, top: 0};
+
+  if (text) {
+    $thumbnailPreviewCopyTextButtonTooltipContent.text(text);
+    $thumbnailPreviewCopyTextButtonTooltip.show();
+    tooltipWidth = $thumbnailPreviewCopyTextButtonTooltip.outerWidth();
+    $thumbnailPreviewCopyTextButtonTooltip.css({
+      left: targetOffset.left - (tooltipWidth / 2 - ($target.outerWidth() / 2)) - containerOffset.left + "px",
+      top: targetOffset.top - containerOffset.top - 45 + "px"
+    });
+  } else {
+    $thumbnailPreviewCopyTextButtonTooltip.hide();
+  }
+
+  if (duration) {
+    clearTimeout($thumbnailPreviewCopyTextButtonTooltipContent.hideTimer);
+    $thumbnailPreviewCopyTextButtonTooltipContent.hideTimer = setTimeout(function() {
+      $thumbnailPreviewCopyTextButtonTooltip.hide();
+    }, duration);
+  }
+};
+
+
 function createDataPullWebWorker() {
   // Create the worker.
   dataFormatWorker = new Worker("./assets/js/formatAndMergeSensorDataWorker.js");
@@ -991,6 +1143,14 @@ function createDataPullWebWorker() {
 
 
 function initDomElms() {
+  $(".share").show().button({
+    icons: {
+      primary: "ui-icon-custom-share-black"
+    },
+    text: false
+  }).on("click", function() {
+    $( ".shareViewModal" ).dialog('open');
+  });
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
@@ -1057,7 +1217,7 @@ async function getMostRecentFootprintTimeInMs() {
   var jobId = snapshot.docs[0].get("job_id");
   var dateString = jobId.split("_")[0];
   mostRecentAvailableFootprintTimeInMs = moment.tz(dateString, "YYYYMMDDhhmm", "UTC").valueOf();
-  //mostRecentAvailableFootprintTimeStr = moment.tz(mostRecentAvailableFootprintTimeInMs, "UTC").tz("America/Denver").format("h:mm A");
+  //mostRecentAvailableFootprintTimeStr = moment.tz(mostRecentAvailableFootprintTimeInMs, "UTC").tz(DEFAULT_TZ).format("h:mm A");
   return mostRecentAvailableFootprintTimeInMs;
 }
 
@@ -1105,7 +1265,7 @@ async function drawFootprint(lat, lng, fromClicked) {
     }
   }
 
-  var m_date = moment(playbackTimeInMs).tz("America/Denver");
+  var m_date = moment(playbackTimeInMs).tz(DEFAULT_TZ);
   // Check if current day
   //var is_current_day = m_date.format("YYYY-MM-DD") === current_day_str;
 
@@ -1258,15 +1418,6 @@ async function loadSensorList(sensors) {
       purpleair_list.push(purple_airs[j]);
     }
   }
-
-  // TODO: timeline block click events
-  var options = {
-    clickEvent: function() {
-      handleDraw(timeline.selectedDayInMs, true, true);
-      //closeInfobar();
-    }
-  }
-  initTimeline(options);
 }
 
 async function receivedWorkerMessage(event) {
@@ -1823,7 +1974,7 @@ function updateInfoBar(marker) {
   var isDaySummary = !markerData['is_current_day'] && markerData.sensorType != "trax";
 
   var markerDataTimeInMs = markerData.sensorType ==  "trax" || markerData.sensorType  == "plume-backtrace" ? markerData['epochtimeInMs'] : markerData['sensor_data_time'] || markerData['wind_data_time'];
-  var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, "America/Denver").format("h:mm A (zz)");
+  var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, DEFAULT_TZ).format("h:mm A (zz)");
 
   // Set infobar header to sensor name (if TRAX or AirNow) or clicked lat/lon coords otherwise
   $infobarHeader.show();
@@ -1869,11 +2020,11 @@ function updateInfoBar(marker) {
     var infobarPlume = $infobarPlume;
     var infoStr = "";
     if (overlayData.hasData) {
-      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], "America/Denver").format("h:mm A (zz)");
+      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], DEFAULT_TZ).format("h:mm A (zz)");
       setInfobarSubheadings(infobarPlume,infoStr,"","","");
       infobarPlume.children(".infobar-text").addClass('display-unset');
     } else {
-      infoStr = "No pollution backtrace available at " + moment.tz(playbackTimeline.getPlaybackTimeInMs(), "America/Denver").format("h:mm A (zz)");
+      infoStr = "No pollution backtrace available at " + moment.tz(playbackTimeline.getPlaybackTimeInMs(), DEFAULT_TZ).format("h:mm A (zz)");
       setInfobarUnavailableSubheadings(infobarPlume,infoStr);
       infobarPlume.children(".infobar-text").removeClass('display-unset');
     }
@@ -1996,7 +2147,7 @@ async function showSensorMarkersByTime(epochtime_milisec) {
   if (typeof epochtime_milisec == "undefined") return;
 
   // Check if current day
-  var date_str_sensor = moment(epochtime_milisec).tz("America/Denver").format("YYYY-MM-DD");
+  var date_str_sensor = moment(epochtime_milisec).tz(DEFAULT_TZ).format("YYYY-MM-DD");
   var is_current_day = date_str_sensor === current_day_str;
 
   var markers_with_data_for_chosen_epochtime = [];
@@ -2024,22 +2175,24 @@ async function showSensorMarkersByTime(epochtime_milisec) {
       dataFormatWorkerIsProcessing = false;
     }
     dataFormatWorkerIsProcessing = true;
-      dataFormatWorker.postMessage(
-      { epochtime_milisec: epochtime_milisec,
-        sensors_list: sensors_list,
-        is_current_day : is_current_day }
-      );
+    // AirNow sensors
+    dataFormatWorker.postMessage(
+    { epochtime_milisec: epochtime_milisec,
+      sensors_list: sensors_list,
+      is_current_day : is_current_day }
+    );
 
+    // PurpleAirs
     if (showPurpleAir) {
       clearInterval(purpleAirLoadInterval);
       purpleAirLoadInterval = setInterval(function() {
         if (!dataFormatWorkerIsProcessing) {
           clearInterval(purpleAirLoadInterval);
-            dataFormatWorker.postMessage(
-            { epochtime_milisec: epochtime_milisec,
-              sensors_list: purpleair_list,
-              is_current_day : is_current_day }
-            );
+          dataFormatWorker.postMessage(
+          { epochtime_milisec: epochtime_milisec,
+            sensors_list: purpleair_list,
+            is_current_day : is_current_day }
+          );
         }
       }, 50);
     }
