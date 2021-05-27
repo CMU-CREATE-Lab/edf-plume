@@ -119,7 +119,7 @@
   height: calc(100% - 265px);
 }
 
-.materialUI .share {
+.materialUI #share-picker {
   background: #f1f1f1;
   width: 0px;
   height: 40px;
@@ -141,7 +141,7 @@
   display: none;
 }
 
-.materialUI .share {
+.materialUI #share-picker {
   left: auto;
   right: auto;
 }
@@ -154,7 +154,7 @@
   display: none;
 }
 
-.materialUI .share .ui-button {
+.materialUI #share-picker .ui-button {
   margin-top: 0px;
   display: block;
   width: 40px;
@@ -167,12 +167,12 @@
   border-radius: 0px;
 }
 
-.materialUI .share.ui-state-hover {
+.materialUI #share-picker.ui-state-hover {
   border: 1px solid #d3d3d3;
 }
 
-.materialUI .share .ui-icon-custom-share-black {
-  background: url('../img/share-black.png');
+.materialUI #share-picker .ui-icon-custom-share-black {
+  background: url('../img/sharing-icon-black.png');
   width: 24px;
   height: 24px;
   opacity: 0.6;
@@ -182,7 +182,7 @@
   margin-top: -12px
 }
 
-.materialUI .share:not(.ui-button-disabled):hover .ui-icon-custom-share-black{
+.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black{
   opacity: 0.9;
 }
 

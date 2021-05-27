@@ -1101,8 +1101,8 @@ async function initMap() {
 
 var setButtonTooltip = function(text, $target, duration) {
 
-  var $thumbnailPreviewCopyTextButtonTooltip = $(".thumbnail-preview-copy-text-button-tooltip");
-  var $thumbnailPreviewCopyTextButtonTooltipContent = $(".thumbnail-preview-copy-text-button-tooltip").find("p");
+  var $thumbnailPreviewCopyTextButtonTooltip = $(".thumbnail-copy-text-button-tooltip");
+  var $thumbnailPreviewCopyTextButtonTooltipContent = $(".thumbnail-copy-text-button-tooltip").find("p");
 
   if ($target && ($target.hasClass("ui-button") && $target.button("option", "disabled"))) {
     return;
@@ -1143,13 +1143,13 @@ function createDataPullWebWorker() {
 
 
 function initDomElms() {
-  $(".share").show().button({
+  $("#share-picker").show().button({
     icons: {
       primary: "ui-icon-custom-share-black"
     },
     text: false
   }).on("click", function() {
-    $( ".shareViewModal" ).dialog('open');
+    $(".shareViewModal").dialog('open');
   });
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
