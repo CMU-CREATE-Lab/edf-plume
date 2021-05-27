@@ -967,33 +967,7 @@ async function initMap() {
     dialogClass: "customDialog",
     modal: true,
     open: function() {
-      var parentUrl = "";
-      var sourceUrl = window.location.href.split("?")[0];
-      if (window.top === window.self) {
-        // no iframe
-        parentUrl = sourceUrl;
-      } else {
-        // inside iframe
-        try {
-          parentUrl = window.top.location.href.split("?")[0];
-        } catch(e) {
-          parentUrl = document.referrer.split("?")[0];
-        }
-      }
-      // View is saved as a center view (lat, lng, zoom)
-      var viewStr = map.getCenter().toString().replace(/\(|\)| /g, '') + "," + map.getZoom();
-      var timeStr = playbackTimeline.getPlaybackTimeInMs();
-      //var isDaylineOpen = playbackTimeline.isActive();
-      var urlVars = Util.parseVars(window.location.href);
-      urlVars.v = viewStr;
-      urlVars.t = timeStr;
-      var urlVarsString = "?";
-      for (var urlVar in urlVars) {
-        urlVarsString += urlVar + "=" + urlVars[urlVar] + "&";
-      }
-      // Remove trailing &
-      urlVarsString = urlVarsString.slice(0, -1);
-      $(".shareurl").text(parentUrl + urlVarsString);
+      $(".shareurl").text(getShareUrl());
     }
   });
 
@@ -1004,8 +978,6 @@ async function initMap() {
   $(window).resize(function() {
     $(".shareViewModal").dialog("option", "position", {my: "center", at: "center", of: window});
   });
-
-
 
   $(".shareurl-copy-text-button").click(function(event) {
     var $this = $(this);
@@ -1066,6 +1038,10 @@ async function initMap() {
     $(this).removeClass("waiting").text("Capture Screenshot");
   });
 
+  google.maps.event.addListener(map, 'idle', function(e) {
+    if (!playbackTimeline || !timeline) return;
+    changeBrowserUrlState();
+  });
 
   // !!DO LAST!!
 
@@ -1092,6 +1068,40 @@ async function initMap() {
     traxMarker.setVisible(false);
     traxMarkers.push(traxMarker)
   }
+}
+
+var changeBrowserUrlState = function() {
+  window.history.replaceState({}, "", getShareUrl());
+}
+
+var getShareUrl = function() {
+  var parentUrl = "";
+  var sourceUrl = window.location.href.split("?")[0];
+  if (window.top === window.self) {
+    // no iframe
+    parentUrl = sourceUrl;
+  } else {
+    // inside iframe
+    try {
+      parentUrl = window.top.location.href.split("?")[0];
+    } catch(e) {
+      parentUrl = document.referrer.split("?")[0];
+    }
+  }
+  // View is saved as a center view (lat, lng, zoom)
+  var viewStr = map.getCenter().toString().replace(/\(|\)| /g, '') + "," + map.getZoom();
+  var timeStr = playbackTimeline.getPlaybackTimeInMs();
+  //var isDaylineOpen = playbackTimeline.isActive();
+  var urlVars = Util.parseVars(window.location.href);
+  urlVars.v = viewStr;
+  urlVars.t = timeStr;
+  var urlVarsString = "?";
+  for (var urlVar in urlVars) {
+    urlVarsString += urlVar + "=" + urlVars[urlVar] + "&";
+  }
+  // Remove trailing &
+  urlVarsString = urlVarsString.slice(0, -1);
+  return parentUrl + urlVarsString;
 }
 
 var setButtonTooltip = function(text, $target, duration) {

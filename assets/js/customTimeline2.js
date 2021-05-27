@@ -274,7 +274,7 @@ var create = {};
 
       if (!fromRefocus) {
         currentFrameNumber = parseInt($(timeTick).data("frame"));
-        playbackTimeInMs = newPlaybackTimeInMs;
+        setPlaybackTimeInMs(newPlaybackTimeInMs);
         handleDraw(playbackTimeInMs);
         $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, DEFAULT_TZ).zoneAbbr() + ")");
       }
@@ -589,6 +589,7 @@ var create = {};
 
     var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
       playbackTimeInMs = newPlaybackTimeInMs;
+      changeBrowserUrlState();
     };
     this.setPlaybackTimeInMs = setPlaybackTimeInMs;
 
