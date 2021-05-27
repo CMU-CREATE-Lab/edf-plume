@@ -400,7 +400,6 @@ body {
 }
 
 @media screen and (max-width: 450px) {
-
   #infobar-close-toggle-container {
     display: none;
   }
@@ -422,7 +421,7 @@ body {
   }
 
   #legend {
-    bottom: 83px;
+    bottom: 100px;
     top: unset;
   }
 

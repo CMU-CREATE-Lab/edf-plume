@@ -757,15 +757,10 @@ async function initMap() {
 
   $(window).on("resize", function(){
     if ($(this).width() > 450) {
-      $infobar.height("");
       map.setOptions({zoomControl:true});
-      $("#legend").css("top","10px");
-      $("#legend").css("bottom","unset");
     }
     else {
       map.setOptions({zoomControl:false})
-      $("#legend").css("bottom","80px");
-      $("#legend").css("top","unset");
     }
   });
 
