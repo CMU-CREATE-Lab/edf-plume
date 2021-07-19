@@ -1245,6 +1245,7 @@ async function drawFootprint(lat, lng, fromClicked) {
   var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
   if (fromClicked) {
+    map.panTo({lat: lat, lng: lng});
     if (overlay) {
       overlay.setMap(null);
       overlay.setData({});
@@ -1257,18 +1258,28 @@ async function drawFootprint(lat, lng, fromClicked) {
 
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
 
+  // Show footprint at sensor time
+  // We may instead want to find the latest footprint and then show the sensor value based on that time.
   if (!playbackTimeline.isActive()) {
-    if (timeline.selectedDayInMs == startOfLatestAvailableDay) {
+    if (selectedSensorMarker) {
+      var sensorData = selectedSensorMarker.getData();
+      if (sensorData) {
+        playbackTimeInMs = sensorData['sensor_data_time'];
+      }
+    }
+
+    /*if (!newTime && timeline.selectedDayInMs == startOfLatestAvailableDay) {
       var latestFootprintTimeInMs = await getMostRecentFootprintTimeInMs();
       if (moment.tz(latestFootprintTimeInMs, "UTC").isSame(moment.tz(timeline.selectedDayInMs, "UTC"), 'day')) {
-        playbackTimeInMs = latestFootprintTimeInMs;
-      } else {
-        playbackTimeInMs = timeline.selectedDayInMs;
+        newTime = latestFootprintTimeInMs;
       }
-    } else {
-      playbackTimeInMs = timeline.selectedDayInMs;
+    } else if (!newTime) {
+      newTime = timeline.selectedDayInMs;;
     }
+    playbackTimeInMs = newTime;*/
   }
+
+
 
   var m_date = moment(playbackTimeInMs).tz(DEFAULT_TZ);
   // Check if current day
@@ -1991,7 +2002,7 @@ function updateInfoBar(marker) {
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'] || 0;
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max");
+      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max at "  + markerDataTimeMomentFormatted);
     } else {
       if (sensorVal >= 0) {
         setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
@@ -2022,16 +2033,20 @@ function updateInfoBar(marker) {
   // Show plume backtrace information
   if (overlay) {
     var overlayData = overlay.getData();
-    var infobarPlume = $infobarPlume;
     var infoStr = "";
     if (overlayData.hasData) {
       infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], DEFAULT_TZ).format("h:mm A (zz)");
-      setInfobarSubheadings(infobarPlume,infoStr,"","","");
-      infobarPlume.children(".infobar-text").addClass('display-unset');
+      setInfobarSubheadings($infobarPlume,infoStr,"","","");
+      $infobarPlume.children(".infobar-text").addClass('display-unset');
     } else {
-      infoStr = "No pollution backtrace available at " + moment.tz(playbackTimeline.getPlaybackTimeInMs(), DEFAULT_TZ).format("h:mm A (zz)");
-      setInfobarUnavailableSubheadings(infobarPlume,infoStr);
-      infobarPlume.children(".infobar-text").removeClass('display-unset');
+      var pollution_time = playbackTimeline.getPlaybackTimeInMs();
+      if (selectedSensorMarker) {
+        pollution_time = markerDataTimeInMs;
+      }
+      infoStr = "No pollution backtrace available at " + moment.tz(pollution_time, DEFAULT_TZ).format("h:mm A (zz)");
+      setInfobarUnavailableSubheadings($infobarPlume,infoStr);
+      $infobarPlume.children(".infobar-text").removeClass('display-unset');
+      $infobarPlume.children(".infobar-unit").hide();
     }
   }
 }
@@ -2308,4 +2323,14 @@ function convertFrom24To12Format(time24) {
   var period = +sHours < 12 ? 'AM' : 'PM';
   var hours = +sHours % 12 || 12;
   return hours + ":" + minutes + " " + period;
+}
+
+function convertFrom12To24Format(time12) {
+  var [sHours, sMinutes] = time12.match(/([0-9]{1,2}):([0-9]{2})/).slice(1);
+  var hours = parseInt(sHours);
+  if (time12.toLowerCase().indexOf("pm") && hours != 12) {
+    var hourIn24Format = hours + 12;
+    sHours = hourIn24Format;
+  }
+  return sHours + ":" + sMinutes;
 }

@@ -137,8 +137,11 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   await showSensorMarkersByTime(epochtime_milisec);
   await sensorsLoadedPromise;
   selected_day_start_epochtime_milisec = epochtime_milisec;
-  playbackTimeline.setPlaybackTimeInMs(selected_day_start_epochtime_milisec);
-  var mostRecentDayStrFull = moment.tz(selected_day_start_epochtime_milisec, "UTC").format("MMM DD YYYY");
+  var startofSelectedDayAsMoment = moment.tz(selected_day_start_epochtime_milisec, DEFAULT_TZ);
+  var hourMin = convertFrom12To24Format(playbackTimeline.getCaptureTimes()[playbackTimeline.getCurrentFrameNumber()]).split(":");
+  startofSelectedDayAsMoment.set({hour:hourMin[0],minute:hourMin[1]});
+  playbackTimeline.setPlaybackTimeInMs(startofSelectedDayAsMoment.valueOf());
+  var mostRecentDayStrFull =startofSelectedDayAsMoment.format("MMM DD YYYY");
   // Update selected day in the legend
   $("#current-date-legend").text(mostRecentDayStrFull);
 }
