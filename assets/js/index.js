@@ -2461,9 +2461,9 @@ function setHrrrWindErrorPointsColor(currentPlaybackTimeInMs) {
     var dataWithinPlaybackInterval = hrrrWindErrorDataByEpochTimeInMs[currentPlaybackTimeInMs][site];
     if (dataWithinPlaybackInterval) {
       if (showHrrrWindSpeedError) {
-        options.fillOpacity = dataWithinPlaybackInterval.wind_speed_err / 5.7;
+        options.fillOpacity = dataWithinPlaybackInterval.wind_speed_err / dataWithinPlaybackInterval.wind_linear_scale_divisor;
       } else if (showHrrrWindDirectionError) {
-        options.fillOpacity = dataWithinPlaybackInterval.wind_direction_err / 180;
+        options.fillOpacity = dataWithinPlaybackInterval.wind_direction_err / dataWithinPlaybackInterval.wind_linear_scale_divisor;
       }
     } else {
       opacity = 0;
@@ -2496,6 +2496,18 @@ async function handleHrrrWindErrorPointsByEpochTime(timeInEpoch) {
     if (Object.keys(hrrrWindErrorPointLocations).length == 0) {
       populateLocations = true;
     }
+
+    var windLinearScaleDivisor = 1;
+    if (showHrrrWindDirectionError) {
+      windLinearScaleDivisor = 180;
+    } else {
+      for (var i = 0; i < data.length; i++) {
+        if (windLinearScaleDivisor < data[i].wind_speed_err) {
+          windLinearScaleDivisor = data[i].wind_speed_err;
+        }
+      }
+    }
+
     for (var i = 0; i < data.length; i++) {
       hrrrWindErrorDataByEpochTimeInMs[playbackTimeInMs][i] = {
         HRRR_Wind_Dir: data[i].HRRR_Wind_Dir,
@@ -2504,7 +2516,8 @@ async function handleHrrrWindErrorPointsByEpochTime(timeInEpoch) {
         Mesowest_Wind_Speed: data[i].Mesowest_Wind_Speed,
         wind_direction_err: data[i].wind_direction_err,
         wind_speed_err: data[i].wind_speed_err,
-        sensorType: "hrrr_wind_error"
+        sensorType: "hrrr_wind_error",
+        wind_linear_scale_divisor: windLinearScaleDivisor
       };
       if (populateLocations) {
         let hrrrErrorMarker = new google.maps.Circle({
