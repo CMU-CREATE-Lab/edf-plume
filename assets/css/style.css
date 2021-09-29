@@ -1137,6 +1137,7 @@ input[type="search"]::-webkit-search-cancel-button:hover {
   width: 38px;
   height: 17px;
   top: -5px;
+  margin-left: 5px;
 }
 
 
@@ -1203,7 +1204,7 @@ input:checked + .slider .input-state-text:after {
 }
 
 input + .slider .input-state-text {
-  margin-left: 17px;
+  margin-left: 18px;
 }
 
 input + .slider .input-state-text:after {
