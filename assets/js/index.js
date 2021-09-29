@@ -279,6 +279,7 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   //playbackTimeline.getIncrementAmt()
   var startDate = mStartDate.clone().subtract(traxDataIntervalInMin - 1, 'minutes').toDate();
 
+  // We pass local time, offset to the city's TMZ.
   const snapshot  = await db.collection(TRAX_COLLECTION_NAME).where('time', '>', startDate).where('time', '<', endDate).get();
   if (!snapshot.empty) {
     snapshot.forEach(doc => {
@@ -2485,8 +2486,8 @@ async function handleHrrrWindErrorPointsByEpochTime(timeInEpoch) {
   }
   hrrrWindErrorDataByEpochTimeInMs[playbackTimeInMs] = {};
 
-  // TODO: Are the store dates in UTC??
-  var docRefString = moment.tz(playbackTimeInMs, selected_city_tmz).startOf("hour").format("YYYYMMDDHHmm") + "Z";
+  // The names of the files in firestore are in UTC
+  var docRefString = moment.tz(playbackTimeInMs, selected_city_tmz).startOf("hour").utc().format("YYYYMMDDHHmm") + "Z";
   const snapshot = await db.collection(HRRR_UNCERTAINTY_COLLECTION_NAME).doc(docRefString).get();
   const snapshotData = snapshot.data();
   if (snapshotData) {
