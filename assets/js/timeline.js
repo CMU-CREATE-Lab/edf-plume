@@ -3,27 +3,11 @@
 var util = new edaplotjs.Util();
 var timeline;
 var date_to_index;
-//var current_date = "2020-11-29"; // the default date
-//var current_year = current_date.split("-")[0];
 var widgets = new edaplotjs.Widgets();
 var $calendar_dialog;
 var $calendar_select;
 var plume_viz_data;
 
-// Handles the sending of cross-domain iframe requests.
-/*function post(type, data) {
-  pm({
-    target: window.parent,
-    type: type,
-    data: data,
-    origin: document.referrer
-  });
-}
-
-// Send the query string to the parent page, so that the parent can set the query string
-function sendQueryStringToParent(updated_query_url) {
-  post("update-parent-query-url", updated_query_url);
-}*/
 
 function getShareQuery(date_str) {
   return "?date=" + date_str;
@@ -96,7 +80,6 @@ function createTimeline(data, options) {
     },
     select: function ($e, obj) {
       handleTimelineButtonSelected(parseInt($e.data("epochtime_milisec")));
-      //sendQueryStringToParent(obj);
     },
     data: data,
     useColorQuantiles: true,
@@ -137,7 +120,7 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   await showSensorMarkersByTime(epochtime_milisec);
   await sensorsLoadedPromise;
   selected_day_start_epochtime_milisec = epochtime_milisec;
-  var startofSelectedDayAsMoment = moment.tz(selected_day_start_epochtime_milisec, DEFAULT_TZ);
+  var startofSelectedDayAsMoment = moment.tz(selected_day_start_epochtime_milisec, selected_city_tmz);
   var hourMin = convertFrom12To24Format(playbackTimeline.getCaptureTimes()[playbackTimeline.getCurrentFrameNumber()]).split(":");
   startofSelectedDayAsMoment.set({hour:hourMin[0],minute:hourMin[1]});
   playbackTimeline.setPlaybackTimeInMs(startofSelectedDayAsMoment.valueOf());
@@ -147,7 +130,7 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
 }
 
 
-function hideMarkers(markers) {
+/*function hideMarkers(markers) {
   markers = safeGet(markers, []);
   for (var i = 0; i < markers.length; i++) {
     if (typeof markers[i] !== "undefined") {
@@ -155,7 +138,7 @@ function hideMarkers(markers) {
       markers[i].reset();
     }
   }
-}
+}*/
 
 
 function addTouchHorizontalScroll(elem) {
@@ -235,23 +218,41 @@ function generateURLForSmellReports(parameters) {
 }
 
 function generateURLForAQI() {
-  return "https://edf.createlab.org/assets/data/aqi_dict.json"
-  //return "assets/data/aqi_dict.json"
+  return "https://edf.createlab.org/assets/data/aqi_dict.json";
+}
+
+function generateURLForAQIV2() {
+  return "https://edf.createlab.org/assets/data/aqi_dict_v2.json";
 }
 
 function generateURLForHourlyAQI() {
-  return "https://airnowgovapi.com/andata/ReportingAreas/Salt_Lake_City_UT.json"
+  return "https://airnowgovapi.com/andata/ReportingAreas/" + available_cities[selectedCity].airnow_hourly;
 }
 
-function loadAndUpdateTimeLine(start_time, end_time, callback) {
-  loadTimelineData(start_time, end_time, function (data) {
-    timeline.updateBlocks(formatDataForTimeline(data, new Date(end_time)));
+function loadAndUpdateTimeLine(callback) {
+  var defaultTimelineUpdatedCallback = function(data, callback) {
+    timeline.updateBlocks(formatDataForTimeline(data, null));
     timeline.clearBlockSelection();
+    // TODO: When we switch timelines, do we want to load the most recent day for the city or the last day that was explored.
+    // If we want the latter, we will need to add more logic to track the last day selected
     timeline.selectLastBlock();
+    timeline.activeCity = selectedCity;
     if (typeof callback === "function") {
       callback();
     }
-  });
+    timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+  }
+  if (timeline.aqiData[selectedCity]) {
+    defaultTimelineUpdatedCallback(timeline.aqiData[selectedCity], callback);
+  } else {
+    loadTimelineData(null, null, function (data) {
+      defaultTimelineUpdatedCallback(data);
+      timeline.aqiData[selectedCity] = data;
+      if (typeof callback === "function") {
+        callback();
+      }
+    });
+  }
 }
 
 function loadAndCreateTimeline(callback, options) {
@@ -260,6 +261,9 @@ function loadAndCreateTimeline(callback, options) {
   // available AQI data
   loadTimelineData(null, null, function (data) {
     createTimeline(formatDataForTimeline(data, null), options);
+    timeline.activeCity = selectedCity;
+    timeline.aqiData = {};
+    timeline.aqiData[selectedCity] = data;
     if (typeof(callback) == "function") {
       callback();
     }
@@ -268,9 +272,9 @@ function loadAndCreateTimeline(callback, options) {
 
 function loadTimelineData(start_time, end_time, callback) {
   $.ajax({
-    "url": generateURLForAQI(),
+    "url": generateURLForAQIV2(),
     "success": function (data) {
-      loadTimelineDataToday(data, callback);
+      loadTimelineDataToday(data[selectedCity], callback);
     },
     "error": function (response) {
       console.log("server error:", response);
@@ -278,7 +282,7 @@ function loadTimelineData(start_time, end_time, callback) {
   });
 }
 
-function loadTimelineDataToday(fullData,callback){
+function loadTimelineDataToday(fullData, callback){
   $.ajax({
     "url": generateURLForHourlyAQI(),
     "success": function (data) {
@@ -289,22 +293,22 @@ function loadTimelineDataToday(fullData,callback){
         // show midnight, and are marked as UTC, but are NOT actually UTC midnight.
         var date = parsed["utcDateTimes"].pop() + "Z";
         var mDate = moment(date);
-        var startTimeOfDate = moment(date).tz(DEFAULT_TZ).startOf("day");
-        startOfLatestAvailableDay = startTimeOfDate.tz(DEFAULT_TZ).valueOf();
+        var startTimeOfDate = moment(date).tz(selected_city_tmz).startOf("day");
+        startOfLatestAvailableDay = startTimeOfDate.tz(selected_city_tmz).valueOf();
         var startTimeOfDateFormatted = startTimeOfDate.format("YYYY-MM-DD HH:mm:ss");
         //mostRecentUpdate12HourTimeForLocation = mDate.clone();
         //if (mDate.minute() > 30){
         //  mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).minute(30).second(0);
         //} else{}
         //mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).format("h:mm A");
-        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz(DEFAULT_TZ).valueOf();
+        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz(selected_city_tmz).valueOf();
         //mostRecentDayStr = mDate.tz(DEFAULT_TZ).format("MMM DD");
         var val = parsed["aqi"].pop();
         // We may be missing the previous day. Check and if so, get the max value
         // for the availabe time span.
-        var possiblePreviousDayStr = mDate.tz(DEFAULT_TZ).format("YYYY-MM-DD");
+        var possiblePreviousDayStr = mDate.tz(selected_city_tmz).format("YYYY-MM-DD");
         var possiblePreviousDayTimeStr = possiblePreviousDayStr + " 00:00:00";
-        var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, DEFAULT_TZ).format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
+        var hasPreviousDayFromCurrent = Object.keys(fullData).some((dayStr) => moment.tz(dayStr, selected_city_tmz).format("YYY-MM-DD").indexOf(possiblePreviousDayStr));
         if (!hasPreviousDayFromCurrent) {
           var max = 0;
           for (var i = 0; i < parsed['aqi'].length; i++) {
@@ -341,15 +345,6 @@ function formatDataForTimeline(data, pad_to_date_obj) {
 
   var batch_3d = []; // 3D batch data
   var batch_2d = []; // the inner small 2D batch data for batch_3d
-
-  // TODO: We are modifying the data so that it is marked as UTC times
-  /*data = Object.keys(data).reduce(
-    (acc, key) => ({
-      ...acc,
-      ...{ [key+"Z"]: data[key] }
-    }),
-    {}
-  );*/
 
   var sorted_day_str = Object.keys(data).sort();
   var last_month;
@@ -391,7 +386,7 @@ function formatDataForTimeline(data, pad_to_date_obj) {
       }
     }
     // Push into the 2D array
-    var m = moment.tz(day_obj, DEFAULT_TZ);
+    var m = moment.tz(day_obj, selected_city_tmz);
     var label = m.format("MMM DD");
     var day_obj_time = m.valueOf();
     batch_2d.push([label, count, day_obj_time]);
@@ -432,7 +427,7 @@ function getDiffDays(d1, d2) {
 }
 
 function dateStringToObject(str, tz) {
-  tz = tz ? tz : getDefaultTZ();
+  tz = tz ? tz : getSelectedCityTZ();
   return moment.tz(str, tz).toDate();
   /*var str_split = str.split("-");
   var year = parseInt(str_split[0]);

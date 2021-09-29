@@ -462,6 +462,10 @@ body,
   text-align: center;
 }
 
+.custom-dialog-flat {
+  width: 350px !important;
+}
+
 .custom-dialog-flat .ui-dialog-content select {
   font-family: 'Open Sans', Helvetica, Arial, sans-serif;
   /* Must be no smaller than 16px! Requirement for native select elements on iphones */

@@ -263,10 +263,9 @@ var create = {};
       //}
     };
 
-
     function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent) {
       var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
-      var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, DEFAULT_TZ).add(numMins, 'minutes').valueOf();
+      var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).add(numMins, 'minutes').valueOf();
 
       if (newPlaybackTimeInMs == playbackTimeInMs && fromTickOnClickEvent) {
         return;
@@ -276,7 +275,7 @@ var create = {};
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         setPlaybackTimeInMs(newPlaybackTimeInMs);
         handleDraw(playbackTimeInMs);
-        $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, DEFAULT_TZ).zoneAbbr() + ")");
+        setTimezoneText();
       }
 
       if (!timeTick || timeTick.length == 0) {
@@ -364,12 +363,17 @@ var create = {};
       }
     };
 
+    var setTimezoneText = function() {
+      $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, selected_city_tmz).zoneAbbr() + ")");
+    }
+    this.setTimezoneText = setTimezoneText;
+
     var updateTimeJumpMenu = function() {
       // The jump-to menu only shows hours, so we need to snap to the closest hour, rounding down.
       var ignoreSnapTo = (currentFrameNumber / (60 / playbackTimeline.getIncrementAmt())) % 1 == 0;
       var jumpFrame = currentFrameNumber;
       if (!ignoreSnapTo) {
-        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), DEFAULT_TZ);
+        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz);
         jumpFrame = captureTimes.indexOf(m.startOf('hour').format("h:mm A"));
       }
       $timeJumpOptions.val(jumpFrame);
@@ -378,18 +382,19 @@ var create = {};
 
     var createTimeJump = function() {
       $timeJumpOptions.mobileSelect({
+        id : "timeJumpOptionSelector",
         title : "Choose an hour to jump to:",
         animation : "none",
         buttonSave : "OK",
         onOpen: function() {
           // Need to delay some amount of time for UI to be ready
           setTimeout(function() {
-            $(".mobileSelect-control.selected")[0].scrollIntoView();
-          }, 10);
+            $("#timeJumpOptionSelector .mobileSelect-control.selected")[0].scrollIntoView();
+          }, 20);
         }
       });
       $timeJumpOptions.on("change", function(e) {
-        seekTo($(".mobileSelect-control.selected").data("value"));
+        seekTo($("#timeJumpOptionSelector .mobileSelect-control.selected").data("value"));
       })
     };
 
@@ -422,7 +427,7 @@ var create = {};
       }).on("mousedown", function() {
         seekHoldTimeout = setTimeout(function() {
           seekHoldTimeout = null;
-          $(".btn-mobileSelect-gen").trigger("click");
+          $("#timeJumpControl .btn-mobileSelect-gen").trigger("click");
         }, 500)
       }).on("mouseup", function() {
         clearTimeout(seekHoldTimeout)
@@ -450,7 +455,7 @@ var create = {};
       }).on("mousedown", function() {
         seekHoldTimeout = setTimeout(function() {
           seekHoldTimeout = null;
-          $(".btn-mobileSelect-gen").trigger("click");
+          $("#timeJumpControl .btn-mobileSelect-gen").trigger("click");
         }, 500)
       }).on("mouseup", function() {
         clearTimeout(seekHoldTimeout)
@@ -566,7 +571,7 @@ var create = {};
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
 
     var getFrameNumberFromPlaybackTime = function(playbackTimeInMs) {
-      var startofDayInMs = moment.tz(timeline.selectedDayInMs, DEFAULT_TZ).valueOf();
+      var startofDayInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).valueOf();
       var timeDiffInMin = (playbackTimeInMs - startofDayInMs) / 60000;
       var newFrameNum = timeDiffInMin/ incrementAmtInMin;
       return newFrameNum;
@@ -640,4 +645,3 @@ var create = {};
   };
 })();
 //end of (function() {
-

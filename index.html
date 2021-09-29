@@ -3,7 +3,7 @@
   <head>
     <title>Air Tracker</title>
     <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" media="screen" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" />
+    <link rel="stylesheet" media="screen" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" media="screen" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" />
     <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" media="screen" rel="stylesheet" type="text/css" />
     <link href="./assets/css/controls.css" media="screen" rel="stylesheet" type="text/css" />
@@ -12,7 +12,8 @@
     <link href="./assets/css/TimelineHeatmap.css" media="screen" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/style.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/materialUI.css" />
-    <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.css" />
+    <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.min.css" />
+
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGyX7QdJaQWBxWuXaCjwRBlanMLdFwygY&callback=initMap&libraries=geometry&v=weekly"
@@ -22,9 +23,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data-10-year-range.min.js" type="text/javascript"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.9.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="./assets/js/TimelineHeatmap.js" type="text/javascript"></script>
     <script src="./assets/js/widgets.js"></script>
     <script src="./assets/js/Util.js"></script>
@@ -37,9 +38,10 @@
     <script src="./assets/js/timeline.js"></script>
     <script src="./assets/lib/html2canvas/html2canvas.min.js"></script>
     <script src="./assets/lib/downloadjs/download.min.js"></script>
+    <script src="./assets/lib/js-markerwithlabel-1.2.3.min.js"></script>
   </head>
   <body class="materialUI">
-    <div id="controls" class="playbackTimelineOff">
+    <div id="controls" class="playbackTimelineOff" style="display: none">
       <div id="playback-timeline-container" class="noselect materialUI">
         <div class="materialTimelineContainerMain">
           <div class="materialTimelineContainer">
@@ -53,73 +55,78 @@
         <div id="timeJumpControl" title="Jump to an hour"></div>
       </div>
       <div id="timeline-container" class="noselect timeline-container"></div>
-      <div id="timeline-handle" class="noselect force-no-visibility"><span>Daily AQI</span></div>
+      <div id="timeline-handle" class="noselect force-no-visibility"><span>Daily AQI&nbsp;-&nbsp;</span><span id='city_name'></span></div>
       <button id="calendar-btn" title="Calendar" class="force-hidden custom-button-flat calendar-default-icon" disabled>
         <div class="calendar-specific-day hidden"></div>
       </button>
     </div>
-    <div id="infobar" class='infocontainer'>
-      <div id="infobar-header">Air Tracker</div>
-      <div id="infobar-location-header"></div>
-      <div id="infobar-initial" class="initial">
-        <p>That air you’re breathing, where’s it been?</p>
-        <p>AirTracker makes visual connections between the air you are breathing and the locations
-          of air pollution sources in the Salt Lake City valley. Users can view back traces, which show where
-          air comes from at any time.
-          <br><br>
-          Key interactive features include:
-        </p>
-        <ul>
-          <li>View real-time air pollution and wind measurements across the Salt Lake City valley. Click on a circle to see these sensor measurements.</li>
-          <br>
-          <li>Click anywhere in the SLC valley (dotted region) to create a back trace that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
-          <br>
-          <li>Explore past air pollution measurements and back traces to learn more about areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
-        </ul>
-      </div>
-      <div id="infobar-component-container">
-        <div id="infobar-plume-section" class="infobar-component">
-          <div class="infobar-component-header">Backtrace: </div>
-          <div id="infobar-plume">
-            <div class="infobar-text"></div>
-            <div class="infobar-data"></div>
-            <div class="infobar-unit"></div>
-            <div class="infobar-time"></div>
+    <div id="infobar" class='infocontainer no-controls'>
+      <div id="infobar-content">
+        <div id="infobar-header">Air Tracker</div>
+        <div id="infobar-location-header"></div>
+        <div id="infobar-initial" class="initial">
+          <p>That air you’re breathing, where’s it been?</p>
+          <p>AirTracker makes visual connections between the air you are breathing and the locations
+            of air pollution sources in your city. Users can view back traces, which show where
+            air comes from at any time.
+            <br><br>
+            Key interactive features include:
+          </p>
+          <ul>
+            <li>View real-time air pollution and wind measurements across your city. Click on a blue circle, indicating an available city. Once the region has loaded, click on a circle to see these sensor measurements.</li>
+            <br>
+            <li>Click anywhere in the dotted region of the city to create a back trace that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
+            <br>
+            <li>When exaiming a city, explore past air pollution measurements and back traces to learn more about areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
+          </ul>
+        </div>
+        <div id="infobar-component-container">
+          <div id="infobar-plume-section" class="infobar-component">
+            <div class="infobar-component-header">Backtrace: </div>
+            <div id="infobar-plume">
+              <div class="infobar-text"></div>
+              <div class="infobar-data"></div>
+              <div class="infobar-unit"></div>
+              <div class="infobar-time"></div>
+            </div>
+          </div>
+          <div id="infobar-pollution-section" class="infobar-component">
+            <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
+            <div id="infobar-pollution" class="infobar-component-value">
+              <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements</i></div>
+              <div class="infobar-data"></div>
+              <div class="infobar-unit"></div>
+              <div class="infobar-time"></div>
+            </div>
+          </div>
+          <div id="infobar-wind-section" class="infobar-component">
+            <div class="infobar-component-header">Wind: </div>
+            <div id="infobar-wind" class="infobar-component-value">
+              <div class="infobar-text"><i>Click on the nearest sensor to see wind measurements</i></div>
+              <div class="infobar-data-intro">Coming from</div>
+              <div class="infobar-data"></div>
+              <div class="infobar-unit"></div>
+              <div class="infobar-time"></div>
+            </div>
           </div>
         </div>
-        <div id="infobar-pollution-section" class="infobar-component">
-          <div class="infobar-component-header">PM<sub>2.5</sub>: </div>
-          <div id="infobar-pollution" class="infobar-component-value">
-            <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements</i></div>
-            <div class="infobar-data"></div>
-            <div class="infobar-unit"></div>
-            <div class="infobar-time"></div>
-          </div>
+        <div id="infobar-close-handle-container">
+          <div id="infobar-close-handle"></div>
         </div>
-        <div id="infobar-wind-section" class="infobar-component">
-          <div class="infobar-component-header">Wind: </div>
-          <div id="infobar-wind" class="infobar-component-value">
-            <div class="infobar-text"><i>Click on the nearest sensor to see wind measurements</i></div>
-            <div class="infobar-data-intro">Coming from</div>
-            <div class="infobar-data"></div>
-            <div class="infobar-unit"></div>
-            <div class="infobar-time"></div>
-          </div>
+        <div id="infobar-close-toggle-container" title="Show/Hide Infobar">
+          <div class="infobar-close-toggle-icon"></div>
         </div>
-      </div>
-      <div id="infobar-close-handle-container">
-        <div id="infobar-close-handle"></div>
-      </div>
-      <div id="infobar-close-toggle-container" title="Show/Hide Infobar">
-        <div class="infobar-close-toggle-icon"></div>
-      </div>
-      <div class='side-controls-container'>
-        <button id="share-picker">
-          Share
-        </button>
+        <div class='side-controls-container'>
+          <button id="city-picker">
+            Explore a city
+          </button>
+          <button id="share-picker">
+            Share
+          </button>
+        </div>
       </div>
     </div>
-    <div class="custom-legend noselect" id="legend">
+    <div class="custom-legend noselect no-controls" id="legend">
       <h3 class="legend-title">Legend</h3>
       <div class="legend-scale">
         <table id="legend-smell-value">
@@ -177,6 +184,14 @@
                 </tr>
               </table>
             </td>
+            <td><!-- Rounded switch -->
+              <label class="switch" title="Toggle PurpleAir sensors">
+                <input type="checkbox" id="toggle-purple-air">
+                <span class="slider round">
+                  <span class="input-state-text"></span>
+                </span>
+              </label>
+            </td>
           </tr>
           <tr>
             <td class="entry-title">TRAX PM<sub>2.5</sub>:</td>
@@ -206,7 +221,7 @@
         </table>
       </div>
     </div>
-    <div id="map"></div>
+    <div id="map" class="no-controls"></div>
     <div id="footprint-first-click-dialog" title="Reminder!">
       <div id="explanation-content-container" style="overflow-y: auto">
         <div id="explanation-1" class="explanation-content">
@@ -262,8 +277,14 @@
           <span id='get-screenshot-description'>(Download an image of the current viewport. <br>Make your browser window larger or smaller to change the output resolution.)</span>
         </div>
       </div>
-      <span class="close-share" title="Close"></span>
+      <span class="close-modal" title="Close"></span>
     </div>
+
+    <div id="city-picker-controls">
+      <select id="city-selector"></select>
+    </div>
+
+
     <span class="thumbnail-copy-text-button-tooltip">
       <p></p>
     </span>

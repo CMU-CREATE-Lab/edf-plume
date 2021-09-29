@@ -6,6 +6,7 @@ var numSensorsPerChunk = 50;
 
 onmessage = async function(event) {
   // The object that the web page sent is stored in the event.data property.
+
   var epochtime_milisec = event.data.epochtime_milisec;
   var info = event.data.sensors_list;
   var is_current_day = event.data.is_current_day;

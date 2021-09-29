@@ -182,7 +182,62 @@
   margin-top: -12px
 }
 
-.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black{
+.materialUI #city-picker {
+  background: #f1f1f1;
+  width: 0px;
+  height: 40px;
+  padding: 0px;
+  -webkit-box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+  box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+  border-top-left-radius: 1px;
+  border-bottom-left-radius: 1px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  outline: none;
+  border: 1px solid #d3d3d3;
+  padding-left: 38px;
+  padding-right: 0px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 99;
+  bottom: auto;
+  display: none;
+}
+
+.materialUI #city-picker {
+  left: auto;
+  right: auto;
+}
+
+.materialUI #city-picker .ui-button {
+  margin-top: 0px;
+  display: block;
+  width: 40px;
+  height: 40px;
+  background: #f1f1f1;
+  -webkit-box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+  outline: none;
+  position: relative;
+  border-radius: 0px;
+}
+
+.materialUI #city-picker.ui-state-hover {
+  border: 1px solid #d3d3d3;
+}
+
+.materialUI #city-picker .ui-icon-custom-city-picker-black {
+  background: url('../img/city-picker-icon.png');
+  width: 30px;
+  height: 30px;
+  opacity: 0.8;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -15px;
+  margin-top: -15px
+}
+
+.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black {
   opacity: 0.9;
 }
 
@@ -401,7 +456,6 @@
   border-left: 1px solid #6e6e6e;
 }
 
-
 .materialUI .leftSeekControlIcon {
   background: url(../img/chevron-left.png);
   background-repeat: no-repeat;
@@ -444,6 +498,10 @@
 }
 
 #timeJumpControl {
+  display: none;
+}
+
+#city-picker-controls {
   display: none;
 }
 
