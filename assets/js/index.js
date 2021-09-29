@@ -509,14 +509,14 @@ async function initMap() {
       }
       lastYPos = currentYPos;
       var dist = startYPos - currentYPos;
-      var max = selectedLocationPin ? 218 : 258;
+      var max = selectedLocationPinVisible() ? 218 : 258;
       var maxHeight = Math.min(max, (startHeight - dist));
       $infobar.height(maxHeight);
     });
     $(document).one("mouseup.infocontainer", function(e) {
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: selectedLocationPin ? "210px" : "250px"
+          height: selectedLocationPinVisible() ? "210px" : "250px"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
@@ -1038,6 +1038,10 @@ var setButtonTooltip = function(text, $target, duration) {
 };
 
 
+function selectedLocationPinVisible() {
+  return selectedLocationPin && selectedLocationPin.visible;
+}
+
 function createDataPullWebWorker() {
   // Create the worker.
   dataFormatWorker = new Worker("./assets/js/formatAndMergeSensorDataWorker.js");
@@ -1103,7 +1107,7 @@ async function handleDraw(timeInEpoch, doOverview, fromDaySelection) {
   var primaryInfoPopulator = selectedSensorMarker;
   // Handle case where a user has clicked on the map where a trax sensor can be but it is not yet visible.
   //  As time plays, however, it may become visible, so allow for the info panel to see this info when the train passes by.
-  if (selectedLocationPin) {
+  if (selectedLocationPinVisible()) {
     for(var x = 0; x < traxMarkers.length; x++) {
       if (!selectedSensorMarker && traxMarkers[x].visible && traxMarkers[x].getBounds().contains(selectedLocationPin.getPosition())) {
         primaryInfoPopulator = traxMarkers[x];
@@ -1114,7 +1118,7 @@ async function handleDraw(timeInEpoch, doOverview, fromDaySelection) {
   }
 
   // animate footprint
-  if (overlay && (overlay.projection || selectedLocationPin)) {
+  if (overlay && (overlay.projection || selectedLocationPinVisible())) {
     var overlayData = overlay.getData();
     await drawFootprint(overlayData.lat, overlayData.lng, false);
     if (!primaryInfoPopulator) {
@@ -1146,7 +1150,7 @@ async function getMostRecentFootprintTimeInMs() {
 
 
 async function drawFootprint(lat, lng, fromClicked) {
-  if (!fromClicked && !selectedLocationPin) {
+  if (!fromClicked && !selectedLocationPinVisible()) {
     return;
   }
   if (typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
@@ -1162,7 +1166,7 @@ async function drawFootprint(lat, lng, fromClicked) {
       overlay.setMap(null);
       overlay.setData({});
     }
-    if (selectedLocationPin) {
+    if (selectedLocationPinVisible()) {
       selectedLocationPin.setVisible(false);
     }
   }
@@ -1262,7 +1266,7 @@ async function drawFootprint(lat, lng, fromClicked) {
     expandInfobar();
   }
 
-  if (selectedLocationPin) {
+  if (selectedLocationPinVisible()) {
     selectedLocationPin.setPosition(new google.maps.LatLng(lat,lng));
     selectedLocationPin.setIcon(iconPath)
     if (fromClicked) {
@@ -1282,6 +1286,7 @@ async function drawFootprint(lat, lng, fromClicked) {
   google.maps.event.addListener(selectedLocationPin, "click", function (e) {
     if (selectedLocationPin) {
       selectedLocationPin.setVisible(false);
+      selectedLocationPin = null;
     }
     overlay.setMap(null);
     resetInfobar();
@@ -2093,8 +2098,6 @@ function setInfobarUnavailableSubheadings($element, text) {
 
 
 async function handleSensorMarkerClicked(marker) {
-  //if (selectedLocationPin) { selectedLocationPin.setMap(null) };
-
   await drawFootprint(marker.getData()['latitude'], marker.getData()['longitude'], true);
 
   updateInfoBar(marker);
@@ -2102,8 +2105,6 @@ async function handleSensorMarkerClicked(marker) {
 
 
 async function handleTRAXMarkerClicked(marker, fromAnimate) {
-  // (selectedLocationPin) { selectedLocationPin.setMap(null) };
-
   await drawFootprint(traxLocations[marker.traxId]['lat'], traxLocations[marker.traxId]['lng'], !fromAnimate);
 
   updateInfoBar(marker);
@@ -2149,8 +2150,6 @@ function formatWind(speed,deg) {
 
 
 async function handleMapClicked(mapsMouseEvent) {
-  //if (selectedLocationPin) { selectedLocationPin.setMap(null) };
-
   var fromClicked = !!mapsMouseEvent.domEvent;
 
   selectedSensorMarker = null;
@@ -2231,7 +2230,7 @@ function resetMapToCitieOverview(city_locode) {
   $citySelector.val("");
   $controls.hide();
   $("#map, #infobar, #legend").addClass("no-controls");
-  if (selectedLocationPin) {
+  if (selectedLocationPinVisible()) {
     selectedLocationPin.setVisible(false);
   }
   overlay.setMap(null);
