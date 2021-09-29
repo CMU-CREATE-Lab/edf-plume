@@ -65,13 +65,6 @@ var startOfLatestAvailableDay;
 var sensorsLoadedResolver;
 var sensorsLoadedPromise;
 
-var $infobarHeader;
-var $infobarPollution;
-var $infobarWind;
-var $infobarPlume;
-var $playbackTimelineContainer;
-var $footprint_dialog;
-
 var widgets = new edaplotjs.Widgets();
 var Util = new edaplotjs.Util();
 
@@ -98,6 +91,12 @@ var hrrrWindErrorMarkers = [];
 var hrrrWindErrorDataByEpochTimeInMs = {};
 
 // DOM
+var $infobarHeader;
+var $infobarPollution;
+var $infobarWind;
+var $infobarPlume;
+var $playbackTimelineContainer;
+var $footprint_dialog;
 var $playbackTimelineAnchor;
 var $controls;
 var $calendarChosenDayIndicator;
@@ -109,6 +108,8 @@ var $purpleAirToggle;
 var $citySelector;
 var $cityName
 var $map;
+var $currentDateLegendText;
+var $currentDateLegendTextNone;
 
 var showHrrrWindDirectionError;
 var showHrrrWindSpeedError;
@@ -908,6 +909,8 @@ var getCityInBounds = function() {
         hideMarkersByCity(lastSelectedCity);
       }
       selectedCity = city_locode;
+      $currentDateLegendTextNone.hide();
+      $currentDateLegendText.show();
       selected_city_tmz = available_cities[selectedCity]['IANA_TZ'];
       break;
     }
@@ -1075,6 +1078,8 @@ function initDomElms() {
   $citySelector = $("#city-selector");
   $cityName = $("#city_name");
   $map = $("#map");
+  $currentDateLegendText = $("#current-date-legend");
+  $currentDateLegendTextNone = $("#current-date-legend-none");
   verticalTouchScroll($infobarInitial);
 }
 
@@ -2231,6 +2236,8 @@ function resetMapToCitieOverview(city_locode) {
   overlay.setMap(null);
   resetInfobar();
   selectedCity = "";
+  $currentDateLegendText.hide();
+  $currentDateLegendTextNone.show();
 }
 
 function showHideMarkersByZoomLevel() {
