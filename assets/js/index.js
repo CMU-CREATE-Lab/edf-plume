@@ -904,8 +904,8 @@ var getCityInBounds = function() {
         return;
       }
       // If we previously had a city up, hide its markers.
-      if (selectedCity) {
-        hideMarkersByCity(selectedCity);
+      if (lastSelectedCity) {
+        hideMarkersByCity(lastSelectedCity);
       }
       selectedCity = city_locode;
       selected_city_tmz = available_cities[selectedCity]['IANA_TZ'];
