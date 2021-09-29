@@ -105,6 +105,7 @@ var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
 var $purpleAirToggle;
+var $traxToggle;
 var $citySelector;
 var $cityName
 var $map;
@@ -791,6 +792,10 @@ async function initMap() {
     togglePurpleAirs($(e.target).prop("checked"));
   });
 
+  $traxToggle.on("click", function(e) {
+    toggleTrax($(e.target).prop("checked"));
+  });
+
 
 
   // !!DO LAST!!
@@ -823,6 +828,19 @@ async function initMap() {
 var changeBrowserUrlState = function() {
   window.history.replaceState({}, "", getShareUrl());
 }
+
+
+var toggleTrax = function(makeVisible) {
+  if (!playbackTimeline || !playbackTimeline.isActive()) {
+    return;
+  }
+  if (makeVisible) {
+    getTraxInfoByPlaybackTime(playbackTimeline.getPlaybackTimeInMs());
+  } else {
+    resetAllTrax();
+  }
+}
+
 
 var togglePurpleAirs = function(makeVisible) {
   if (!selectedCity) return;
@@ -1080,6 +1098,7 @@ function initDomElms() {
   $infobarComponentContainer = $("#infobar-component-container");
   $infobarInitial = $("#infobar-initial");
   $purpleAirToggle = $("#toggle-purple-air");
+  $traxToggle = $("#toggle-trax");
   $citySelector = $("#city-selector");
   $cityName = $("#city_name");
   $map = $("#map");
@@ -1094,7 +1113,9 @@ async function handleDraw(timeInEpoch, doOverview, fromDaySelection) {
     await showSensorMarkersByTime(timeline.selectedDayInMs);
   } else if (!doOverview) {
     // animate trax data
-    await getTraxInfoByPlaybackTime(timeInEpoch);
+    if ($traxToggle.prop("checked")) {
+      await getTraxInfoByPlaybackTime(timeInEpoch);
+    }
     // TODO: Handle HRRR Wind Error visual
     if (showHrrrWindDirectionError || showHrrrWindSpeedError) {
       handleHrrrWindErrorPointsByEpochTime(timeInEpoch);

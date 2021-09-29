@@ -1136,7 +1136,7 @@ input[type="search"]::-webkit-search-cancel-button:hover {
   display: inline-block;
   width: 35px;
   height: 17px;
-  top: -7px;
+  top: -5px;
 }
 
 
