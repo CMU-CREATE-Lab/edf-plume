@@ -474,7 +474,9 @@ async function initMap() {
       zoomChangedSinceLastIdle = true;
     });
 
-    google.maps.event.addListener(map, 'idle', function() {
+    google.maps.event.addListener(map, 'idle', function(e) {
+      // Note that this is also called when the map resizes, since
+      // the bounds of the map changes
       changeBrowserUrlState();
       getCityInBounds();
     });
@@ -907,6 +909,8 @@ var getCityInBounds = function() {
     return;
   }
   var cityInBoundsCallback = function() {
+    // Note that this will trigger a map resize, which in turn triggers a map 'idle',
+    // which will trigger getCityInBounds() again.
     $controls.show();
     if ($map.hasClass("no-controls")) {
       $("#map, #infobar, #legend").removeClass("no-controls");
@@ -1764,7 +1768,7 @@ async function loadAvailableCities() {
 
       $citySelector.on("change", function(e) {
         let city_locode = e.currentTarget.value;
-        if (city_locode) {
+        if (city_locode && city_locode != selectedCity) {
           google.maps.event.trigger(available_cities[city_locode].marker, "click");
         }
       })
