@@ -2,6 +2,86 @@
   "US-SLC":{
     "markers":[
       {
+        "name":"NR AirNow",
+        "sensors":{
+          "PM25":{
+            "sources":[
+              {
+                "feed":25707,
+                "channel":"PM2_5"
+              }
+            ]
+          }
+        },
+        "latitude":40.662841,
+        "longitude":-111.901796,
+        "marker_type":"air_now"
+      },
+      {
+        "name":"Lake Park AirNow",
+        "sensors":{
+          "wind_speed":{
+            "sources":[
+              {
+                "feed":76794,
+                "channel":"WS"
+              }
+            ]
+          },
+          "wind_direction":{
+            "sources":[
+              {
+                "feed":76794,
+                "channel":"WD"
+              }
+            ]
+          },
+          "PM25":{
+            "sources":[
+              {
+                "feed":76794,
+                "channel":"PM2_5"
+              }
+            ]
+          }
+        },
+        "latitude":40.709867,
+        "longitude":-112.008664,
+        "marker_type":"air_now"
+      },
+      {
+        "name":"Inland Port AirNow",
+        "sensors":{
+          "wind_speed":{
+            "sources":[
+              {
+                "feed":76795,
+                "channel":"WS"
+              }
+            ]
+          },
+          "wind_direction":{
+            "sources":[
+              {
+                "feed":76795,
+                "channel":"WD"
+              }
+            ]
+          },
+          "PM25":{
+            "sources":[
+              {
+                "feed":76795,
+                "channel":"PM2_5"
+              }
+            ]
+          }
+        },
+        "latitude":40.807897,
+        "longitude":-112.087717,
+        "marker_type":"air_now"
+      },
+      {
         "name":"BV AirNow",
         "sensors":{
           "wind_speed":{
