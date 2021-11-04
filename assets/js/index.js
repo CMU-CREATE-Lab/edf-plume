@@ -2130,7 +2130,7 @@ async function loadFacilitiesList() {
         labelContent: facility["Name"],
         labelAnchor: new google.maps.Point(0,0),
         data: {},
-        icon: 'assets/img/facility-icon.png',
+        icon: 'assets/img/facility-icon-magenta.png',
         labelClass: "facilityMarker",
         visible: false
       });
