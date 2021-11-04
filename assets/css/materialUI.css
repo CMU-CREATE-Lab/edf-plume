@@ -1,85 +1,3 @@
-.materialUI .waypointDrawerContainerMain {
-  position: absolute;
-  width: 377px;
-  height: 100%;
-  left: 0;
-  -webkit-transition: 0.5s;
-  -o-transition: 0.5s;
-  transition: 0.5s;
-  display: block;
-}
-
-.materialUI .waypointDrawerContainer {
-  width: 377px;
-  height: 100%;
-  left: 0px;
-  position: absolute;
-  background: white;
-  border-radius: 0px;
-  z-index: 1002;
-  display: block;
-  overflow-y: auto;
-  -webkit-appearance: none;
-  -webkit-box-shadow: 4px 0px 3px rgba(0,0,0,0.3);
-  box-shadow: 4px 0px 3px rgba(0,0,0,0.3);
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.materialUI .waypointDrawerClosed {
-  -webkit-transition: 0.5s;
-  -o-transition: 0.5s;
-  transition: 0.5s;
-  left: -378px;
-}
-
-.materialUI .waypointDrawerContainerToggle {
-  width: 24px;
-  height: 38px;
-  background: white;
-  position: absolute;
-  right: -26px;
-  top: 20px;
-  z-index: 1002;
-  border-radius: 0px 4px 4px 0px;
-  -webkit-appearance: none;
-  -webkit-box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
-  box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
-  border: 1px solid #d3d3d3;
-  cursor: pointer;
-}
-
-.materialUI .waypointDrawerContainerToggle.disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.materialUI .waypointDrawerContainerToggle:hover .waypointDrawerContainerToggleIcon {
-  opacity: 0.9;
-}
-
-.materialUI .waypointDrawerContainerToggleIcon {
-  background: url(../img/left-arrow-black.png);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  -webkit-background-size: contain;
-  width: 30px;
-  height: 30px;
-  position: absolute;
-  right: -2px;
-  top: 4px;
-  opacity: 0.7;
-  display: inline-block;
-}
-
-.materialUI .waypointDrawerClosed .waypointDrawerContainerToggleIcon {
-  background: url(../img/right-arrow-black.png);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  -webkit-background-size: contain;
-}
-
 .materialUI .customDialog .ui-dialog-titlebar {
   display: none;
 }
@@ -88,35 +6,6 @@
   border-radius: 16px;
   border: 1px solid #fefefe;
   padding-bottom: 20px;
-}
-
-.materialUI .waypointDrawerContainer .presentationSlider.vertical .snaplapse_keyframe_list_item {
-  width: 100%;
-}
-
-.waypointDrawerContainer #etDrawerProductHighlightsContent h3 {
-  background: #f2f2f2 !important;
-  width: calc(100% - 72px);
-  border-radius: 4px !important;
-  outline: none !important;
-}
-
-#etDrawerProductHighlightsContent {
-  padding-bottom: 20px;
-  display: none;
-}
-
-.waypointDrawerContainer .ui-accordion-content {
-  width: calc(100% - 22px);
-  margin-top: -1px;
-}
-
-.materialUI .waypointDrawerContainer .waypointDrawerContainerHeader {
-  text-align: left;
-}
-
-.materialUI .waypointDrawerContainer .presentationSlider.vertical {
-  height: calc(100% - 265px);
 }
 
 .materialUI #share-picker {
@@ -144,14 +33,6 @@
 .materialUI #share-picker {
   left: auto;
   right: auto;
-}
-
-.materialUI .waypointDrawerContainerMain.hidden .waypointDrawerSideControlsContainer {
-  margin-left: -20px;
-}
-
-.materialUI .waypointDrawerContainerMain.hidden .waypointDrawerContainerToggle {
-  display: none;
 }
 
 .materialUI #share-picker .ui-button {
@@ -204,12 +85,34 @@
   display: none;
 }
 
-.materialUI #city-picker {
+.materialUI #help-tour {
+  background: #f1f1f1;
+  width: 0px;
+  height: 40px;
+  padding: 0px;
+  -webkit-box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+  box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
+  border-top-left-radius: 1px;
+  border-bottom-left-radius: 1px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  outline: none;
+  border: 1px solid #d3d3d3;
+  padding-left: 38px;
+  padding-right: 0px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 99;
+  bottom: auto;
+  display: none;
+}
+
+.materialUI #city-picker, .materialUI #help-tour {
   left: auto;
   right: auto;
 }
 
-.materialUI #city-picker .ui-button {
+.materialUI #city-picker .ui-button, .materialUI #help-tour .ui-button {
   margin-top: 0px;
   display: block;
   width: 40px;
@@ -222,7 +125,7 @@
   border-radius: 0px;
 }
 
-.materialUI #city-picker.ui-state-hover {
+.materialUI #city-picker.ui-state-hover, .materialUI #help-tour.ui-state-hover {
   border: 1px solid #d3d3d3;
 }
 
@@ -230,14 +133,26 @@
   background: url('../img/city-picker-icon.png');
   width: 30px;
   height: 30px;
-  opacity: 0.8;
+  opacity: 0.7;
   background-size: contain;
   -webkit-background-size: contain;
   margin-left: -15px;
   margin-top: -15px
 }
 
-.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black {
+.materialUI #help-tour .ui-icon-custom-help-tour-black {
+  background: url('../img/help.png');
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -6px;
+  margin-top: -10px;
+  background-repeat: no-repeat;
+}
+
+.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black, .materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black {
   opacity: 0.9;
 }
 
@@ -295,14 +210,6 @@
   border-top: 1px solid #6e6e6e;
   overflow: hidden;
 }
-
-.materialUI.waypointDrawerOpen .materialTimelineContainerMain {
-  right: 0px;
-  width: calc(100% - 377px);
-  -webkit-transition: width 0.5s;
-  -o-transition: width 0.5s;
-  transition: width 0.5s;
- }
 
 .materialUI .playbackButton {
   width: 56px;
@@ -484,74 +391,12 @@
   opacity: 0.58;
 }
 
-.materialUI .speedControl {
-  -webkit-box-flex: 0;
-  -ms-flex-positive: 0;
-  flex-grow: 0;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-  -ms-flex-preferred-size: 56px;
-  flex-basis: 56px;
-  width: 56px;
-  height: auto;
-  border-left: 1px solid rgba(0, 0, 0, 0.12)
-}
-
 #timeJumpControl {
   display: none;
 }
 
 #city-picker-controls {
   display: none;
-}
-
-.materialUI .speedControl .ui-selectmenu-button {
-  background: white;
-  width: 56px;
-  height: 51px;
-  border: none;
-  outline: none;
-  border-radius: 0;
-  position: absolute;
-}
-
-.materialUI .speedControl.isIE .ui-selectmenu-button {
-  position: relative;
-}
-
-.materialUI .speedControl .ui-selectmenu-button span.ui-selectmenu-text {
-  padding: 0px;
-  text-align: center;
-  margin-top: 16px;
-  font-size: 13px;
-  color: #2979ff;
-  opacity: 0.8;
-}
-
-.materialUI .speedControl .ui-selectmenu-button:hover span.ui-selectmenu-text {
-  opacity: 1;
-}
-
-.materialUI .speedControl .ui-selectmenu-button .ui-icon {
-  display: none;
-}
-
-#speedControlOptions-menu {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-#speedControlOptions-menu .ui-menu-item.ui-state-focus {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: rgba(0, 0, 0, 0.08);
-}
-
-#speedControlOptions-menu .ui-menu-item {
- padding: 10px 0em 10px 1em;
-}
-
-.materialUI #speedControlOptions {
-  width: 100%;
-  height: 100%;
 }
 
 .materialUI .materialTimelineContainer {
@@ -564,12 +409,8 @@
   display: flex;
 }
 
-.materialUI .scaleBarContainer {
-  display: none;
-}
-
 .materialTimelineContainer::-webkit-scrollbar {
-  width: 0 !important
+  width: 0 !important;
 }
 
 .materialTimeline {
@@ -736,24 +577,10 @@
   z-index: 10;
 }
 
-.materialUI.waypointDrawerOpen .materialNowViewingContainer {
-  right: 0px;
-  width: calc(100% - 457px);
-  -webkit-transition: width 0.5s;
-  -o-transition: width 0.5s;
-  transition: width 0.5s;
-}
-
 .materialUI .timeText, .mobileUI .timeText {
   bottom: 20px;
   top: auto;
   border-radius: 8px;
-  display: none;
-}
-
-#static_map_base_layer {
-  width: 100%;
-  height: 100%;
   display: none;
 }
 
@@ -766,43 +593,12 @@
 }
 
 .materialUI .searchBoxContainer {
-  position: relative;
   top: auto;
-  left: auto;
-}
-
-.materialUI .shareView.customDialog {
-  padding-top: 20px;
-}
-
-.materialUI .shareView {
-  height: calc(100% - 20px);
+  left: 58px;
 }
 
 .materialUI div.ui-dialog.ui-widget {
   z-index: 2002 !important;
-}
-
-.materialUI #shareViewPanelTitle {
-  display: block;
-  color: #222;
-  margin-left: 20px;
-  margin-top: -5px;
-}
-
-.materialUI .close-right-panel {
-  background: url(../img/close.png) center center no-repeat;
-  background-size: 20px 20px;
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  cursor: default;
-  opacity: 0.67;
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  cursor: pointer;
-  display: block;
 }
 
 .mobileSelect-container.white .list-container .mobileSelect-control.selected {

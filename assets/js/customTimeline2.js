@@ -184,6 +184,7 @@ var create = {};
       });
 
       $timeline.on("scroll", function(e) {
+        if (!isActive()) return;
         didScroll = true;
         window.clearTimeout(scrollEndTimeout);
         // Set a timeout to run after scrolling ends
@@ -263,7 +264,7 @@ var create = {};
       //}
     };
 
-    function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent) {
+    function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent, skipDraw) {
       var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
       var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).add(numMins, 'minutes').valueOf();
 
@@ -274,7 +275,9 @@ var create = {};
       if (!fromRefocus) {
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         setPlaybackTimeInMs(newPlaybackTimeInMs);
-        handleDraw(playbackTimeInMs);
+        if (!skipDraw) {
+          handleDraw(playbackTimeInMs);
+        }
         setTimezoneText();
       }
 
@@ -551,12 +554,12 @@ var create = {};
     };
     this.getCaptureTimes = getCaptureTimes;
 
-    var seekTo = function(frameNum) {
+    var seekTo = function(frameNum, skipDraw) {
       frameNum |= 0;
       var $newTimelineTick = $timelineTicks.eq(frameNum);
       $timelineTicks.removeClass("materialTimelineTickSelected");
       $newTimelineTick.addClass("materialTimelineTickSelected");
-      updateTimelineSlider(null, $newTimelineTick, true);
+      updateTimelineSlider(null, $newTimelineTick, true, null, null, skipDraw);
     };
     this.seekTo = seekTo;
 

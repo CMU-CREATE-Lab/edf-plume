@@ -116,9 +116,7 @@ function handleTimelineButtonClicked(epochtime_milisec, day_label) {
 }
 
 async function handleTimelineButtonSelected(epochtime_milisec) {
-  // This gets called before "handleTimelineButtonClicked"
-  await showSensorMarkersByTime(epochtime_milisec);
-  await sensorsLoadedPromise;
+  // This method gets called before "handleTimelineButtonClicked"
   selected_day_start_epochtime_milisec = epochtime_milisec;
   var startofSelectedDayAsMoment = moment.tz(selected_day_start_epochtime_milisec, selected_city_tmz);
   var hourMin = convertFrom12To24Format(playbackTimeline.getCaptureTimes()[playbackTimeline.getCurrentFrameNumber()]).split(":");
@@ -127,6 +125,8 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   var mostRecentDayStrFull = startofSelectedDayAsMoment.format("MMM DD YYYY");
   // Update selected day in the legend
   $currentDateLegendText.text(mostRecentDayStrFull);
+  await showSensorMarkersByTime(epochtime_milisec);
+  await sensorsLoadedPromise;
 }
 
 
@@ -164,20 +164,16 @@ function initTimeline(options) {
     loadAndCreateTimeline(async function() {
       $("#timeline-handle").removeClass('force-no-visibility');
       playbackTimeline = new create.CustomTimeline2();
-      var startTime;
       if (selected_day_start_epochtime_milisec) {
-        startTime = options.playbackTimeInMs;
         timeline.selectBlockByEpochTime(selected_day_start_epochtime_milisec);
-      } else {
-        startTime = Math.max(timeline.selectedDayInMs, await getMostRecentFootprintTimeInMs());
-        timeline.selectLastBlock();
-      }
-      timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
-
-      if (selected_day_start_epochtime_milisec) {
+        timeline.selectedDayInMs = selected_day_start_epochtime_milisec;
+        // Set frame based on the share time the user arrived with
+        // This has to be set *after* timeline.selectedDayInMs is set. Technically this is set when a block is selected, but awaits/async alter the flow.
         playbackTimeline.setCurrentFrameNumber(playbackTimeline.getFrameNumberFromPlaybackTime(options.playbackTimeInMs));
+      } else {
+        timeline.selectLastBlock();
+        timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
       }
-
       $(".timestampPreview").removeClass("disabled");
       $(".playbackButton").button("enable");
       $("#calendar-btn").prop("disabled", false);
@@ -226,7 +222,7 @@ function generateURLForAQIV2() {
 }
 
 function generateURLForHourlyAQI() {
-  return "https://airnowgovapi.com/andata/ReportingAreas/" + available_cities[selectedCity].airnow_hourly;
+  return "https://airnowgovapi.com/andata/ReportingAreas/" + available_cities[selectedCity].airnow_hourly_aqi;
 }
 
 function loadAndUpdateTimeLine(callback) {
@@ -240,7 +236,7 @@ function loadAndUpdateTimeLine(callback) {
     if (typeof callback === "function") {
       callback();
     }
-    timeline.selectedDayInMs = $("#timeline-container .selected-block").data('epochtime_milisec');
+    timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
   }
   if (timeline.aqiData[selectedCity]) {
     defaultTimelineUpdatedCallback(timeline.aqiData[selectedCity], callback);

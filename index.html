@@ -8,15 +8,15 @@
     <link href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" media="screen" rel="stylesheet" type="text/css" />
     <link href="./assets/css/controls.css" media="screen" rel="stylesheet" type="text/css" />
     <link href="./assets/css/widgets.css" media="screen" rel="stylesheet" type="text/css" />
-    <link href="./assets/css/custom.css" media="screen" rel="stylesheet" type="text/css" />
     <link href="./assets/css/TimelineHeatmap.css" media="screen" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/style.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/materialUI.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/intro.js/minified/introjs.min.css" />
 
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGyX7QdJaQWBxWuXaCjwRBlanMLdFwygY&callback=initMap&libraries=geometry&v=weekly"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly"
       defer
       ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" type="text/javascript"></script>
@@ -29,16 +29,17 @@
     <script src="./assets/js/TimelineHeatmap.js" type="text/javascript"></script>
     <script src="./assets/js/widgets.js"></script>
     <script src="./assets/js/Util.js"></script>
+    <script src="./assets/js/customTimeline2.js"></script>
+    <script src="./assets/js/index.js"></script>
+    <script src="./assets/js/timeline.js"></script>
     <script src="./assets/lib/gmaps-utils/map_marker/CustomMapMarker.js"></script>
     <script src="./assets/lib/touchPunch/jquery.ui.touch-punch.min.js"></script>
     <script src="./assets/lib/bootstrapFullscreenSelect/bootstrap-fullscreen-select.min.js"></script>
     <script src="./assets/lib/scrollIntoView/scrollIntoView.min.js"></script>
-    <script src="./assets/js/customTimeline2.js"></script>
-    <script src="./assets/js/index.js"></script>
-    <script src="./assets/js/timeline.js"></script>
     <script src="./assets/lib/html2canvas/html2canvas.min.js"></script>
     <script src="./assets/lib/downloadjs/download.min.js"></script>
     <script src="./assets/lib/js-markerwithlabel-1.2.3.min.js"></script>
+    <script src="./assets/lib/intro.min.js"></script>
   </head>
   <body class="materialUI">
     <div id="controls" class="playbackTimelineOff" style="display: none">
@@ -113,7 +114,7 @@
         <div id="infobar-close-handle-container">
           <div id="infobar-close-handle"></div>
         </div>
-        <div id="infobar-close-toggle-container" title="Show/Hide Infobar">
+        <div id="infobar-close-toggle-container" title="Toggle infobar">
           <div class="infobar-close-toggle-icon"></div>
         </div>
         <div class='side-controls-container'>
@@ -123,6 +124,14 @@
           <button id="share-picker">
             Share
           </button>
+          <button id="help-tour">
+            Help
+          </button>
+          <div class="searchBoxContainer">
+            <input class="searchBox" placeholder="Search for a point of interest..." autocomplete="off">
+            <span class="searchBoxIcon" title="Toggle search"></span>
+            <span class="searchBoxClearIcon" title="Clear search"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -132,19 +141,19 @@
         <table id="legend-smell-value">
           <tr>
             <td>Date:</td>
-            <td colspan="2" id="current-date-legend" class="hidden"></td>
-            <td colspan="2" id="current-date-legend-none">Select a city first</td>
+            <td colspan="2" id="current-date-legend"></td>
+            <!-- <td colspan="2" id="current-date-legend-none">Select a city first</td> -->
           </tr>
-          <tr>
+          <tr id="backtrace-legend-row" class="legend-row">
             <td class="entry-title">Backtrace: </td>
             <td colspan="2" class="backtrace-color-map"></td>
           </tr>
-          <tr>
+          <tr id="backtrace-details-legend-row">
             <td class="entry-title"></td>
             <td class="legend-label">Less Likely</td>
             <td class="legend-label backtrace-text2">More Likely</td>
           </tr>
-          <tr>
+          <tr id="air-now-legend-row" class="legend-row">
             <td class="entry-title">AirNow PM<sub>2.5</sub>:</td>
             <td colspan="2">
               <table>
@@ -165,7 +174,7 @@
               </table>
             </td>
           </tr>
-          <tr id='purple-air-legend-row'>
+          <tr id="purple-air-legend-row" class="legend-row">
             <td class="entry-title">PurpleAir PM<sub>2.5</sub>:</td>
             <td colspan="2">
               <table>
@@ -194,7 +203,7 @@
               </label>
             </td>
           </tr>
-          <tr>
+          <tr id="trax-legend-row" class="legend-row">
             <td class="entry-title">TRAX PM<sub>2.5</sub>:</td>
             <td colspan="2">
               <span class="trax-color-1 trax-span opacity-25"></span>
@@ -223,7 +232,7 @@
               </label>
             </td>
           </tr>
-          <tr>
+          <tr id="wind-legend-row">
             <td class="entry-title">Wind:</td>
             <td colspan="4" class="wind-arrow-td wind-arrow"></td>
           </tr>
@@ -292,7 +301,6 @@
     <div id="city-picker-controls">
       <select id="city-selector"></select>
     </div>
-
 
     <span class="thumbnail-copy-text-button-tooltip">
       <p></p>
