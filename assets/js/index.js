@@ -2814,7 +2814,7 @@ function safeGet(v, default_val) {
 
 // TODO: Refactor so we are not passing in a marker but pulling state elsewhere.
 function updateInfoBar(marker) {
-  if (!marker) return;
+  if (!marker || !selectedLocationPinVisible()) return;
 
   var markerData = marker.getData();
 
