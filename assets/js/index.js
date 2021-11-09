@@ -1911,7 +1911,7 @@ async function drawFootprint(lat, lng, fromClick) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
   }
-  if (typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
+  if (!fromTour && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
     $footprint_dialog.dialog("open");
     drawFootprint.firstTime = false; //do the initialisation
   }
