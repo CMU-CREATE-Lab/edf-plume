@@ -214,7 +214,7 @@ function generateURLForSmellReports(parameters) {
 }
 
 function generateURLForAQI() {
-  return "https://edf.createlab.org/assets/data/cities/" + selectedCity + "/aqi_dict.json";
+  return CITY_DATA_ROOT + selectedCity + "/aqi_dict.json";
 }
 
 function generateURLForHourlyAQI() {

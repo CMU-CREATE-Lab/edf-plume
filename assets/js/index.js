@@ -4,11 +4,12 @@ var map;
 var playbackTimeline;
 var $infobar;
 
+var isLocal = ["localhost", "file:"].some(str => window.location.href.includes(str));
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/air-tracker-edf-prod/o/by-simulation-id";
-var ASSETS_ROOT = "https://edf.createlab.org/assets/";
-var CITY_DATA_ROOT = ASSETS_ROOT + "data/cities/";
+var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
+var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
 var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
@@ -1046,7 +1047,7 @@ var siteTour = function() {
     {
       title: defaultTourStepTitle,
       element: null,
-      intro: "2. Press the left/right arrows on your keyboard.<br><br><div style='text-align: center'><img src='assets/img/keyboard-left-right.jpg' /></div>",
+      intro: "2. Press the left/right arrows on your keyboard.<br><br><div style='text-align: center'><img src='" + ASSETS_ROOT + "img/keyboard-left-right.jpg' /></div>",
     },
     {
       title: defaultTourStepTitle,
@@ -1727,7 +1728,7 @@ function selectedLocationPinVisible() {
 
 function createDataPullWebWorker() {
   // Create the worker.
-  dataFormatWorker = new Worker("./assets/js/formatAndMergeSensorDataWorker.js");
+  dataFormatWorker = new Worker(ASSETS_ROOT + "js/formatAndMergeSensorDataWorker.js");
   // Hook up to the onMessage event, so you can receive messages from the worker.
   dataFormatWorker.onmessage = receivedWorkerMessage;
 }
@@ -2017,7 +2018,7 @@ async function drawFootprint(lat, lng, fromClick) {
 
   if (data) {
     overlayData['hasData'] = true;
-    iconPath = 'assets/img/red-pin.png';
+    iconPath = ASSETS_ROOT + 'img/red-pin.png';
     ////var { image, location, time, extent } = data;
     ////var timeInMs = time.seconds * 1000;
     ////plume_backtraces[loc][timeInMs] = data;
@@ -2038,7 +2039,7 @@ async function drawFootprint(lat, lng, fromClick) {
     overlay.show();
   } else {
     overlayData['hasData'] = false;
-    iconPath = 'assets/img/gray-pin.png';
+    iconPath = ASSETS_ROOT + 'img/gray-pin.png';
     if (!fromClick && previousFootprintData.hasData) {
       if (overlay) {
         overlay.hide();
@@ -2138,7 +2139,7 @@ async function loadFacilitiesListForCity(city_locode) {
       labelContent: facility["Name"],
       labelAnchor: new google.maps.Point(0,0),
       data: {},
-      icon: 'assets/img/facility-icon-magenta.png',
+      icon: ASSETS_ROOT + 'img/facility-icon-magenta.png',
       labelClass: "facilityMarker",
       visible: false
     });
@@ -2541,7 +2542,7 @@ async function loadAvailableCities() {
           labelAnchor: new google.maps.Point(0,-8),
           labelClass: "cityMapMarker",
           data: city_data,
-          icon: 'assets/img/city_icon.png#' + city_locode,
+          icon: ASSETS_ROOT + 'img/city_icon.png#' + city_locode,
         });
         google.maps.event.addListener(city_marker, "click", function (e) {
           map.setCenter({lat: this.data['lat'], lng: this.data['lon']});
