@@ -1404,6 +1404,10 @@ var siteTour = function() {
       goToDefaultHomeView();
     }
   }).onexit(function() {
+    // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
+    if (this._currentStep == 0) {
+      return;
+    }
     // Go to most recent available day
     $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
     // Zoom to national view
