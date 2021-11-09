@@ -7,6 +7,8 @@ var $infobar;
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/air-tracker-edf-prod/o/by-simulation-id";
+var ASSETS_ROOT = "https://edf.createlab.org/assets/";
+var CITY_DATA_ROOT = ASSETS_ROOT + "data/cities/";
 var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
@@ -493,8 +495,8 @@ async function initMap() {
 
   google.maps.event.addListenerOnce(map, 'idle', async function() {
     await loadAvailableCities();
-    await loadSensorList();
-    await loadFacilitiesList();
+    //await loadSensorList();
+    //await loadFacilitiesList();
 
     showHideMarkersByZoomLevel();
     getCityInBounds();
@@ -1522,7 +1524,7 @@ var toggleOffAllNonForcedSensors = function() {
   }
 }
 
-var getCityInBounds = function() {
+var getCityInBounds = async function() {
   var lastSelectedCity = selectedCity;
   selectedCity = "";
   var zoom = map.getZoom();
@@ -1595,6 +1597,15 @@ var getCityInBounds = function() {
     if ($citySelector.val() != selectedCity) {
       $citySelector.val(selectedCity).change();
     }
+
+    // First time city is entered
+    if (!available_cities[selectedCity].sensors) {
+      await loadSensorsListForCity(selectedCity);
+      if (available_cities[selectedCity].has_facility_markers) {
+        await loadFacilitiesListForCity(selectedCity);
+      }
+    }
+
     // Show markers for the new city.
     showMarkersByCity(selectedCity);
 
@@ -2098,47 +2109,42 @@ function resetInfobar() {
   $infobarHeader.hide();
 }
 
-
-async function loadSensorList() {
-  let airnow_list = await loadJsonData("airnow.json");
-  for (let city_locode in airnow_list) {
-    var markers = airnow_list[city_locode].markers;
-    available_cities[city_locode].sensors = {};
-    for (let marker of markers) {
+async function loadSensorsListForCity(city_locode) {
+  available_cities[city_locode].sensors = {};
+  if (available_cities[city_locode].available_sensor_types.includes("air_now")) {
+    let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/airnow.json");
+    for (let marker of markersList.markers) {
       available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
     }
   }
-  let purpleair_list = await loadJsonData("purpleair.json");
-  for (let city_locode in purpleair_list) {
-    var markers = purpleair_list[city_locode].markers;
-    for (let marker of markers) {
+
+  if (available_cities[city_locode].available_sensor_types.includes("purple_air")) {
+    let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/purpleair.json");
+    for (let marker of markersList.markers) {
       available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
     }
   }
 }
 
-async function loadFacilitiesList() {
-  let facilities_list = await loadJsonData("facilities.json");
-  for (let city_locode in facilities_list) {
-    for (let facility of facilities_list[city_locode]) {
-      let facility_marker = new MarkerWithLabel({
-        position: new google.maps.LatLng(facility["Lat"], facility["Lon"]),
-        draggable: false,
-        clickable: false,
-        map: map,
-        /*title: facility["Name"],*/
-        labelContent: facility["Name"],
-        labelAnchor: new google.maps.Point(0,0),
-        data: {},
-        icon: 'assets/img/facility-icon-magenta.png',
-        labelClass: "facilityMarker",
-        visible: false
-      });
-      available_cities[city_locode].facility_markers.push(facility_marker);
-    }
+async function loadFacilitiesListForCity(city_locode) {
+  let facilities_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/facilities.json");
+  for (let facility of facilities_list.facilities) {
+    let facility_marker = new MarkerWithLabel({
+      position: new google.maps.LatLng(facility["Lat"], facility["Lon"]),
+      draggable: false,
+      clickable: false,
+      map: map,
+      /*title: facility["Name"],*/
+      labelContent: facility["Name"],
+      labelAnchor: new google.maps.Point(0,0),
+      data: {},
+      icon: 'assets/img/facility-icon-magenta.png',
+      labelClass: "facilityMarker",
+      visible: false
+    });
+    available_cities[city_locode].facility_markers.push(facility_marker);
   }
 }
-
 
 async function handlePurpleAirTourData() {
   let purpleair_tour_list = await loadJsonData("tour-purpleair.json");
@@ -2156,8 +2162,6 @@ async function handlePurpleAirTourData() {
     await loadAndCreateSensorMarkers(timeline.selectedDayInMs, purpleair_tour_marker_list, true);
   }
 }
-
-
 
 async function receivedWorkerMessage(event) {
   var result = event.data.result;
@@ -2492,7 +2496,7 @@ async function loadAvailableCities() {
   let city_selector_data = [];
   try {
       result = await $.ajax({
-        url: "cities.json",
+        url: CITY_DATA_ROOT + "cities.json",
         dataType : 'json',
       });
       available_cities = result || {};
@@ -2997,7 +3001,7 @@ function hideMarkers(markers) {
 }
 
 function showMarkersByCity(city_locode) {
-  var markers = Object.keys(available_cities[city_locode].sensors).map(function(k){return available_cities[city_locode].sensors[k]['marker'];});
+  var markers = Object.keys(available_cities[city_locode].sensors).map(function(sensorName){return available_cities[city_locode].sensors[sensorName]['marker'];});
   showMarkers(markers);
 }
 

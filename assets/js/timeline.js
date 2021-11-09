@@ -214,11 +214,7 @@ function generateURLForSmellReports(parameters) {
 }
 
 function generateURLForAQI() {
-  return "https://edf.createlab.org/assets/data/aqi_dict.json";
-}
-
-function generateURLForAQIV2() {
-  return "https://edf.createlab.org/assets/data/aqi_dict_v2.json";
+  return "https://edf.createlab.org/assets/data/cities/" + selectedCity + "/aqi_dict.json";
 }
 
 function generateURLForHourlyAQI() {
@@ -268,9 +264,9 @@ function loadAndCreateTimeline(callback, options) {
 
 function loadTimelineData(start_time, end_time, callback) {
   $.ajax({
-    "url": generateURLForAQIV2(),
+    "url": generateURLForAQI(),
     "success": function (data) {
-      loadTimelineDataToday(data[selectedCity], callback);
+      loadTimelineDataToday(data, callback);
     },
     "error": function (response) {
       console.log("server error:", response);
