@@ -1911,6 +1911,8 @@ async function drawFootprint(lat, lng, fromClick) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
   }
+
+  var fromTour = isInTour();
   if (!fromTour && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
     $footprint_dialog.dialog("open");
     drawFootprint.firstTime = false; //do the initialisation
@@ -2053,8 +2055,6 @@ async function drawFootprint(lat, lng, fromClick) {
   if (fromClick) {
     expandInfobar();
   }
-
-  var fromTour = isInTour();
 
   if (selectedLocationPin) {
     selectedLocationPin.setPosition(new google.maps.LatLng(lat,lng));
