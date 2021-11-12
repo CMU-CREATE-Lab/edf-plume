@@ -1094,6 +1094,15 @@ input + .slider .input-state-text:after {
   border: 1px solid #d3d3d3;
 }
 
+/* Hack to position google map/satellite controls to be on same level with zoom controls at
+   the bottom right. The real answer is to use custom controls, but it is baffling that
+   you can't stack more than one element in the corner with the builtin positioning scheme.
+*/
+div.gmnoprint[role='menubar'] {
+  right: 60px !important;
+  bottom: 14px !important;
+}
+
 @media screen and (max-width: 450px) {
   #infobar-close-toggle-container {
     display: none;

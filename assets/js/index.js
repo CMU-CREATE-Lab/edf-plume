@@ -341,9 +341,17 @@ async function initMap() {
     zoom: startingView.zoom,
     minZoom: !isMobileView() ? 5 : 4,
     streetViewControl: false,
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+      position: google.maps.ControlPosition.BOTTOM_RIGHT,
+      mapTypeIds: ["roadmap", "satellite"],
+    },
     fullscreenControl: false,
     zoomControl: !isMobileView(),
-    mapTypeControl: false,
+    zoomControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_BOTTOM,
+    },
     clickableIcons: false,
     styles:
       [
@@ -707,7 +715,7 @@ async function initMap() {
   db = firebase.firestore();
 
   $(document).on("keydown",function(e) {
-    if (isInTour() || !playbackTimeline) return;
+    if (isInTour() || !playbackTimeline || $("input").is(":focus")) return;
     switch (e.keyCode) {
       case 32:
         if (playbackTimeline.isActive()) {
@@ -910,7 +918,7 @@ var siteTour = function() {
     showBullets: false,
     steps: [{
       title: defaultTourStepTitle,
-      intro: "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'.",
+      intro: "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'. <br><br> You can also use the forward/backward arrow keys on your keyboard." ,
     }, {
       title: defaultTourStepTitle,
       element: null,
@@ -945,6 +953,13 @@ var siteTour = function() {
       intro: "You can zoom in or out with your mouse/touchscreen or the '+' and '-' in the bottom right corner. The functionality of the map remains the same.",
       position: "left",
       highlightPaddings: {width: 40, height: 81},
+    },
+    {
+      title: defaultTourStepTitle,
+      element: null,
+      selector: "div.gmnoprint[role='menubar']",
+      intro: "You can change the style of the base map to either be satellite view or default roadmap view.",
+      position: "left",
     },
     {
       title: defaultTourStepTitle,
@@ -1150,7 +1165,7 @@ var siteTour = function() {
         $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
       }
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "top";
+      this._introItems[this._currentStep].position = "right";
       this.refresh();
     } else if (this._currentStep == 2) {
       goToDefaultHomeView();
@@ -1216,6 +1231,10 @@ var siteTour = function() {
       // Go back to most recent day
       $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
     } else if (this._currentStep == 7) {
+      this._introItems[this._currentStep].element = document.querySelector("div.gmnoprint[role='menubar']");
+      this._introItems[this._currentStep].position = "left";
+      this.refresh();
+    } else if (this._currentStep == 8) {
       var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
       var latLng = marker.position;
       map.setCenter(latLng);
@@ -1228,13 +1247,13 @@ var siteTour = function() {
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
       this._introItems[this._currentStep].position = "left";
       this.refresh();
-    } else if (this._currentStep == 8) {
-      // uses step 7 div
-      var id = "tour-manual-region-7";
+    } else if (this._currentStep == 9) {
+      // uses step 8 div
+      var id = "tour-manual-region-8";
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
       this._introItems[this._currentStep].position = "left";
       this.refresh();
-    } else if (this._currentStep == 9) {
+    } else if (this._currentStep == 10) {
       // Remove pin
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
@@ -1248,13 +1267,12 @@ var siteTour = function() {
         }, 75);
         await sensorsLoadedPromise;
       }
-
-      // uses step 7 div
-      var id = "tour-manual-region-7";
+      // uses step 8 div
+      var id = "tour-manual-region-8";
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
       this._introItems[this._currentStep].position = "right";
       this.refresh();
-    } else if (this._currentStep == 10) {
+    } else if (this._currentStep == 11) {
       if (playbackTimeline && !playbackTimeline.isActive()) {
         // 1:45 PM
         playbackTimeline.seekTo(55, true);
@@ -1270,18 +1288,18 @@ var siteTour = function() {
         var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
         google.maps.event.trigger(marker, "click");
       }
-      // uses step 7 div
-      var id = "tour-manual-region-7";
+      // uses step 8 div
+      var id = "tour-manual-region-8";
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
       this._introItems[this._currentStep].position = "right";
       await setAsyncTimeout(() => {
         this.refresh();
       }, 450);
-    } else if (this._currentStep == 11) {
+    } else if (this._currentStep == 12) {
       // 9:30 PM
       playbackTimeline.seekTo(86);
-      // uses step 7 div
-      var id = "tour-manual-region-7";
+      // uses step 8 div
+      var id = "tour-manual-region-8";
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
       this._introItems[this._currentStep].position = "left";
       this.refresh();
@@ -1290,13 +1308,13 @@ var siteTour = function() {
         var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
         google.maps.event.trigger(marker, "click");
       }
-    } else if (this._currentStep == 12) {
+    } else if (this._currentStep == 13) {
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
       }
       $purpleAirToggle.prop("checked", false);
       togglePurpleAirs(false);
-    } else if (this._currentStep == 13) {
+    } else if (this._currentStep == 14) {
       // 9:30 PM
       playbackTimeline.seekTo(86);
 
@@ -1321,14 +1339,14 @@ var siteTour = function() {
 
       // Turn back on if they exist, otherwise pull them
       await handlePurpleAirTourData();
-    } else if (this._currentStep == 14) {
+    } else if (this._currentStep == 15) {
       togglePurpleAirs(false);
 
       if ($traxToggle.prop("checked")) {
         $traxToggle.trigger("click");
       }
       $purpleAirToggle.prop("checked", false);
-    } else if (this._currentStep == 15) {
+    } else if (this._currentStep == 16) {
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
       }
@@ -1350,8 +1368,7 @@ var siteTour = function() {
       if (!$traxToggle.prop("checked")) {
         $traxToggle.trigger("click");
       }
-
-    } else if (this._currentStep == 16) {
+    } else if (this._currentStep == 17) {
       if ($traxToggle.prop("checked")) {
         $traxToggle.trigger("click");
       }
@@ -1361,26 +1378,26 @@ var siteTour = function() {
       if (playbackTimeline && !playbackTimeline.isActive()) {
         handleTimelineToggling();
       }
-    } else if (this._currentStep == 17) {
+    } else if (this._currentStep == 18) {
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
       }
       setTimeout(() => {
         this.refresh();
       }, 50);
-    } else if (this._currentStep == 18) {
+    } else if (this._currentStep == 19) {
       if (playbackTimeline && playbackTimeline.isActive()) {
         handleTimelineToggling();
       }
       await setAsyncTimeout(() => {
         this.refresh()
       }, 75);
-    } else if (this._currentStep == 20) {
+    } else if (this._currentStep == 21) {
       if (playbackTimeline && !playbackTimeline.isActive()) {
         handleTimelineToggling();
       }
       google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
-    } else if (this._currentStep == 26) {
+    } else if (this._currentStep == 27) {
       google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
       setTimeout(() => {
         if (playbackTimeline && !playbackTimeline.isActive()) {
@@ -1390,16 +1407,16 @@ var siteTour = function() {
           this.refresh();
         }
       }, 30)
-    } else if (this._currentStep == 27) {
+    } else if (this._currentStep == 28) {
       $(".close-modal").trigger("click");
       if (playbackTimeline && playbackTimeline.isActive()) {
         handleTimelineToggling();
       }
-    } else if (this._currentStep == 28) {
-      $("#share-picker").trigger("click");
     } else if (this._currentStep == 29) {
       $("#share-picker").trigger("click");
     } else if (this._currentStep == 30) {
+      $("#share-picker").trigger("click");
+    } else if (this._currentStep == 31) {
       $(".close-modal").trigger("click");
       goToDefaultHomeView();
     }
