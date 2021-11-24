@@ -817,8 +817,9 @@ async function initMap() {
         tmpCanvasCtx.scale(ratio, ratio);
       },*/
       ignoreElements: function( element ) {
-        // Ignore the zoom controls on Google Maps
-        if (element.classList.contains('gm-bundled-control')) {
+        // Ignore various controls (zoom, map style) on Google Maps
+        // Note that classList returns a DOMTokenList
+        if (['gm-bundled-control','gm-style-mtc'].some(className => element.classList.contains(className))) {
           return true;
         }
       }
