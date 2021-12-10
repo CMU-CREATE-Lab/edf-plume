@@ -7,7 +7,7 @@ var $infobar;
 var isLocal = ["localhost", "file:"].some(str => window.location.href.includes(str));
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
-var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/air-tracker-edf-prod/o/by-simulation-id";
+var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
 var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
 var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
 var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
@@ -332,6 +332,10 @@ async function initMap() {
     startingView.lng = parseFloat(tmp[1]);
     startingView.zoom = parseFloat(tmp[2]);
   }
+
+  // DEBUG
+  STILT_GCLOUD_BUCKET = STILT_GCLOUD_BUCKET.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
+  // DEBUG
 
   map = new google.maps.Map(document.getElementById("map"), {
     options: {
