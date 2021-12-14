@@ -497,8 +497,6 @@
 .anchor {
   display: none;
   font-size: 14px;
-  /* padding-right: 15px; */
-  /* padding-left: 15px; */
   -ms-flex-preferred-size: 36px;
   flex-basis: 36px;
   -webkit-box-flex: 0;
@@ -506,8 +504,6 @@
   flex-grow: 0;
   -ms-flex-negative: 0;
   flex-shrink: 0;
-  /* padding-top: 10px; */
-  padding-bottom: 8px;
   -ms-flex: 0 0 auto;
   flex: 0 0 auto;
   width: 66px;
@@ -517,10 +513,11 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  height: 42px;
+  height: 5px;
   margin: 0px calc(50% - 106px);
   border-radius: 16px;
   color: transparent;
+  bottom: 13px;
 }
 
 .materialTimelineTick {
@@ -549,6 +546,12 @@
   justify-content: center;
 }
 
+.materialTimelineTick.disabled {
+  opacity: 0.38;
+  cursor: default;
+  pointer-events: none;
+}
+
 .materialTimeline.isIE .materialTimelineTick {
   padding-top: 12px !important;
 }
@@ -560,7 +563,11 @@
   background-color: #2979FF;*/
   color: white;
   font-size: 15px;
-  line-height: 16px;
+  padding-top: 7px;
+  margin-top: 2px;
+  border-radius: 16px;
+  background-color: #2979FF;
+  height: 21px;
   -ms-flex-negative: 0;
   flex-shrink: 0;
   display: flex;
@@ -619,18 +626,15 @@
     overflow-x: hidden;
   }
 
-  .materialTimelineDivider {
-    margin-top: inherit;
-  }
-
-  .anchorHighlight {
-    height: 42px;
-    top: 6px;
+  .materialTimelineTickSelected {
+    /* This is because we hide the scrollbar with overflow-x: hidden in the above CSS */
+    margin-top: 9px;
   }
 
   .anchor {
-    height: 54px;
+    bottom: 3px;
   }
+
 }
 
 .ui-tooltip {

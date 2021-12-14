@@ -1,14 +1,11 @@
 "use strict";
 
-var map;
-var playbackTimeline;
-var $infobar;
+var isLocal = ["localhost", "file:", "192.168"].some(str => window.location.href.includes(str));
+var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
 
-var isLocal = ["localhost", "file:"].some(str => window.location.href.includes(str));
 var TRAX_COLLECTION_NAME = "trax-dev";
 var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
-var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
 var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
 var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
@@ -17,7 +14,7 @@ var FACILITY_MARKERS_TOGGLE_ZOOM_THRESHOLD = 13;
 
 // Increase/decrease for more or less TRAX data to look back at
 var traxDataIntervalInMin = 60;
-var traxDataIntervalInMs = traxDataIntervalInMin * 60000;
+var traxDataIntervalInMs = traxDataIntervalInMin * 60000; // 60000 ms = 1 minute
 
 var pm25ColorLookup = function(pm25) {
   var color;
@@ -39,36 +36,25 @@ var pm25ColorLookup = function(pm25) {
   return color;
 };
 
+var map;
+var infowindow;
+var playbackTimeline;
 var dataFormatWorker;
-
 var available_cities = {};
 var selectedCity = "";
 var selected_city_tmz = "";
 var plume_backtraces = {};
-
 var tourObj;
-
 var selected_day_start_epochtime_milisec;
-//var end_of_current_day_epoch = moment().tz(selected_city_tmz).endOf("day").valueOf();
-var current_day_str = "";
 var zoomChangedSinceLastIdle = false;
 var currentZoom = -1;
-
 var selectedLocationPin;
 var selectedSensorMarker;
 var overlay;
 var purpleAirLoadInterval;
-
 var db;
-
-//var mostRecentUpdate12HourTimeForLocation;
 var mostRecentUpdateEpochTimeForLocationInMs;
-//var mostRecentDayStr;
-//var mostRecentDayStrFull;
-//var mostRecentAvailableFootprintTimeInMs;
-//var mostRecentAvailableFootprintTimeStr;
 var startOfLatestAvailableDay;
-
 var sensorsLoadedResolver;
 var sensorsLoadedPromise;
 
@@ -97,8 +83,11 @@ var traxLocations = {};
 var traxMarkers = [];
 var hrrrWindErrorMarkers = [];
 var hrrrWindErrorDataByEpochTimeInMs = {};
+var sensorsEnabledState = {};
+
 
 // DOM
+var $infobar;
 var $infobarHeader;
 var $infobarPollution;
 var $infobarWind;
@@ -118,11 +107,13 @@ var $citySelector;
 var $cityName;
 var $map;
 var $currentDateLegendText;
-//var $currentDateLegendTextNone;
 var $legend;
 var $searchBoxClear;
 var $searchBox;
 var $searchBoxIcon;
+var $tooltip;
+var $tooltipContent;
+
 
 var showHrrrWindDirectionError;
 var showHrrrWindSpeedError;
@@ -169,8 +160,7 @@ function resetAllTrax() {
 
 function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
   var opacity;
-  // 60000 ms = 1 minute
-  var timeIntervalInMs = traxDataIntervalInMs; //playbackTimeline.getIncrementAmt() * 60000;
+  var timeIntervalInMs = traxDataIntervalInMs;
   var options = {};
   var mostRecentTraxLines = {'r' : {'marker' : null, 'timeInMs' : -1}, 'g' : {'marker' : null, 'timeInMs' : -1}, 'b' : {'marker' : null, 'timeInMs' : -1}};
   for (var site in traxLocations) {
@@ -260,29 +250,6 @@ function findExactOrClosestTime(availableTimes, timeToFind, direction, exactOnly
 }
 
 
-function updateSensorsByEpochTime(playbackTimeInMs, animating) {
-  if (!selectedCity) return;
-  var markers_with_data_for_chosen_epochtime = [];
-  for (var sensorName in available_cities[selectedCity].sensors) {
-    var sensor = available_cities[selectedCity].sensors[sensorName];
-    if (!sensor.data || !sensor.data[selected_day_start_epochtime_milisec]) {
-      continue;
-    }
-
-    var fullDataForDay = sensor.data[selected_day_start_epochtime_milisec].data;
-
-    var sensorTimes = fullDataForDay.map(entry => entry.time * 1000);
-    var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
-    if (indexOfAvailableTime >= 0) {
-      markers_with_data_for_chosen_epochtime.push(sensor.marker);
-      sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], sensor.info, animating));
-      sensor.marker.updateMarker();
-    }
-  }
-  return markers_with_data_for_chosen_epochtime;
-}
-
-
 async function getTraxInfoByPlaybackTime(timeInEpoch) {
   var playbackTimeInMs = timeInEpoch || playbackTimeline.getPlaybackTimeInMs();
   if (traxDataByEpochTimeInMs[playbackTimeInMs]) {
@@ -313,7 +280,6 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   }
 }
 
-var infowindow;
 async function initMap() {
   var urlVars = Util.parseVars(window.location.href);
 
@@ -321,7 +287,7 @@ async function initMap() {
   showHrrrWindDirectionError = urlVars.showHrrrWindError == "direction";
   infowindow = new google.maps.InfoWindow({
     visible: true,
-    content: 'HELLO WORLD'
+    content: ''
   });
 
   var shareView = urlVars.v;
@@ -343,12 +309,12 @@ async function initMap() {
     },
     center: { lat: startingView.lat, lng: startingView.lng },
     zoom: startingView.zoom,
-    minZoom: !isMobileView() ? 5 : 4,
+    minZoom: isMobileView() ? 4 : 5,
     streetViewControl: false,
     mapTypeControl: true,
     mapTypeControlOptions: {
       style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-      position: google.maps.ControlPosition.BOTTOM_RIGHT,
+      position: isMobileView() ? google.maps.ControlPosition.LEFT_BOTTOM : google.maps.ControlPosition.BOTTOM_RIGHT,
       mapTypeIds: ["roadmap", "satellite"],
     },
     fullscreenControl: false,
@@ -528,6 +494,10 @@ async function initMap() {
 
   });
 
+  $(".more-info").on("click", function() {
+    setButtonTooltip("Data displayed is from the closest available capture time, in relation to the selected playback time.", $(this), null, {at: "top", my: 'left bottom-10'})
+  });
+
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
 
   $(".explanation-step-button").on("click", function(e) {
@@ -562,6 +532,7 @@ async function initMap() {
       $infobar.height(maxHeight);
     });
     $(document).one("mouseup.infocontainer", function(e) {
+      $(document).trigger("click");
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
           height: selectedLocationPinVisible() ? "210px" : "250px"
@@ -572,8 +543,8 @@ async function initMap() {
           height: "46px"
         }, function() {
           $infobar.removeClass("maximized");
+          $(document).trigger("click");
         });
-
       }
       $infobar.removeClass("disableScroll");
       $(document).off(".infocontainer");
@@ -838,11 +809,15 @@ async function initMap() {
   });
 
   $purpleAirToggle.on("click", function(e) {
-    togglePurpleAirs($(e.target).prop("checked"));
+    var isChecked = $(e.target).prop("checked");
+    togglePurpleAirs(isChecked);
+    sensorsEnabledState['purpleAir'] = isChecked;
   });
 
   $traxToggle.on("click", function(e) {
-    toggleTrax($(e.target).prop("checked"));
+    var isChecked = $(e.target).prop("checked");
+    toggleTrax(isChecked);
+    sensorsEnabledState['trax'] = isChecked;
   });
 
   $searchBoxIcon.on("mouseover mouseout", function() {
@@ -1139,12 +1114,12 @@ var siteTour = function() {
     } else if (this._currentStep == 1) {
 
       // Turn off purple air
-      if ($purpleAirToggle.prop("checked")) {
+      if (sensorsEnabledState['purpleAir']) {
         $purpleAirToggle.trigger("click");
       }
 
       // turn off TRAX
-      if ($traxToggle.prop("checked")) {
+      if (sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
       }
 
@@ -1347,7 +1322,7 @@ var siteTour = function() {
     } else if (this._currentStep == 15) {
       togglePurpleAirs(false);
 
-      if ($traxToggle.prop("checked")) {
+      if (sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
       }
       $purpleAirToggle.prop("checked", false);
@@ -1370,11 +1345,11 @@ var siteTour = function() {
       // 9:30 AM
       playbackTimeline.seekTo(38);
 
-      if (!$traxToggle.prop("checked")) {
+      if (!sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
       }
     } else if (this._currentStep == 17) {
-      if ($traxToggle.prop("checked")) {
+      if (sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
       }
       if (!selectedLocationPinVisible()) {
@@ -1441,7 +1416,7 @@ var siteTour = function() {
     // Turn off purple air UI toggle
     $purpleAirToggle.prop("checked", false);
     // TRAX may still be up, hide them
-    if ($traxToggle.prop("checked")) {
+    if (sensorsEnabledState['trax']) {
       $traxToggle.trigger("click");
     }
     // Remove all manual tour div regions
@@ -1478,9 +1453,6 @@ var changeBrowserUrlState = function() {
 
 
 var toggleTrax = function(makeVisible) {
-  if (!playbackTimeline || !playbackTimeline.isActive()) {
-    return;
-  }
   if (makeVisible) {
     getTraxInfoByPlaybackTime(playbackTimeline.getPlaybackTimeInMs());
   } else {
@@ -1523,8 +1495,12 @@ var togglePurpleAirs = function(makeVisible) {
       let purple_air_markers = purple_air_sensors.map(function(sensor){return sensor.marker;});
       hideMarkers(purple_air_markers);
       // Check if current day
-      var date_str_sensor = moment(timeline.selectedDayInMs).tz(selected_city_tmz).format("YYYY-MM-DD");
-      var is_current_day = date_str_sensor === current_day_str;
+      // Previous code differentiated between showing current day values and 'max' values for prior days.
+      // We no longer want to show 'max' values anymore and instead the value at the time being looked at.
+      // To do this, we always treat the mode as 'is_current_day'
+      var is_current_day = true;
+      //var date_str_sensor = moment(timeline.selectedDayInMs).tz(selected_city_tmz).format("YYYY-MM-DD");
+      //var is_current_day = date_str_sensor === current_day_str;
 
       purpleAirLoadInterval = setInterval(function() {
         if (!dataFormatPurpleAirWorkerIsProcessing) {
@@ -1543,10 +1519,10 @@ var togglePurpleAirs = function(makeVisible) {
 }
 
 var toggleOffAllNonForcedSensors = function() {
-  if ($traxToggle.prop("checked")) {
+  if (sensorsEnabledState['trax']) {
     $traxToggle.trigger("click");
   }
-  if ($purpleAirToggle.prop("checked")) {
+  if (sensorsEnabledState['purpleAir']) {
     $purpleAirToggle.trigger("click");
   }
 }
@@ -1572,6 +1548,7 @@ var getCityInBounds = async function() {
         $(".selected-block")[0].scrollIntoView(false);
       }
     }
+    showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
   }
 
   let currentMapBounds = map.getBounds();
@@ -1600,8 +1577,6 @@ var getCityInBounds = async function() {
         hideMarkersByCity(lastSelectedCity);
       }
       selectedCity = city_locode;
-      //$currentDateLegendTextNone.hide();
-      //$currentDateLegendText.show();
       selected_city_tmz = available_cities[selectedCity]['IANA_TZ'];
       break;
     }
@@ -1646,27 +1621,28 @@ var getCityInBounds = async function() {
       // from timeline.js
       if (timeline.activeCity != selectedCity) {
         loadAndUpdateTimeLine(zoomChangedSinceLastIdle ? cityInBoundsCallback : null);
+        // Close playback timeline if it is open when switching to another city
+        if (playbackTimeline && playbackTimeline.isActive()) {
+          handleTimelineToggling();
+        }
       } else {
         cityInBoundsCallback();
-        showSensorMarkersByTime(timeline.selectedDayInMs);
-      }
-      // TODO
-      if (playbackTimeline && playbackTimeline.isActive()) {
-        playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber());
       }
     } else {
-      if (!current_day_str) {
+      /*if (!current_day_str) {
         current_day_str = moment().tz(selected_city_tmz).format("YYYY-MM-DD");
-      }
+      }*/
       var urlVars = Util.parseVars(window.location.href);
       var shareTimeInMs = parseInt(urlVars.t);
       if (shareTimeInMs) {
         selected_day_start_epochtime_milisec = moment(shareTimeInMs).tz(selected_city_tmz).startOf("day").valueOf();
+        //playbackTimeline.setPlaybackTimeInMs(shareTimeInMs, true);
       }
-      setupTimeline(shareTimeInMs);
-      if (zoomChangedSinceLastIdle || lastSelectedCity == "") {
-        cityInBoundsCallback();
-      }
+      setupTimeline(shareTimeInMs, function() {
+        if (zoomChangedSinceLastIdle || lastSelectedCity == "") {
+          cityInBoundsCallback();
+        }
+      });
     }
   } else {
     // If we previously had a city up and we've panned awway, hide its markers.
@@ -1713,37 +1689,56 @@ var getShareUrl = function() {
   return parentUrl + urlVarsString;
 }
 
-var setButtonTooltip = function(text, $target, duration) {
 
-  var $thumbnailPreviewCopyTextButtonTooltip = $(".thumbnail-copy-text-button-tooltip");
-  var $thumbnailPreviewCopyTextButtonTooltipContent = $(".thumbnail-copy-text-button-tooltip").find("p");
-
-  if ($target && ($target.hasClass("ui-button") && $target.button("option", "disabled"))) {
+// TODO: Remove this and use jQuery UI tooltip or generalize this more!
+var setButtonTooltip = function(text, $target, duration, position) {
+  if ($tooltip.is(':visible') || ($target && ($target.hasClass("ui-button") && $target.button("option", "disabled")))) {
     return;
   }
-
-  var targetOffset = $target.offset();
-  var tooltipWidth;
-  // The container is the body, so just use 0, 0
-  var containerOffset = {left: 0, top: 0};
-
+  position = {
+    at: position && position.at ? position.at : "top",
+    my: position && position.my ? position.my : "bottom-10"
+  }
   if (text) {
-    $thumbnailPreviewCopyTextButtonTooltipContent.text(text);
-    $thumbnailPreviewCopyTextButtonTooltip.show();
-    tooltipWidth = $thumbnailPreviewCopyTextButtonTooltip.outerWidth();
-    $thumbnailPreviewCopyTextButtonTooltip.css({
-      left: targetOffset.left - (tooltipWidth / 2 - ($target.outerWidth() / 2)) - containerOffset.left + "px",
-      top: targetOffset.top - containerOffset.top - 45 + "px"
+    $tooltipContent.text(text);
+    $tooltip.show();
+    $tooltip.position({
+      at: position.at,
+      of: $target,
+      my: position.my,
+      collision: "flip fit",
+      using: function (obj,info) {
+        $(this).removeClass("left right");
+        var horizontalShiftAmt = 28;
+        if (info.horizontal == "right") {
+          obj.left += horizontalShiftAmt;
+          $(this).addClass("right");
+        } else if (info.horizontal == "left") {
+          obj.left -= horizontalShiftAmt;
+          $(this).addClass("left");
+        }
+        $(this).css({
+          left: obj.left + 'px',
+          top: obj.top + 'px'
+        });
+      }
     });
   } else {
-    $thumbnailPreviewCopyTextButtonTooltip.hide();
+    $tooltip.hide();
   }
 
   if (duration) {
-    clearTimeout($thumbnailPreviewCopyTextButtonTooltipContent.hideTimer);
-    $thumbnailPreviewCopyTextButtonTooltipContent.hideTimer = setTimeout(function() {
-      $thumbnailPreviewCopyTextButtonTooltip.hide();
+    clearTimeout($tooltip.hideTimer);
+    $tooltip.hideTimer = setTimeout(function() {
+      $tooltip.hide();
     }, duration);
+  } else {
+    // Need a delay, otherwise we trigger this click event??
+    setTimeout(function() {
+      $(document).one("click", function() {
+        $tooltip.hide();
+      });
+    }, 20);
   }
 };
 
@@ -1808,10 +1803,11 @@ function initDomElms() {
   $map = $("#map");
   $legend = $("#legend");
   $currentDateLegendText = $("#current-date-legend");
-  //$currentDateLegendTextNone = $("#current-date-legend-none");
   $searchBoxClear = $(".searchBoxClearIcon");
   $searchBox = $(".searchBox");
   $searchBoxIcon = $(".searchBoxIcon");
+  $tooltip = $(".button-tooltip");
+  $tooltipContent = $(".button-tooltip").find("p");
   verticalTouchScroll($infobarInitial);
 }
 
@@ -1871,22 +1867,16 @@ var setupGoogleMapsSearchPlaceChangedHandlers = function() {
 };
 
 
-async function handleDraw(timeInEpoch, doOverview, fromDaySelection) {
-  if (doOverview && !fromDaySelection) {
-    // animate sensors from ESDR (airnow, purpleair, etc)
-    await showSensorMarkersByTime(timeline.selectedDayInMs);
-  } else if (!doOverview) {
-    // animate trax data
-    if ($traxToggle.prop("checked")) {
-      await getTraxInfoByPlaybackTime(timeInEpoch);
-    }
-    // TODO: Handle HRRR Wind Error visual
-    if (showHrrrWindDirectionError || showHrrrWindSpeedError) {
-      handleHrrrWindErrorPointsByEpochTime(timeInEpoch);
-    }
-    // animate sensors from ESDR (airnow, purpleair, etc)
-    updateSensorsByEpochTime(timeInEpoch, true);
+async function handleDraw(timeInEpoch) {
+  if (sensorsEnabledState['trax']) {
+    await getTraxInfoByPlaybackTime(timeInEpoch);
   }
+  // TODO: Handle HRRR Wind Error visual
+  //if (showHrrrWindDirectionError || showHrrrWindSpeedError) {
+  //  handleHrrrWindErrorPointsByEpochTime(timeInEpoch);
+  //}
+  await showSensorMarkersByTime(timeInEpoch);
+
   await sensorsLoadedPromise;
 
   var primaryInfoPopulator = selectedSensorMarker;
@@ -1959,26 +1949,22 @@ async function drawFootprint(lat, lng, fromClick) {
 
   // Show footprint at sensor time
   // We may instead want to find the latest footprint and then show the sensor value based on that time.
-  if (!playbackTimeline.isActive()) {
+  /*if (!playbackTimeline.isActive()) {
     if (selectedSensorMarker) {
       var sensorData = selectedSensorMarker.getData();
       if (sensorData) {
         playbackTimeInMs = sensorData['sensor_data_time'];
       }
     }
-  }
+  }*/
 
   var m_date = moment(playbackTimeInMs).tz(selected_city_tmz);
-  // Check if current day
-  //var is_current_day = m_date.format("YYYY-MM-DD") === current_day_str;
 
   // Footprints are hourly
   var m_closestDate = m_date.startOf("hour");
   var closestDate = m_closestDate.toDate();
   var closestDateEpoch = m_closestDate.valueOf();
   var isoString = closestDate.toISOString();
-  //var yearMonthDay = isoString.split("T")[0].split("-");
-  //var hourMinute = isoString.split("T")[1].split(":");
 
   // The hour has not changed, so keep previous plume up
   if (overlay.getData().isoString == isoString) {
@@ -1996,7 +1982,7 @@ async function drawFootprint(lat, lng, fromClick) {
 
   var lngTrunc = lng.toFixed(2);
   // Footprints are being stored in the bucket by lat/lon with 2 digit precision. Sorta.
-  // If the two digit precision ends with trailing zero in the second digit, it is removed.
+  // If the two digit precision ends with trailing zero in the *second* digit, it is removed.
   if (lngTrunc.split(".")[1][1] == "0") {
     lngTrunc = lngTrunc.slice(0,-1);
   }
@@ -2019,10 +2005,6 @@ async function drawFootprint(lat, lng, fromClick) {
   if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
-    // STILT job ids don’t use trailing zeros, so do parseFloat to remove them.
-    ////var docRefString = yearMonthDay[0] + yearMonthDay[1] + yearMonthDay[2] + hourMinute[0] + hourMinute[1] + "_" + parseFloat(lngTrunc) + "_" + parseFloat(latTrunc) + "_1";
-    ////const snapshot = await  db.collection(STILT_COLLECTION_NAME).doc(docRefString).get();
-    ////data = snapshot.data();
     var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
     try {
       var result = await $.ajax({
@@ -2045,17 +2027,10 @@ async function drawFootprint(lat, lng, fromClick) {
   if (data) {
     overlayData['hasData'] = true;
     iconPath = ASSETS_ROOT + 'img/red-pin.png';
-    ////var { image, location, time, extent } = data;
-    ////var timeInMs = time.seconds * 1000;
-    ////plume_backtraces[loc][timeInMs] = data;
-    ////overlayData['epochtimeInMs'] = timeInMs;
-    ////overlay.set('image', image);
+
     plume_backtraces[loc][closestDateEpoch] = data;
     overlay.set('image', data.image);
-    ////const bounds = new google.maps.LatLngBounds(
-    ////  new google.maps.LatLng(extent.ymin + latOffset, extent.xmin + lngOffset),
-    ////  new google.maps.LatLng(extent.ymax + latOffset, extent.xmax + lngOffset)
-    ////);
+
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(parseFloat(data.metadata.ymin) + latOffset, parseFloat(data.metadata.xmin) + lngOffset),
       new google.maps.LatLng(parseFloat(data.metadata.ymax) + latOffset, parseFloat(data.metadata.xmax) + lngOffset)
@@ -2139,7 +2114,7 @@ function resetInfobar() {
 async function loadSensorsListForCity(city_locode) {
   available_cities[city_locode].sensors = {};
   if (available_cities[city_locode].available_sensor_types.includes("air_now")) {
-    let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/airnow.json");
+    let markersList = await loadJsonData("./assets/data/cities/" + city_locode + "/airnow.json");
     for (let marker of markersList.markers) {
       available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
     }
@@ -2195,43 +2170,47 @@ async function receivedWorkerMessage(event) {
   var info = event.data.info;
   var epochtime_milisec = event.data.epochtime_milisec;
   var is_current_day = event.data.is_current_day;
+
+  // If the day has changed since we requested the data, don't show it
+  if (epochtime_milisec != timeline.selectedDayInMs) {
+    setSensorDataLoaded();
+    return;
+  }
+
   var sensor_names = Object.keys(result);
   for (var i = 0; i < info.length; i++) {
     var sensor = available_cities[selectedCity].sensors[info[i]['name']];
+
+    var sensorTimes = result[sensor_names[i]].data[epochtime_milisec].data.map(entry => entry.time * 1000);
+    var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeline.getPlaybackTimeInMs(), "down");
+    var newData = result[sensor_names[i]].data[epochtime_milisec].data[indexOfAvailableTime];
+
     if (sensor && sensor.data) {
+      // UPDATE DATA FOR MARKER
       var marker = sensor['marker'];
-      marker.setData(parseSensorMarkerData(result[sensor_names[i]].data[epochtime_milisec], is_current_day, info[i]));
+      marker.setData(parseSensorMarkerDataForPlayback(newData, is_current_day, info[i]));
       marker.updateMarker();
-      // TODO
       marker.getGoogleMapMarker().setVisible(true);
     } else {
-      createAndShowSensorMarker(result[sensor_names[i]].data[epochtime_milisec], epochtime_milisec, is_current_day, info[i]);
+      // CREATE MARKER FOR FIRST TIME
+      createAndShowSensorMarker(newData, epochtime_milisec, is_current_day, info[i]);
     }
   }
 
   jQuery.extend(true, available_cities[selectedCity].sensors, result);
+  setSensorDataLoaded();
+}
+
+function setSensorDataLoaded() {
   dataFormatWorkerIsProcessing = false;
   if (dataFormatPurpleAirWorkerIsProcessing) {
     dataFormatPurpleAirWorkerIsProcessing = false;
   }
-
-  // TODO: We need a slight delay otherwise an array access error occurs
-  // We need to run this code because if we are in playback mode and we turn on
-  // purple airs, then we need to ensure they show the correct values corresponding
-  // to the playback timeline.
-  if (playbackTimeline && playbackTimeline.isActive()) {
-    setTimeout(function() {
-      handleDraw(playbackTimeline.getPlaybackTimeInMs());
-    }, 10);
-  }
   sensorsLoadedResolver(null);
 }
 
-async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, selectedCityOverride) {
-  let cityToMapTo = selectedCity;
-  if (selectedCityOverride) {
-    cityToMapTo = selectedCityOverride;
-  }
+// Used only by PurpleAir
+async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day) {
   var [multiUrl, resultsMapping] = generateSensorDataMultiFeedUrl(epochtime_milisec, info);
   var data = await loadJsonData(multiUrl);
   var lastIdx = 0;
@@ -2258,7 +2237,7 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
       createAndShowSensorMarker(tmp, epochtime_milisec, is_current_day, info[i]);
     } else {
       var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
-      marker.setData(parseSensorMarkerData(tmp, is_current_day, info[i]));
+      marker.setData(parseSensorMarkerDataForPlayback(tmp, is_current_day, info[i]));
       marker.updateMarker();
     }
     available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = tmp;
@@ -2266,7 +2245,7 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
   sensorsLoadedResolver(null);
 }
 
-async function loadAndCreateSensorMarker(epochtime_milisec, info, is_current_day, i) {
+/*async function loadAndCreateSensorMarker(epochtime_milisec, info, is_current_day, i) {
   // Generate a list of urls that we need to request
   var urls = generateSensorDataUrlList(epochtime_milisec, info);
 
@@ -2285,14 +2264,14 @@ async function loadAndCreateSensorMarker(epochtime_milisec, info, is_current_day
       createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i);
     } else {
       var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
-      marker.setData(parseSensorMarkerData(data, is_current_day, info));
+      marker.setData(parseSensorMarkerDataForPlayback(data, is_current_day, info));
       marker.updateMarker();
     }
     available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = data;
     //createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i);
     //createMarkerTableFromSensorData(data, epochtime_milisec, info, i);
   });
-}
+}*/
 
 
 function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i) {
@@ -2301,26 +2280,21 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "sensor_type" : info['marker_type'],
     "marker_icon_size" : info['marker_type'] == "purple_air" ? 12 : null,
     "marker_draw_level_padding" : info['marker_type'] != "purple_air" ? 10 : null,
-    "data": parseSensorMarkerData(data, is_current_day, info),
+    "data": parseSensorMarkerDataForPlayback(data, is_current_day, info),
     "click": function (marker) {
       selectedSensorMarker = marker;
       handleSensorMarkerClicked(marker);
     },
     "complete": function (marker) {
-      // Make the maker visible on the map when the maker is created
-      // Make sure that the desired time matches the current time
-      // (if user selects the time block too fast, they will be different)
-      if (epochtime_milisec == selected_day_start_epochtime_milisec) {
-        showMarkers([marker], true);
-      }
       var sensorName = info['name'];
       available_cities[selectedCity].sensors[sensorName].marker = marker;
+      showMarkers([marker], true);
     }
   });
 }
 
 
-function parseSensorMarkerDataForPlayback(data, info, is_current_day) {
+function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
   var sensor_type = getSensorType(info);
   if (typeof sensor_type === "undefined") return undefined;
   var marker_data = {
@@ -2503,7 +2477,7 @@ function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
 }
 
 
-async function loadSensorData(urls, callback) {
+/*async function loadSensorData(urls, callback) {
   var deferreds = [];
   var responses = [];
   for (var i = 0; i < urls.length; i++) {
@@ -2516,7 +2490,7 @@ async function loadSensorData(urls, callback) {
       callback(responses);
     }
   });
-}
+}*/
 
 async function loadAvailableCities() {
   let result;
@@ -2617,19 +2591,16 @@ async function loadAvailableCities() {
 
 async function loadJsonData(url) {
   let result;
-  try {
+
       result = await $.ajax({
         url: url,
         dataType : 'json',
       });
       return result;
-  } catch (error) {
-      console.error(error);
-      return {};
-  }
+
 }
 
-function formatAndMergeSensorDataLite(responses, info) {
+/*function formatAndMergeSensorDataLite(responses, info) {
   if (!Array.isArray(responses)) {
     responses = [responses];
   }
@@ -2657,7 +2628,7 @@ function formatAndMergeSensorDataLite(responses, info) {
       max: max_data
     }
   };
-}
+}*/
 
 
 function formatAndMergeSensorData(responses, info, method) {
@@ -2802,7 +2773,6 @@ function aggregateSensorData(data, info) {
   }
 
   var new_data = [];
-  //var threshold = 1800; // average previous 30 minutes of data
   var threshold = 900; // average previous 15 minutes of data
   var current_time = round(moment(data[0][0] * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
   var current_sum = 0;
@@ -2864,7 +2834,7 @@ function updateInfoBar(marker) {
     if (isDaySummary) {
       setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max at "  + markerDataTimeMomentFormatted);
     } else {
-      if (sensorVal >= 0) {
+      if (sensorVal > 0) {
         setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
       } else {
         // Clicked on a trax sensor, which is now invisible since the time does not match for it.
@@ -3037,7 +3007,7 @@ function showMarkers(markers, isFirstTime) {
   drewMarkersAtLeastOnce = true;
   markers = safeGet(markers, []);
   let filterExcludes = [];
-  if (!$purpleAirToggle.prop("checked")) {
+  if (!sensorsEnabledState['purpleAir']) {
     filterExcludes.push("purple_air")
   }
   for (var i = 0; i < markers.length; i++) {
@@ -3051,11 +3021,16 @@ function showMarkers(markers, isFirstTime) {
   }
 }
 
-function setupTimeline(startTime) {
+function setupTimeline(startTime, initCallback) {
   var options = {
     playbackTimeInMs: startTime,
     clickEvent: function() {
-      handleDraw(timeline.selectedDayInMs, true, true);
+      handleDraw(playbackTimeline.getPlaybackTimeInMs());
+    },
+    initCallback: function() {
+      if (typeof(initCallback) == "function") {
+        initCallback();
+      }
     }
   }
   // global function in timeline.js
@@ -3064,7 +3039,7 @@ function setupTimeline(startTime) {
 
 function resetMapToCitiesOverview(city_locode) {
   resetAllTrax();
-  resetAllHrrrWindErrorPoints();
+  //resetAllHrrrWindErrorPoints();
   hideMarkersByCity(city_locode);
   available_cities[city_locode].marker.setVisible(true);
   available_cities[city_locode].footprint_region.setVisible(false);
@@ -3078,8 +3053,6 @@ function resetMapToCitiesOverview(city_locode) {
   }
   selectedCity = "";
   $legend.hide();
-  //$currentDateLegendText.hide();
-  //$currentDateLegendTextNone.show();
 }
 
 function showHideMarkersByZoomLevel() {
@@ -3104,29 +3077,60 @@ function showHideMarkersByZoomLevel() {
 }
 
 
+function updateSensorsByEpochTime(playbackTimeInMs, animating) {
+  if (!selectedCity) return;
+
+  var purpleAirToggleOn = $purpleAirToggle.prop("checked");
+  var markers_with_data_for_chosen_epochtime = {markers_to_show: [], marker_types_to_load: []};
+  for (var sensorName in available_cities[selectedCity].sensors) {
+    var sensor = available_cities[selectedCity].sensors[sensorName];
+    if (!sensor.data || !sensor.data[selected_day_start_epochtime_milisec]) {
+      var sensor_marker_type = sensor.info.marker_type;
+      if (sensor_marker_type == "purple_air" && !purpleAirToggleOn) continue;
+      if (markers_with_data_for_chosen_epochtime.marker_types_to_load.indexOf(sensor_marker_type) == -1) {
+        markers_with_data_for_chosen_epochtime.marker_types_to_load.push(sensor_marker_type)
+      }
+      continue;
+    }
+
+    var fullDataForDay = sensor.data[selected_day_start_epochtime_milisec].data;
+
+    var sensorTimes = fullDataForDay.map(entry => entry.time * 1000);
+    var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
+    if (indexOfAvailableTime >= 0) {
+      sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], animating, sensor.info));
+      sensor.marker.updateMarker();
+      markers_with_data_for_chosen_epochtime.markers_to_show.push(sensor.marker);
+    }
+  }
+  return markers_with_data_for_chosen_epochtime;
+}
+
 async function showSensorMarkersByTime(epochtime_milisec) {
   if (!selectedCity) return;
   if (typeof epochtime_milisec == "undefined") return;
 
   // Check if current day
-  var date_str_sensor = moment(epochtime_milisec).tz(selected_city_tmz).format("YYYY-MM-DD");
-  var is_current_day = date_str_sensor === current_day_str;
+  // Previous code differentiated between showing current day values and 'max' values for prior days.
+  // We no longer want to show 'max' values anymore and instead the value at the time being looked at.
+  // To do this, we always treat the mode as 'is_current_day'
+  var is_current_day = true;
+  //var date_str_sensor = moment(epochtime_milisec).tz(selected_city_tmz).format("YYYY-MM-DD");
+  //var is_current_day = date_str_sensor === current_day_str;
 
-  var markers_with_data_for_chosen_epochtime = [];
-  for (var sensorName in available_cities[selectedCity].sensors) {
-    var sensor = available_cities[selectedCity].sensors[sensorName];
-    if (sensor && sensor.data && sensor.data[epochtime_milisec]) {
-      markers_with_data_for_chosen_epochtime.push(sensor.marker);
-      sensor.marker.setData(parseSensorMarkerData(sensor.data[epochtime_milisec], is_current_day, sensor.info));
-      sensor.marker.updateMarker();
-    }
+  var markers_with_data_at_or_near_chosen_epochtime = updateSensorsByEpochTime(epochtime_milisec, true);
+
+  if (markers_with_data_at_or_near_chosen_epochtime.markers_to_show.length > 0) {
+    // Make sensors markers visible on the map
+    showMarkers(markers_with_data_at_or_near_chosen_epochtime.markers_to_show, false);
   }
 
-  if (markers_with_data_for_chosen_epochtime.length > 0) {
-    // Make sensors markers visible on the map
-    showMarkers(markers_with_data_for_chosen_epochtime, false);
-  } else {
-    hideMarkersByCity(selectedCity, true);
+  if (markers_with_data_at_or_near_chosen_epochtime.marker_types_to_load.length > 0) {
+
+    var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];});
+    markers = markers.filter(x => markers_with_data_at_or_near_chosen_epochtime.markers_to_show.indexOf(x) === -1);
+    hideMarkers(markers)
+
     sensorsLoadedResolver = undefined;
     sensorsLoadedPromise = new Promise((resolve, reject) => { sensorsLoadedResolver = resolve});
     // The worker may already be processing so terminate it and create a new one.
@@ -3137,41 +3141,46 @@ async function showSensorMarkersByTime(epochtime_milisec) {
       createDataPullWebWorker();
       dataFormatWorkerIsProcessing = false;
     }
-    dataFormatWorkerIsProcessing = true;
-    // AirNow sensors
-    let air_now_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
-      if (sensor.info.marker_type == "air_now") {
-        result.push(sensor.info);
-      }
-      return result;
-    }, []);
-    dataFormatWorker.postMessage(
-    { epochtime_milisec: epochtime_milisec,
-      sensors_list: air_now_list,
-      is_current_day : is_current_day }
-    );
-    // PurpleAir sensors
-    if ($purpleAirToggle.prop("checked")) {
-      clearInterval(purpleAirLoadInterval);
-      let purple_air_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
-        if (sensor.info.marker_type == "purple_air") {
-          result.push(sensor.info);
-        }
-        return result;
-      }, []);
-      purpleAirLoadInterval = setInterval(function() {
-        if (!dataFormatWorkerIsProcessing) {
-          dataFormatPurpleAirWorkerIsProcessing = true;
-          clearInterval(purpleAirLoadInterval);
-          dataFormatWorker.postMessage(
-          { epochtime_milisec: epochtime_milisec,
-            sensors_list: purple_air_list,
-            is_current_day : is_current_day }
-          );
-        }
-      }, 50);
-    }
 
+    for (var marker_type of markers_with_data_at_or_near_chosen_epochtime.marker_types_to_load) {
+      if (marker_type == "air_now") {
+        dataFormatWorkerIsProcessing = true;
+
+        // AirNow sensors
+        let air_now_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
+          if (sensor.info.marker_type == "air_now") {
+            result.push(sensor.info);
+          }
+          return result;
+        }, []);
+        dataFormatWorker.postMessage(
+        { epochtime_milisec: timeline.selectedDayInMs,
+          sensors_list: air_now_list,
+          is_current_day : is_current_day }
+        );
+      } else if (marker_type == "purple_air") {
+        // PurpleAir sensors
+        clearInterval(purpleAirLoadInterval);
+        let purple_air_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
+          if (sensor.info.marker_type == "purple_air") {
+            result.push(sensor.info);
+          }
+          return result;
+        }, []);
+        purpleAirLoadInterval = setInterval(function() {
+          if (!dataFormatWorkerIsProcessing) {
+            dataFormatPurpleAirWorkerIsProcessing = true;
+            clearInterval(purpleAirLoadInterval);
+            dataFormatWorker.postMessage(
+            { epochtime_milisec: timeline.selectedDayInMs,
+              sensors_list: purple_air_list,
+              is_current_day : is_current_day }
+            );
+          }
+        }, 50);
+
+      }
+    }
   }
 }
 
@@ -3179,8 +3188,6 @@ function handleTimelineToggling(e) {
   if (e) {
     var $currentTarget = $(e.currentTarget);
   }
-  resetAllTrax();
-  resetAllHrrrWindErrorPoints();
   $playbackTimelineAnchor.show();
   if (playbackTimeline && !playbackTimeline.isActive()) {
     if ($currentTarget && $currentTarget.prop("id") == "calendar-btn") return;
@@ -3191,6 +3198,17 @@ function handleTimelineToggling(e) {
     $calendarBtn.addClass("playbackTimelineOn calendar-specific-day-icon").removeClass("force-hidden").prop("title", "Choose a different day");
     $dayTimeToggle.addClass("force-no-visibility");
     $("#timeline-handle").slideUp(500);
+    // Disable time ticks for current day that have not occured yet for that city
+    var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+    var currentDate = moment().tz(selected_city_tmz);
+    var $timeTicks = $("#playback-timeline-container .materialTimeline span.materialTimelineTick");
+    $timeTicks.removeClass("disabled");
+    if (currentDate.isSame(moment.tz(playbackTimeInMs, selected_city_tmz), 'day')) {
+      var latestClosestTime = roundDate(currentDate, moment.duration(15, "minutes"), "floor");
+      // TODO: Note does not take DST start/end into account
+      var numMinutesElapsedForLatestClosestTime = latestClosestTime.get('hour') * 60 + latestClosestTime.get('minute');
+      $timeTicks.filter("[data-minutes-lapsed='" + numMinutesElapsedForLatestClosestTime + "']").nextAll().addClass("disabled");
+    }
     playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber());
   } else {
     if ($currentTarget && $currentTarget.hasClass("playbackButton")) return;
@@ -3202,7 +3220,6 @@ function handleTimelineToggling(e) {
     $controls.addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
     $("#timeline-handle").slideDown(500);
-    handleDraw(mostRecentUpdateEpochTimeForLocationInMs, true, false);
   }
 }
 
@@ -3309,150 +3326,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// TODO
-function setHrrrWindErrorPointsColor(currentPlaybackTimeInMs) {
-  var opacity;
-  var options = {};
-  for (var site in hrrrWindErrorPointLocations) {
-    var marker = hrrrWindErrorPointLocations[site].marker;
-    var dataWithinPlaybackInterval = hrrrWindErrorDataByEpochTimeInMs[currentPlaybackTimeInMs][site];
-    if (dataWithinPlaybackInterval) {
-      if (showHrrrWindSpeedError) {
-        options.fillOpacity = dataWithinPlaybackInterval.wind_speed_err / dataWithinPlaybackInterval.wind_linear_scale_divisor;
-      } else if (showHrrrWindDirectionError) {
-        options.fillOpacity = dataWithinPlaybackInterval.wind_direction_err / dataWithinPlaybackInterval.wind_linear_scale_divisor;
-      }
-    } else {
-      opacity = 0;
-      options.fillOpacity = opacity;
-      options.strokeOpacity = opacity;
-    }
-    marker.setOptions(options);
-    var visiblity = opacity != 0;
-    marker.setVisible(visiblity);
-  }
-}
-
-// TODO
-async function handleHrrrWindErrorPointsByEpochTime(timeInEpoch) {
-  var playbackTimeInMs = timeInEpoch || playbackTimeline.getPlaybackTimeInMs();
-  if (hrrrWindErrorDataByEpochTimeInMs[playbackTimeInMs]) {
-    setHrrrWindErrorPointsColor(playbackTimeInMs);
-    return;
-  }
-  hrrrWindErrorDataByEpochTimeInMs[playbackTimeInMs] = {};
-
-  // The names of the files in firestore are in UTC
-  var docRefString = moment.tz(playbackTimeInMs, selected_city_tmz).startOf("hour").utc().format("YYYYMMDDHHmm") + "Z";
-  const snapshot = await db.collection(HRRR_UNCERTAINTY_COLLECTION_NAME).doc(docRefString).get();
-  const snapshotData = snapshot.data();
-  if (snapshotData) {
-    var data = snapshotData.data;
-    var populateLocations = false;
-
-    if (Object.keys(hrrrWindErrorPointLocations).length == 0) {
-      populateLocations = true;
-    }
-
-    var windLinearScaleDivisor = 1;
-    if (showHrrrWindDirectionError) {
-      windLinearScaleDivisor = 180;
-    } else {
-      for (var i = 0; i < data.length; i++) {
-        if (windLinearScaleDivisor < data[i].wind_speed_err) {
-          windLinearScaleDivisor = data[i].wind_speed_err;
-        }
-      }
-    }
-
-    for (var i = 0; i < data.length; i++) {
-      hrrrWindErrorDataByEpochTimeInMs[playbackTimeInMs][i] = {
-        HRRR_Wind_Dir: data[i].HRRR_Wind_Dir,
-        HRRR_Wind_Speed: data[i].HRRR_Wind_Speed,
-        Mesowest_Wind_Dir: data[i].Mesowest_Wind_Dir,
-        Mesowest_Wind_Speed: data[i].Mesowest_Wind_Speed,
-        wind_direction_err: data[i].wind_direction_err,
-        wind_speed_err: data[i].wind_speed_err,
-        sensorType: "hrrr_wind_error",
-        wind_linear_scale_divisor: windLinearScaleDivisor
-      };
-      if (populateLocations) {
-        let hrrrErrorMarker = new google.maps.Circle({
-          strokeWeight: 0,
-          strokeColor: "#ff0000",
-          fillColor: "#ff0000",
-          map,
-          center: { lat: data[i].latitude, lng: data[i].longitude },
-          radius: 360,
-          visible: false,
-          hrrrErrorPointId: i,
-          getData: function() { return hrrrWindErrorDataByEpochTimeInMs[playbackTimeline.getPlaybackTimeInMs()][this.hrrrErrorPointId]; }
-        });
-
-        google.maps.event.addListener(hrrrErrorMarker, "click", function (e) {
-          let data = this.getData();
-          // Note: Because this is not a marker but rather a "circle" in the Google Maps world, we cannot anchor to
-          // a marker with the 'open' call and must instead explicitly set the position of the marker we clicked on.
-          infowindow.setPosition(e.latLng);
-          infowindow.open(map);
-          let content = "<table>"
-          if (showHrrrWindDirectionError) {
-            content += "<tr><td style='font-weight: bold'>HRRR_Wind_Dir: </td><td style='padding-left: 20px'>" + data.HRRR_Wind_Dir.toFixed(2) + "</td></tr>";
-            content += "<tr><td style='font-weight: bold'>Mesowest_Wind_Dir: </td><td style='padding-left: 20px'>" + data.Mesowest_Wind_Dir + "</td></tr>";
-            content += "<tr><td style='font-weight: bold'>wind_direction_err: </td><td style='padding-left: 20px'>" + data.wind_direction_err.toFixed(2) + "</td></tr>";
-          } else if (showHrrrWindSpeedError) {
-            content += "<tr><td style='font-weight: bold'>HRRR_Wind_Speed: </td><td style='padding-left: 20px'>" + data.HRRR_Wind_Speed.toFixed(2) + "</td></tr>";
-            content += "<tr><td style='font-weight: bold'>Mesowest_Wind_Speed: </td><td style='padding-left: 20px'>" + data.Mesowest_Wind_Speed.toFixed(2) + "</td></tr>";
-            content += "<tr><td style='font-weight: bold'>wind_speed_err: </td><td style='padding-left: 20px'>" + data.wind_speed_err.toFixed(2) + "</td></tr>";
-          }
-          content += "</table>";
-          infowindow.setContent(content);
-        });
-        hrrrWindErrorPointLocations[i] = {
-          lat: data[i].latitude,
-          lng: data[i].longitude,
-          marker: hrrrErrorMarker
-        }
-      }
-    }
-    setHrrrWindErrorPointsColor(playbackTimeInMs);
-  } else {
-    console.log("no hrrr wind error data found found for:", playbackTimeInMs);
-    resetAllHrrrWindErrorPoints();
-  }
-}
-
-async function testHeatmap() {
-  // The names of the files in firestore are in UTC
-  var docRefString = "202109300200Z";
-  const snapshot = await db.collection(HRRR_UNCERTAINTY_COLLECTION_NAME).doc(docRefString).get();
-  const snapshotData = snapshot.data();
-  var heatmapData = [];
-  if (snapshotData) {
-    var data = snapshotData.data;
-    for (var i = 0; i < data.length; i++) {
-        if (isNaN(data[i].Mesowest_Wind_Dir) || isNaN(data[i].Mesowest_Wind_Speed)) {
-          continue;
-        }
-        heatmapData.push({location: new google.maps.LatLng(data[i].latitude, data[i].longitude), weight : 1})
-
-        console.log(data[i])
-        //data[i].HRRR_Wind_Dir,
-        //data[i].HRRR_Wind_Speed,
-        //data[i].Mesowest_Wind_Dir,
-        //data[i].Mesowest_Wind_Speed,
-        //data[i].wind_direction_err,
-        //data[i].wind_speed_err
-    }
-    //["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"]
-
-    var heatmap = new google.maps.visualization.HeatmapLayer({
-      data: heatmapData,
-      radius: 40,
-
-      gradient: ['rgba(255, 255, 255, 0)', "#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"]
-      /*gradient: ["#ededed", 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)', "#848383", "#545454", "#000000"]*/
-    });
-    heatmap.setMap(map);
-  }
+function roundDate(date, duration, method) {
+  return moment.tz((Math[method]((+date) / (+duration)) * (+duration)), selected_city_tmz);
 }

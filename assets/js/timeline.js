@@ -9,7 +9,7 @@ var $calendar_select;
 var plume_viz_data;
 
 
-function getShareQuery(date_str) {
+/*function getShareQuery(date_str) {
   return "?date=" + date_str;
 }
 
@@ -66,7 +66,7 @@ function drawCalendar(year_list) {
     var year = year_list[i];
     $calendar_select.append($('<option value="' + year + '">' + year + '</option>'));
   }
-}
+}*/
 
 // Use the TimelineHeatmap charting library to draw the timeline
 function createTimeline(data, options) {
@@ -109,24 +109,35 @@ function getCurrentSelectedDayInMs() {
 }
 
 
-function handleTimelineButtonClicked(epochtime_milisec, day_label) {
-  // This gets called after "handleTimelineButtonSelected"
-  timeline.selectedDayInMs = epochtime_milisec;
+async function handleTimelineButtonClicked(epochtime_milisec, day_label) {
+  // This method gets called after "handleTimelineButtonSelected"
+
   timeline.selectedDay = day_label;
 }
 
 async function handleTimelineButtonSelected(epochtime_milisec) {
   // This method gets called before "handleTimelineButtonClicked"
+
   selected_day_start_epochtime_milisec = epochtime_milisec;
-  var startofSelectedDayAsMoment = moment.tz(selected_day_start_epochtime_milisec, selected_city_tmz);
-  var hourMin = convertFrom12To24Format(playbackTimeline.getCaptureTimes()[playbackTimeline.getCurrentFrameNumber()]).split(":");
-  startofSelectedDayAsMoment.set({hour:hourMin[0],minute:hourMin[1]});
-  playbackTimeline.setPlaybackTimeInMs(startofSelectedDayAsMoment.valueOf());
-  var mostRecentDayStrFull = startofSelectedDayAsMoment.format("MMM DD YYYY");
+  timeline.selectedDayInMs = epochtime_milisec;
+
+  var timeInc;
+  var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+  var timeObj = moment.tz(epochtime_milisec, selected_city_tmz);
+  if (playbackTimeInMs == 0) {
+    var currentDate = moment().tz(selected_city_tmz)
+    var roundedDate = roundDate(currentDate, moment.duration(15, "minutes"), "floor");
+    timeInc = {hour:roundedDate.hour(),minute:roundedDate.minute(),second:0,millisecond:0};
+  } else {
+    var priorTimeObj = moment.tz(playbackTimeInMs, selected_city_tmz);
+    timeInc = {hour:priorTimeObj.hour(),minute:priorTimeObj.minute(),second:0,millisecond:0};
+  }
+  var newPlaybackTimeInMs = timeObj.set(timeInc).valueOf();
+  playbackTimeline.setPlaybackTimeInMs(newPlaybackTimeInMs, true);
+  playbackTimeline.setCurrentFrameNumber(playbackTimeline.getFrameNumberFromPlaybackTime(newPlaybackTimeInMs));
+  var mostRecentDayStrFull = timeObj.format("MMM DD YYYY");
   // Update selected day in the legend
   $currentDateLegendText.text(mostRecentDayStrFull);
-  await showSensorMarkersByTime(epochtime_milisec);
-  await sensorsLoadedPromise;
 }
 
 
@@ -161,29 +172,26 @@ function addTouchHorizontalScroll(elem) {
 
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
-    loadAndCreateTimeline(async function() {
-      $("#timeline-handle").removeClass('force-no-visibility');
-      playbackTimeline = new create.CustomTimeline2();
-      if (selected_day_start_epochtime_milisec) {
-        timeline.selectBlockByEpochTime(selected_day_start_epochtime_milisec);
-        timeline.selectedDayInMs = selected_day_start_epochtime_milisec;
-        // Set frame based on the share time the user arrived with
-        // This has to be set *after* timeline.selectedDayInMs is set. Technically this is set when a block is selected, but awaits/async alter the flow.
-        playbackTimeline.setCurrentFrameNumber(playbackTimeline.getFrameNumberFromPlaybackTime(options.playbackTimeInMs));
-      } else {
-        timeline.selectLastBlock();
-        timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
-      }
-      $(".timestampPreview").removeClass("disabled");
-      $(".playbackButton").button("enable");
-      $("#calendar-btn").prop("disabled", false);
-    }, options);
+  loadAndCreateTimeline(function() {
+    $("#timeline-handle").removeClass('force-no-visibility');
+    playbackTimeline = new create.CustomTimeline2();
+    if (selected_day_start_epochtime_milisec) { // If a day has already been set
+      playbackTimeline.setPlaybackTimeInMs(options.playbackTimeInMs);
+      timeline.selectBlockByEpochTime(selected_day_start_epochtime_milisec);
+      //timeline.selectedDayInMs = selected_day_start_epochtime_milisec;
+    } else { // Otherwise default to last day
+      timeline.selectLastBlock();
+      //timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
+    }
+    $(".timestampPreview").removeClass("disabled");
+    $(".playbackButton").button("enable");
+    $("#calendar-btn").prop("disabled", false);
+  }, options);
 }
 
 
 function generateURL(domain, path, parameters) {
   parameters = safeGet(parameters, {});
-  // TODO: Ignore bay area related results for now
   //parameters["client_ids"] = [app_id_smellpgh, app_id_smellmycity];
   if (typeof desired_latlng_bbox !== "undefined") {
     // For example, latlng_bbox=30,-99,40,-88
@@ -226,13 +234,15 @@ function loadAndUpdateTimeLine(callback) {
     timeline.updateBlocks(formatDataForTimeline(data, null));
     timeline.clearBlockSelection();
     // TODO: When we switch timelines, do we want to load the most recent day for the city or the last day that was explored.
-    // If we want the latter, we will need to add more logic to track the last day selected
+    // If we want the latter, we will need to add more logic to track the last day selected. For now we reset to the last available day
+    // and default starting time.
+    playbackTimeline.setPlaybackTimeInMs(0, true);
     timeline.selectLastBlock();
     timeline.activeCity = selectedCity;
     if (typeof callback === "function") {
       callback();
     }
-    timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
+    //timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
   }
   if (timeline.aqiData[selectedCity]) {
     defaultTimelineUpdatedCallback(timeline.aqiData[selectedCity], callback);
@@ -258,6 +268,7 @@ function loadAndCreateTimeline(callback, options) {
     timeline.aqiData[selectedCity] = data;
     if (typeof(callback) == "function") {
       callback();
+      options.initCallback();
     }
   });
 }
@@ -338,19 +349,20 @@ function formatDataForTimeline(data, pad_to_date_obj) {
   var batch_3d = []; // 3D batch data
   var batch_2d = []; // the inner small 2D batch data for batch_3d
 
-  var sorted_day_str = Object.keys(data).sort();
+  var sorted_day_strs = Object.keys(data).sort();
+  var sorted_day_strs = sorted_day_strs.slice(sorted_day_strs.indexOf(available_cities[selectedCity].timeline_start_date + " 00:00:00"));
   var last_month;
 
   // If no data, exit
-  if (sorted_day_str.length == 0) {
+  if (sorted_day_strs.length == 0) {
     return;
     //sorted_day_str = [dataObjectToString(new Date())];
   }
 
-  pad_to_date_obj = dateStringToObject(sorted_day_str[sorted_day_str.length - 1]);
+  pad_to_date_obj = dateStringToObject(sorted_day_strs[sorted_day_strs.length - 1]);
 
   // If the first one is not the first day of the month, we need to insert it
-  if (sorted_day_str.length > 0) {
+  /*if (sorted_day_str.length > 0) {
     var first_str_split = sorted_day_str[0].split("-");
     var first_day = parseInt(first_str_split[2]);
     if (first_day != 1) {
@@ -359,11 +371,11 @@ function formatDataForTimeline(data, pad_to_date_obj) {
       var k = first_year + "-" + String(first_month).padStart(2, "0") + "-01 00:00:00";
       sorted_day_str.unshift(k);
     }
-  }
+  }*/
 
-  for (var i = 0; i < sorted_day_str.length; i++) {
+  for (var i = 0; i < sorted_day_strs.length; i++) {
     // Get current day and count
-    var day_str = sorted_day_str[i];
+    var day_str = sorted_day_strs[i];
     var day_obj = dateStringToObject(day_str);
     var count = parseInt(safeGet(data[day_str], 0));
     // Check if we need to push the 2D array to 3D, and empty the 2D array
@@ -384,8 +396,8 @@ function formatDataForTimeline(data, pad_to_date_obj) {
     batch_2d.push([label, count, day_obj_time]);
     // Check if we need to pad missing days of the future
     var next_day_obj;
-    if (i < sorted_day_str.length - 1) {
-      next_day_obj = dateStringToObject(sorted_day_str[i + 1]);
+    if (i < sorted_day_strs.length - 1) {
+      next_day_obj = dateStringToObject(sorted_day_strs[i + 1]);
     } else {
       next_day_obj = pad_to_date_obj; // future date is the next date
     }
@@ -394,7 +406,6 @@ function formatDataForTimeline(data, pad_to_date_obj) {
     if (diff_days > 1) {
       for (var j = 1; j < diff_days; j++) {
         // Number of miliseconds in a day
-        // TODO: Maybe use moment.js here instead
         var day_obj_time_j = day_obj_time + 86400000 * j;
         var day_obj_j = new Date(day_obj_time_j);
         var label_j = day_obj_j.toDateString().split(" ");

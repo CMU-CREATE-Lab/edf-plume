@@ -120,6 +120,29 @@ body {
   color: gray;
 }
 
+/*#infobar-pollution-section .infobar-component-header:after, #infobar-wind-section .infobar-component-header:after {
+  background-image: url('../img/info-icon.png');
+  background-size: contain;
+  width: 20px;
+  height: 20px;
+  image-rendering: -webkit-optimize-contrast;
+  cursor: pointer;
+  content: "";
+  position: absolute;
+  margin-left: 5px;
+}*/
+
+.more-info {
+  background-image: url('../img/info-icon.png');
+  background-size: contain;
+  width: 20px;
+  height: 20px;
+  image-rendering: -webkit-optimize-contrast;
+  cursor: pointer;
+  position: absolute;
+  margin-left: 5px;
+}
+
 #legend {
   display: none;
   position: fixed;
@@ -203,6 +226,11 @@ body {
 .legend-label {
   color: gray;
   font-size: 9px;
+}
+
+#current-date-legend {
+  font-size: 12px !important;
+  font-weight: bold;
 }
 
 .PM25-color-1 {
@@ -689,11 +717,11 @@ body {
   opacity: 1;
 }
 
-.thumbnail-copy-text-button-tooltip {
+.button-tooltip {
   z-index: 100001;
   position: absolute;
   line-height: 18px;
-  background-color: #3a3a3a;
+  background-color: #272727;
   border: 1px solid #3a3a3a;
   opacity: 1;
   border-radius: 2px;
@@ -708,8 +736,9 @@ body {
   display: none;
 }
 
-.thumbnail-copy-text-button-tooltip p {
-  white-space: nowrap;
+
+.button-tooltip p {
+  max-width: 160px;
   margin-top: 0px;
   margin-bottom: -11px;
   margin-left: 0px;
@@ -719,10 +748,18 @@ body {
   padding-left: 14px;
   padding-right: 14px;
   background-repeat: no-repeat;
-  background-position: 50% 100%;
   background-image: url('../img/bubble_edge_horizontal.png');
+  background-position: 50% 100%;
   font: 13px "Helvetica Neue", Sans-Serif;
   color: white;
+}
+
+.button-tooltip.left p {
+  background-position: 10% 100%;
+}
+
+.button-tooltip.right p {
+  background-position: 90% 100%;
 }
 
 .always-selectable {
@@ -1142,7 +1179,7 @@ div.gmnoprint[role='menubar'] {
 
   #legend {
     display: none;
-    bottom: 100px;
+    bottom: 102px;
     top: unset;
   }
 

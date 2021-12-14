@@ -52,7 +52,6 @@ var create = {};
     // Class variables
     //
 
-    // Parameters
     var captureTimes;
     var numFrames;
     var currentFrameNumber;
@@ -61,37 +60,23 @@ var create = {};
     var incrementAmtInMin = 15;
     // Change how fast it animates. Note that better caching will need to be involved if too low of a value is used.
     var animateIntervalInMs = 1000;
+    var seekTooltipState = "none";
+
 
     // DOM elements
     var viewerDivId = "playback-timeline-container"
     var $timeline = $("#" + viewerDivId + " .materialTimeline");
-    //var $speedControls = $("#" + viewerDivId + " #speedControlOptions");
     var $timeJumpOptions;
     var $rightSeekControl = $("#" + viewerDivId + " .rightSeekControl");
     var $leftSeekControl = $("#" + viewerDivId + " .leftSeekControl");
-    //var $materialNowViewingContainer = $("#" + viewerDivId + " .materialNowViewingContainer");
-    //var $materialNowViewingContent = $("#" + viewerDivId + " .materialNowViewingContent");
-    //var $materialNowViewingText = $("#" + viewerDivId + " .materialNowViewingText");
-    //var $materialNowViewingClose = $("#" + viewerDivId + " .materialNowViewingContent .close");
     var $timelineTicks;
     var $selectedTimelineTick;
-    //var $shareButton = $("#" + viewerDivId + " .share");
-    //var $timelineDisabledContainer = $("#" + viewerDivId + " .materialTimelineDisabled");
-    //var $waypointDrawerContainerToggle = $("#" + viewerDivId + " .waypointDrawerContainerToggle");
-    var timelineGroupHTML = "";
-    var timelineGroupSeparator = "<span class='materialTimelineDivider'>&#8226;</span>";
-    var leftTimelineGroupWidth;
-    var timelineTickWidth;
-    var lastSelectedGroup;
     var startDownX;
     var $customPlay;
     var $anchor;
 
 
-
     // Flags
-    var addedTimelineSliderListener = false;
-    var lastFrameWasGroupEnd = false;
     var isAnimating = false;
     var animateInterval = null;
     var isTimelineActive = false;
@@ -100,7 +85,6 @@ var create = {};
     var didScroll = false;
     var scrollEndTimeout = null;
     var mouseDown = false;
-    var seekTooltipState = "none";
 
 
     var initPlayPause = function() {
@@ -159,17 +143,14 @@ var create = {};
         var TimeStamp24Hour = pad(hour) + ":" + pad(min);
         var TimeStamp12Hour = convertFrom24To12Format(TimeStamp24Hour)
         captureTimes.push(TimeStamp12Hour);
-        currentTimelineHTML += "<span class='materialTimelineTick' data-increment='" + incrementAmtInMin + "' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
+        currentTimelineHTML += "<span class='materialTimelineTick' data-minutes-lapsed='" + (i * incrementAmtInMin) +"' data-increment='" + incrementAmtInMin + "' data-frame='" + i + "'>" + captureTimes[i] + "</span>";
         if (hourChange) {
           timeSeekSelectOptionsHTML += `<option value='${i}'>${TimeStamp12Hour}</option>`;
         }
       }
       numFrames = captureTimes.length;
-      timelineGroupHTML = currentTimelineHTML;
-      var $leftGroup = $("<div class='leftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-      var $rightGroup =  $("<div class='rightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-      $anchor = $("<div class='anchor'><span class='anchorHighlight'></span><span class='anchorTZ'></span></div>");
-      $timeline.append($leftGroup, $rightGroup, $anchor);
+      $anchor = $("<div class='anchor'><span class='anchorTZ'></span></div>");
+      $timeline.append($(currentTimelineHTML), $anchor);
       $playbackTimelineAnchor = $("#playback-timeline-container .anchor");
       timeSeekSelectOptionsHTML += "</select>";
       $("#timeJumpControl").append(timeSeekSelectOptionsHTML);
@@ -183,7 +164,11 @@ var create = {};
         }
       });
 
-      $timeline.on("scroll", function(e) {
+      // TODO
+      touchHorizontalScroll($timeline)
+
+      //// TODO: Do we want this only for mobile?
+      /*$timeline.on("scroll", function(e) {
         if (!isActive()) return;
         didScroll = true;
         window.clearTimeout(scrollEndTimeout);
@@ -192,9 +177,11 @@ var create = {};
           if (mouseDown) return;
           $timeline.trigger("mouseup");
         }, 100);
-      });
+      });*/
 
-      $timeline.on("mouseup", function(e) {
+
+      //// TODO: Do we want this only for mobile?
+      /*$timeline.on("mouseup", function(e) {
         e.preventDefault();
         e.stopPropagation();
         mouseDown = false;
@@ -233,7 +220,7 @@ var create = {};
           // Swiping left actually means going forward, aka "right"
           seekControlAction("right");
         }
-      });
+      });*/
 
       $timeline.on("click", ".materialTimelineTick", function() {
         updateTimelineSlider(null, $(this), false, false, true);
@@ -241,33 +228,22 @@ var create = {};
 
       $timelineTicks = $("#" + viewerDivId + " .materialTimelineTick");
 
-      leftTimelineGroupWidth = $leftGroup.outerWidth(true);
-      lastSelectedGroup = $rightGroup;
-
-      if (!addedTimelineSliderListener) {
-        addedTimelineSliderListener = true;
-      }
-
-      var startTimeElm = $("#" + viewerDivId + " .rightGroup").find(".materialTimelineTick:first");
-      timelineTickWidth = startTimeElm.outerWidth(true);
+      //var startTimeElm = $("#" + viewerDivId + " .rightGroup").find(".materialTimelineTick:first");
+      //timelineTickWidth = startTimeElm.outerWidth(true);
 
       //updateTimelineSlider(0, startTimeElm);
 
       // TODO: Need pollyfill
       new ResizeObserver(refocusTimeline).observe($(".materialTimeline")[0]);
 
-      $(window).on("resize", refocusTimeline);
+      //$(window).on("resize", refocusTimeline);
 
-      // TODO
-      //if (UTIL.isIE()) {
-      //  $timeline.addClass("isIE");
-      //}
     };
+
 
     function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent, skipDraw) {
       var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
       var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).add(numMins, 'minutes').valueOf();
-
       if (newPlaybackTimeInMs == playbackTimeInMs && fromTickOnClickEvent) {
         return;
       }
@@ -282,14 +258,7 @@ var create = {};
       }
 
       if (!timeTick || timeTick.length == 0) {
-        if ((lastFrameWasGroupEnd && frameNum == 0) ||
-            (lastSelectedGroup.hasClass("rightGroup") && $selectedTimelineTick.parent().hasClass("leftGroup")) ||
-            (lastSelectedGroup.hasClass("leftGroup") && $selectedTimelineTick.parent().hasClass("leftGroup"))) {
-          timeTick = $selectedTimelineTick.parent().next().find($('.materialTimelineTick')).first();
-          lastFrameWasGroupEnd = false;
-        } else {
-          timeTick = $selectedTimelineTick.parent().find($('.materialTimelineTick[data-frame="' + frameNum + '"]'));
-        }
+        timeTick = $selectedTimelineTick.parent().find($('.materialTimelineTick[data-frame="' + frameNum + '"]'));
       }
       if (timeTick.length) {
         $selectedTimelineTick = timeTick;
@@ -297,7 +266,7 @@ var create = {};
           frameNum = currentFrameNumber;
         }
         var scrollOptions = {
-          time: 100,
+          time: 200,
           validTarget: function(target) {
             return target === $timeline[0];
           }
@@ -308,61 +277,9 @@ var create = {};
         }
         $timelineTicks.removeClass("materialTimelineTickSelected");
         $selectedTimelineTick.addClass("materialTimelineTickSelected");
-        window.scrollIntoView($selectedTimelineTick[0], scrollOptions, function() {
-          var scrollWidthAmount = $timeline[0].scrollWidth;
-          var scrollLeftAmount = $timeline[0].scrollLeft;
-          var clientWidthAmount = $timeline[0].clientWidth;
-          var scrollDiff = ((scrollWidthAmount - scrollLeftAmount) - clientWidthAmount);
-          var threshold = timelineTickWidth;
-
-          if (clientWidthAmount > 0 && scrollLeftAmount <= threshold) {
-            var $prevGroup = $selectedTimelineTick.parent().prev();
-            if ($prevGroup.length == 0) {
-              var doFixScroll = false;
-              // Ensure only one tmp group ever exists
-              var $existingNewLeftGroup = $("#" + viewerDivId + " .newLeftGroup");
-              if ($existingNewLeftGroup.length == 1) {
-                var $previousLeftGroup = $existingNewLeftGroup.next();
-                $existingNewLeftGroup.removeClass("newLeftGroup");
-                $previousLeftGroup.remove();
-                doFixScroll = true;
-              }
-              var $newLeftGroup = $("<div class='leftGroup newLeftGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-              $timeline.prepend($newLeftGroup);
-              $timelineTicks = $("#" + viewerDivId + " .materialTimelineTick");
-              scrollOptions.ease = null;
-              scrollOptions.time = 0;
-              window.scrollIntoView($selectedTimelineTick[0], scrollOptions);
-              //$timeline[0].scrollLeft = leftTimelineGroupWidth + scrollLeftAmount;
-            }
-          } else if (clientWidthAmount > 0 && scrollDiff <= threshold) {
-            var doFixScroll = false;
-            // Ensure only one tmp group ever exists
-            var $existingNewRightGroup = $("#" + viewerDivId + " .newRightGroup");
-            if ($existingNewRightGroup.length == 1) {
-              var $previousRightGroup = $existingNewRightGroup.prev();
-              $existingNewRightGroup.removeClass("newRightGroup");
-              $previousRightGroup.remove();
-              doFixScroll = true;
-            }
-            // Add to the right
-            var $newRightGroup = $("<div class='rightGroup newRightGroup'>" + timelineGroupHTML + timelineGroupSeparator + "</div>");
-            $newRightGroup.insertBefore($anchor);
-            //$timeline.append($newRightGroup);
-            $timelineTicks = $("#" + viewerDivId + " .materialTimelineTick");
-            if (doFixScroll) {
-              scrollOptions.ease = null;
-              scrollOptions.time = 0;
-              window.scrollIntoView($selectedTimelineTick[0], scrollOptions);
-              //$timeline[0].scrollLeft = scrollLeftAmount - leftTimelineGroupWidth;
-            }
-          }
-        });
-        // TODO
-        //if (timelapse.isPaused()) {
-        //  timelapse.seekToFrame(frameNum);
-        //}
-        //$tourTimeText.text($selectedTimelineTick.text());
+        // Because the timeline isn't an infinite wrap around, once we approach either end of the scrollable area,
+        // we no longer can be centered.
+        window.scrollIntoView($selectedTimelineTick[0], scrollOptions);
       }
     };
 
@@ -438,7 +355,8 @@ var create = {};
         if (seekTooltipState == "shown") {
           var $relatedTarget = $(e.relatedTarget);
           if ($relatedTarget.parent()[0] == this || $relatedTarget[0] == this) return;
-          $(this).tooltip("disable");
+          // Disable jquery tooltip. If we use the .tooltip("disable") call, this actually deletes the title attribute.
+          $(this).tooltip({ items: [] });
           seekTooltipState = "disabled";
         }
       });
@@ -466,11 +384,13 @@ var create = {};
         if (seekTooltipState == "shown") {
           var $relatedTarget = $(e.relatedTarget);
           if ($relatedTarget.parent()[0] == this || $relatedTarget[0] == this) return;
-          $(this).tooltip("disable");
+          // Disable jquery tooltip. If we use the .tooltip("disable") call, this actually deletes the title attribute.
+          $(this).tooltip({ items: [] });
           seekTooltipState = "disabled";
         }
       });
     };
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -484,6 +404,7 @@ var create = {};
     };
     this.stopAnimate = stopAnimate;
 
+
     var refocusTimeline = function() {
       if ($selectedTimelineTick) {
         updateTimelineSlider(null, $selectedTimelineTick, false, true);
@@ -491,38 +412,31 @@ var create = {};
     };
     this.refocusTimeline = refocusTimeline;
 
+
     var seekControlAction = function(direction) {
-      lastSelectedGroup = $selectedTimelineTick.parent();
       if (direction == "left") {
         var $previousTimeTick = $selectedTimelineTick.prev("#" + viewerDivId + " .materialTimelineTick");
         if ($previousTimeTick.length == 0) {
-          // We hit the end of a timeline group, let's look outside of it.
-          var $currentTimelineTickParent = $selectedTimelineTick.parent();
-          $previousTimeTick = $selectedTimelineTick.parent().prev().children("#" + viewerDivId + " .materialTimelineTick:last");
-          if ($currentTimelineTickParent.hasClass("leftGroup")) {
-            $currentTimelineTickParent.remove();
-            $previousTimeTick.parent().removeClass("newLeftGroup");
+          // We hit the start of the timeline, wrap to the end.
+          var $disabledTimes = $selectedTimelineTick.parent().children(".disabled");
+          if ($disabledTimes.length > 0) {
+            $previousTimeTick = $disabledTimes.first().prev();
+          } else {
+            $previousTimeTick = $selectedTimelineTick.parent().children("#" + viewerDivId + " .materialTimelineTick").last();
           }
         }
         updateTimelineSlider(null, $previousTimeTick, false);
       } else if (direction == "right") {
         var $nextTimelineTick = $selectedTimelineTick.next("#" + viewerDivId + " .materialTimelineTick");
-        if ($nextTimelineTick.length == 0) {
-          // We hit the end of a timeline group, let's look outside of it
-          var $currentTimelineTickParent = $selectedTimelineTick.parent();
-          $nextTimelineTick = $selectedTimelineTick.parent().next().children("#" + viewerDivId + " .materialTimelineTick:first");
-          if ($currentTimelineTickParent.hasClass("rightGroup")) {
-            var scrollLeftAmount = $timeline[0].scrollLeft;
-            $currentTimelineTickParent.remove();
-            $nextTimelineTick.parent().removeClass("newRightGroup");
-            $timeline[0].scrollLeft = scrollLeftAmount - leftTimelineGroupWidth;
-          }
+        if ($nextTimelineTick.length == 0 || $nextTimelineTick.hasClass("disabled")) {
+          // We hit the end of the timeline wrap to the start.
+          $nextTimelineTick = $selectedTimelineTick.parent().children("#" + viewerDivId + " .materialTimelineTick").first();
         }
         updateTimelineSlider(null, $nextTimelineTick, false);
       }
-      //var epochTime = new Date(timeline.selectedDayInMs).setHours(i);
     };
     this.seekControlAction = seekControlAction;
+
 
     var setPlaybackButtonState = function(type) {
       if (type == "pause") {
@@ -549,29 +463,37 @@ var create = {};
     };
     this.setPlaybackButtonState = setPlaybackButtonState;
 
+
     var getCaptureTimes = function() {
       return captureTimes;
     };
     this.getCaptureTimes = getCaptureTimes;
 
+
     var seekTo = function(frameNum, skipDraw) {
       frameNum |= 0;
       var $newTimelineTick = $timelineTicks.eq(frameNum);
       $timelineTicks.removeClass("materialTimelineTickSelected");
+      if ($newTimelineTick.hasClass("disabled")) {
+        $newTimelineTick = $selectedTimelineTick.parent().children(".disabled").first().prev();
+      }
       $newTimelineTick.addClass("materialTimelineTickSelected");
       updateTimelineSlider(null, $newTimelineTick, true, null, null, skipDraw);
     };
     this.seekTo = seekTo;
+
 
     var getNumFrames = function() {
       return numFrames;
     };
     this.getNumFrames = getNumFrames;
 
+
     var getPlaybackTimeInMs = function() {
       return playbackTimeInMs;
     };
     this.getPlaybackTimeInMs = getPlaybackTimeInMs;
+
 
     var getFrameNumberFromPlaybackTime = function(playbackTimeInMs) {
       var startofDayInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).valueOf();
@@ -581,50 +503,63 @@ var create = {};
     }
     this.getFrameNumberFromPlaybackTime = getFrameNumberFromPlaybackTime;
 
+
     var setCurrentFrameNumber = function(newFrameNumber) {
       currentFrameNumber = newFrameNumber;
     }
     this.setCurrentFrameNumber = setCurrentFrameNumber;
 
+
     var getCurrentFrameNumber = function() {
       if (currentFrameNumber >= 0) {
         return currentFrameNumber;
       } else {
-        return captureTimes.indexOf("12:00 PM");
+        //var date = moment().tz(selected_city_tmz)
+        var roundedDate = roundDate(playbackTimeInMs, moment.duration(15, "minutes"), "floor");
+        return captureTimes.indexOf(roundedDate.format('h:mm A'));
       }
     };
     this.getCurrentFrameNumber = getCurrentFrameNumber;
 
-    var setPlaybackTimeInMs = function(newPlaybackTimeInMs) {
+
+    var setPlaybackTimeInMs = function(newPlaybackTimeInMs, skipBrowserChangeState) {
       playbackTimeInMs = newPlaybackTimeInMs;
-      changeBrowserUrlState();
+      if (!skipBrowserChangeState) {
+        changeBrowserUrlState();
+      }
     };
     this.setPlaybackTimeInMs = setPlaybackTimeInMs;
+
 
     var isActive = function() {
       return isTimelineActive;
     };
     this.isActive = isActive;
 
+
     var setActiveState = function(state) {
       isTimelineActive = state;
     };
     this.setActiveState = setActiveState;
+
 
     var getIncrementAmt = function() {
       return incrementAmtInMin;
     };
     this.getIncrementAmt = getIncrementAmt;
 
+
     var isPaused = function() {
       return isTimelinePaused;
     };
     this.isPaused = isPaused;
 
+
     var togglePlayPause = function() {
       $customPlay.trigger("click");
     };
     this.togglePlayPause = togglePlayPause;
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -632,19 +567,12 @@ var create = {};
     //
 
     createTimelineSlider();
-
-    //createSpeedToggle();
-
     createTimeJump();
-
     handleSeekControls();
-
     initPlayPause();
-
     $('#controls').on(Util.getTransitionEndEventType(), function() {
       isPlaybackTimelineToggling = false;
     });
 
   };
 })();
-//end of (function() {
