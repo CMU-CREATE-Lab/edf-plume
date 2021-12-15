@@ -811,12 +811,16 @@ async function initMap() {
   $purpleAirToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     togglePurpleAirs(isChecked);
+  }).on("change", function(e) {
+    var isChecked = $(e.target).prop("checked");
     sensorsEnabledState['purpleAir'] = isChecked;
   });
 
   $traxToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     toggleTrax(isChecked);
+  }).on("change", function(e) {
+    var isChecked = $(e.target).prop("checked");
     sensorsEnabledState['trax'] = isChecked;
   });
 
@@ -1163,7 +1167,6 @@ var siteTour = function() {
       await sensorsLoadedPromise;
 
       // A lat/lng point in SLC region
-      //var latLng = new google.maps.LatLng(40.6599, -111.9963);
       var latLng = new google.maps.LatLng(40.6188, -111.9929);
       var e = { latLng: latLng, fromVirtualClick: true };
       // TODO: Likely need to tweak for mobile
@@ -1184,6 +1187,7 @@ var siteTour = function() {
     } else if (this._currentStep == 5) {
       // 3:45 AM
       playbackTimeline.seekTo(12, true);
+      $(".block-click-region[data-epochtime_milisec='1635919200000']").trigger("click");
 
       // A lat/lng point in SLC region
       var latLng = new google.maps.LatLng(40.6188, -111.9929);
@@ -1292,7 +1296,7 @@ var siteTour = function() {
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
       }
-      $purpleAirToggle.prop("checked", false);
+      $purpleAirToggle.prop("checked", false).trigger("change");
       togglePurpleAirs(false);
     } else if (this._currentStep == 14) {
       // 9:30 PM
@@ -1315,7 +1319,7 @@ var siteTour = function() {
       // Turning on all the purple airs changes the state of the DOM so that we cannot highlight previous DOM markers.
       // Google is doing something to the DOM when there are lots of markers. That said, we don't need to show them
       // all for this tour. Plus, we are manually selecting a bounds on the screen and not messing with map DOM elements.
-      $purpleAirToggle.prop("checked", true);
+      $purpleAirToggle.prop("checked", true).trigger("change");
 
       // Turn back on if they exist, otherwise pull them
       await handlePurpleAirTourData();
@@ -1325,7 +1329,7 @@ var siteTour = function() {
       if (sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
       }
-      $purpleAirToggle.prop("checked", false);
+      $purpleAirToggle.prop("checked", false).trigger("change");
     } else if (this._currentStep == 16) {
       if (selectedLocationPinVisible()) {
         google.maps.event.trigger(selectedLocationPin, "click");
@@ -1414,7 +1418,7 @@ var siteTour = function() {
     // Purple airs used in the tour may still be up, hide them
     togglePurpleAirs(false);
     // Turn off purple air UI toggle
-    $purpleAirToggle.prop("checked", false);
+    $purpleAirToggle.prop("checked", false).trigger("change");
     // TRAX may still be up, hide them
     if (sensorsEnabledState['trax']) {
       $traxToggle.trigger("click");
@@ -1485,7 +1489,7 @@ var togglePurpleAirs = function(makeVisible) {
 
       // The worker may already be processing so terminate it and create a new one.
       // There is overhead to this but significantly less than having it finish
-      // the whatever the last worker was doing.
+      // whatever the last worker was doing.
       if (dataFormatPurpleAirWorkerIsProcessing) {
         dataFormatWorker.terminate();
         createDataPullWebWorker();
@@ -1673,6 +1677,7 @@ var getShareUrl = function() {
   var viewStr = mapCenter.lat().toFixed(6) + "," + mapCenter.lng().toFixed(6) + "," + mapZoom;
   var timeStr = playbackTimeline && mapZoom >= MAP_ZOOM_CHANGEOVER_THRESHOLD ? playbackTimeline.getPlaybackTimeInMs() : null;
   //var isDaylineOpen = playbackTimeline.isActive();
+
   var urlVars = Util.parseVars(window.location.href);
   urlVars.v = viewStr;
   if (timeStr) {
@@ -1880,9 +1885,10 @@ async function handleDraw(timeInEpoch) {
   await sensorsLoadedPromise;
 
   var primaryInfoPopulator = selectedSensorMarker;
-  // Handle case where a user has clicked on the map where a trax sensor can be but it is not yet visible.
-  //  As time plays, however, it may become visible, so allow for the info panel to see this info when the train passes by.
+
   if (selectedLocationPinVisible()) {
+    // Handle case where a user has clicked on the map where a trax sensor can be but it is not yet visible.
+    // As time plays, however, it may become visible, so allow for the info panel to see this info when the train passes by.
     for(var x = 0; x < traxMarkers.length; x++) {
       if (!selectedSensorMarker && traxMarkers[x].visible && traxMarkers[x].getBounds().contains(selectedLocationPin.position)) {
         primaryInfoPopulator = traxMarkers[x];
@@ -1890,12 +1896,12 @@ async function handleDraw(timeInEpoch) {
         break;
       }
     }
-  }
-
-  // animate footprint
-  if (overlay && (overlay.projection || selectedLocationPinVisible())) {
+    // animate footprint
     var overlayData = overlay.getData();
-    await drawFootprint(overlayData.lat, overlayData.lng, false);
+    if (overlayData.hasData) {
+      await drawFootprint(overlayData.lat, overlayData.lng, false);
+    }
+
     if (!primaryInfoPopulator) {
       primaryInfoPopulator = overlay;
     }
@@ -2230,14 +2236,17 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
     // Roll the sensor data to fill in some missing values
     tmp = rollSensorData(tmp, info[i]);
 
-
     var sensorName = info[i]["name"];
+    var sensorTimes = tmp.data.map(entry => entry.time * 1000);
+    var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeline.getPlaybackTimeInMs(), "down");
+    var newData = tmp.data[indexOfAvailableTime];
+
     if (!available_cities[selectedCity].sensors[sensorName].data) {
       available_cities[selectedCity].sensors[sensorName].data = {};
-      createAndShowSensorMarker(tmp, epochtime_milisec, is_current_day, info[i]);
+      createAndShowSensorMarker(newData, epochtime_milisec, is_current_day, info[i]);
     } else {
       var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
-      marker.setData(parseSensorMarkerDataForPlayback(tmp, is_current_day, info[i]));
+      marker.setData(parseSensorMarkerDataForPlayback(newData, is_current_day, info[i]));
       marker.updateMarker();
     }
     available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = tmp;

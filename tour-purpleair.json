@@ -6,7 +6,7 @@
 {"name": "85004_040683N111797W PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 83020, "channel": "PM2_5"}]}}, "latitude": 40.683303, "longitude": -111.797052, "marker_type": "purple_air"},
 {"name": "Mikalm B PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 29231, "channel": "PM2_5"}]}}, "latitude": 40.679787, "longitude": -111.784015, "marker_type": "purple_air"},
 {"name": "5803_040680N111780W PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 41005, "channel": "PM2_5"}]}}, "latitude": 40.680315, "longitude": -111.780005, "marker_type": "purple_air"},
-{"name": "Schaeffer-George Outside PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 15497, "channel": "PM2_5"}]}}, "latitude": 40.676312, "longitude": -111.788121, "marker_type": "purple_air"},
+{"name": "Schaeffer-George Outside B PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 15498, "channel": "PM2_5"}]}}, "latitude": 40.676312, "longitude": -111.788121, "marker_type": "purple_air"},
 {"name": "Brockbank Dr B PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 15672, "channel": "PM2_5"}]}}, "latitude": 40.673606, "longitude": -111.798415, "marker_type": "purple_air"},
 {"name": "93184_040671N111793W PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 84484, "channel": "PM2_5"}]}}, "latitude": 40.671165, "longitude": -111.792776, "marker_type": "purple_air"},
 {"name": "42080_040673N111783W PurpleAir", "sensors": {"PM25": {"sources": [{"feed": 35535, "channel": "PM2_5"}]}}, "latitude": 40.672819, "longitude": -111.783307, "marker_type": "purple_air"},
