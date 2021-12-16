@@ -152,9 +152,9 @@ function resetAllTrax() {
     });
     marker.setVisible(false);
   }
-  if (selectedSensorMarker && selectedSensorMarker.traxId) {
+  /*if (selectedSensorMarker && selectedSensorMarker.traxId) {
     selectedSensorMarker = null;
-  }
+  }*/
 }
 
 
@@ -811,6 +811,11 @@ async function initMap() {
   $purpleAirToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     togglePurpleAirs(isChecked);
+    if (selectedSensorMarker && selectedSensorMarker.getGoogleMapMarker().visible) {
+      updateInfoBar(selectedSensorMarker);
+    } else if (selectedLocationPin && selectedLocationPin.visible) {
+      updateInfoBar(overlay);
+    }
   }).on("change", function(e) {
     var isChecked = $(e.target).prop("checked");
     sensorsEnabledState['purpleAir'] = isChecked;
@@ -819,6 +824,11 @@ async function initMap() {
   $traxToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     toggleTrax(isChecked);
+    if (selectedSensorMarker && selectedSensorMarker.visible) {
+      updateInfoBar(selectedSensorMarker);
+    } else if (selectedLocationPin && selectedLocationPin.visible) {
+      updateInfoBar(overlay);
+    }
   }).on("change", function(e) {
     var isChecked = $(e.target).prop("checked");
     sensorsEnabledState['trax'] = isChecked;
@@ -2092,6 +2102,7 @@ async function drawFootprint(lat, lng, fromClick) {
       overlay.setMap(null);
       overlay.setData({});
       resetInfobar();
+      selectedSensorMarker = null;
     });
   }
 }
