@@ -1652,7 +1652,7 @@ async function getCityInBounds() {
         }
         var urlVars = Util.parseVars(window.location.href);
         if (urlVars.pinnedPoint) {
-          var latLng = urlVars.pinnedPoint.split(",")
+          var latLng = urlVars.pinnedPoint.split(",");
           google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
         }
         if (urlVars.playbackTimelineOpen == "true") {
@@ -1938,9 +1938,7 @@ async function handleDraw(timeInEpoch) {
     }
     // animate footprint
     var overlayData = overlay.getData();
-    if (overlayData.hasData) {
-      await drawFootprint(overlayData.lat, overlayData.lng, false);
-    }
+    await drawFootprint(overlayData.lat, overlayData.lng, false);
 
     if (!primaryInfoPopulator) {
       primaryInfoPopulator = overlay;
@@ -1992,7 +1990,6 @@ async function drawFootprint(lat, lng, fromClick) {
   if (overlay.getData().isoString == isoString) {
     return;
   }
-
 
   var latTrunc = lat.toFixed(2);
   // Footprints are being stored in the bucket by lat/lon with 2 digit precision. Sorta.
