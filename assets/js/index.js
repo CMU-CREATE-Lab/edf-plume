@@ -261,7 +261,6 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   var mStartDate = moment.tz(playbackTimeInMs, selected_city_tmz);
   // For some reason we need to add/subtract an extra minute. The where clause does not seem to do what I would expect for the conditional...
   var endDate = mStartDate.clone().add(1, 'minutes').toDate();
-  //playbackTimeline.getIncrementAmt()
   var startDate = mStartDate.clone().subtract(traxDataIntervalInMin - 1, 'minutes').toDate();
 
   // We pass local time, offset to the city's TMZ.
@@ -474,8 +473,6 @@ async function initMap() {
 
   google.maps.event.addListenerOnce(map, 'idle', async function() {
     await loadAvailableCities();
-    //await loadSensorList();
-    //await loadFacilitiesList();
 
     showHideMarkersByZoomLevel();
     getCityInBounds();
@@ -560,7 +557,6 @@ async function initMap() {
   $("#controls").on("click", "#calendar-btn, .timestampPreview", handleTimelineToggling);
 
   if (hasTouchSupport) {
-    //var controlsElem = document.getElementById("controls");
     $("#controls, #infobar").on("touchstart", Util.touch2Mouse)
                             .on("touchmove", Util.touch2Mouse)
                             .on("touchend", Util.touch2Mouse)
@@ -801,9 +797,9 @@ async function initMap() {
     });
     var exportImage = canvas.toDataURL();
     var currentPlaybackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
-    var isDaylineOpen = playbackTimeline.isActive();
+    var isPlaybackTimelineOpen = playbackTimeline.isActive();
     var momentTime = moment.tz(currentPlaybackTimeInMs, selected_city_tmz);
-    var dateStr = isDaylineOpen ? momentTime.format("YYYYMMDDHHmm") : momentTime.startOf("day").format("YYYYMMDDHHmm");
+    var dateStr = isPlaybackTimelineOpen ? momentTime.format("YYYYMMDDHHmm") : momentTime.startOf("day").format("YYYYMMDDHHmm");
     download(exportImage, dateStr + ".png", "image/png");
     $(this).removeClass("waiting").text("Capture Screenshot");
   });
@@ -811,27 +807,27 @@ async function initMap() {
   $purpleAirToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     togglePurpleAirs(isChecked);
-    if (selectedSensorMarker && selectedSensorMarker.getGoogleMapMarker().visible) {
+    if (isSensorMarkerVisible(selectedSensorMarker)) {
       updateInfoBar(selectedSensorMarker);
-    } else if (selectedLocationPin && selectedLocationPin.visible) {
+    } else if (selectedLocationPinVisible()) {
       updateInfoBar(overlay);
     }
   }).on("change", function(e) {
     var isChecked = $(e.target).prop("checked");
-    sensorsEnabledState['purpleAir'] = isChecked;
+    updateSensorsEnabledState("purple_air", isChecked);
   });
 
   $traxToggle.on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     toggleTrax(isChecked);
-    if (selectedSensorMarker && selectedSensorMarker.visible) {
+    if (isSensorMarkerVisible(selectedSensorMarker)) {
       updateInfoBar(selectedSensorMarker);
-    } else if (selectedLocationPin && selectedLocationPin.visible) {
+    } else if (selectedLocationPinVisible()) {
       updateInfoBar(overlay);
     }
   }).on("change", function(e) {
     var isChecked = $(e.target).prop("checked");
-    sensorsEnabledState['trax'] = isChecked;
+    updateSensorsEnabledState("trax", isChecked);
   });
 
   $searchBoxIcon.on("mouseover mouseout", function() {
@@ -874,8 +870,6 @@ async function initMap() {
 
   setupGoogleMapsSearchPlaceChangedHandlers();
 
-
-
   // !!DO LAST!!
 
   // Draw TRAX locations on the map
@@ -903,7 +897,8 @@ async function initMap() {
   }
 }
 
-var siteTour = function() {
+
+function siteTour() {
   var defaultTourStepTitle = "Air Tracker Tour";
   tourObj = introJs().setOptions({
     autoPosition: false,
@@ -1128,7 +1123,7 @@ var siteTour = function() {
     } else if (this._currentStep == 1) {
 
       // Turn off purple air
-      if (sensorsEnabledState['purpleAir']) {
+      if (sensorsEnabledState['purple_air']) {
         $purpleAirToggle.trigger("click");
       }
 
@@ -1442,7 +1437,7 @@ var siteTour = function() {
   }).start();
 }
 
-var convertLatLngToScreenCoords = function(latLng) {
+function convertLatLngToScreenCoords(latLng) {
   var _projection = map.getProjection();
   var _topRight = _projection.fromLatLngToPoint(map.getBounds().getNorthEast());
   var _bottomLeft = _projection.fromLatLngToPoint(map.getBounds().getSouthWest());
@@ -1456,17 +1451,17 @@ var convertLatLngToScreenCoords = function(latLng) {
   return {left: _posLeft, top: _posTop};
 }
 
-var goToDefaultHomeView = function(){
+function goToDefaultHomeView(){
   map.setCenter({lat: defaultHomeView.lat, lng: defaultHomeView.lng});
   map.setZoom(defaultHomeView.zoom);
 }
 
-var changeBrowserUrlState = function() {
+function changeBrowserUrlState() {
   window.history.replaceState({}, "", getShareUrl());
 }
 
 
-var toggleTrax = function(makeVisible) {
+function toggleTrax(makeVisible) {
   if (makeVisible) {
     getTraxInfoByPlaybackTime(playbackTimeline.getPlaybackTimeInMs());
   } else {
@@ -1475,7 +1470,7 @@ var toggleTrax = function(makeVisible) {
 }
 
 
-var togglePurpleAirs = function(makeVisible) {
+function togglePurpleAirs(makeVisible) {
   if (!selectedCity) return;
 
   let purple_air_sensors = [];
@@ -1532,16 +1527,16 @@ var togglePurpleAirs = function(makeVisible) {
   }
 }
 
-var toggleOffAllNonForcedSensors = function() {
+function toggleOffAllNonForcedSensors() {
   if (sensorsEnabledState['trax']) {
     $traxToggle.trigger("click");
   }
-  if (sensorsEnabledState['purpleAir']) {
+  if (sensorsEnabledState['purple_air']) {
     $purpleAirToggle.trigger("click");
   }
 }
 
-var getCityInBounds = async function() {
+async function getCityInBounds() {
   var lastSelectedCity = selectedCity;
   selectedCity = "";
   var zoom = map.getZoom();
@@ -1650,11 +1645,24 @@ var getCityInBounds = async function() {
       var shareTimeInMs = parseInt(urlVars.t);
       if (shareTimeInMs) {
         selected_day_start_epochtime_milisec = moment(shareTimeInMs).tz(selected_city_tmz).startOf("day").valueOf();
-        //playbackTimeline.setPlaybackTimeInMs(shareTimeInMs, true);
       }
       setupTimeline(shareTimeInMs, function() {
         if (zoomChangedSinceLastIdle || lastSelectedCity == "") {
           cityInBoundsCallback();
+        }
+        var urlVars = Util.parseVars(window.location.href);
+        if (urlVars.pinnedPoint) {
+          var latLng = urlVars.pinnedPoint.split(",")
+          google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
+        }
+        if (urlVars.playbackTimelineOpen) {
+          handleTimelineToggling();
+        }
+        if (urlVars.activeSensors) {
+          var sensorsToActivate = urlVars.activeSensors.split(",");
+          for (var sensorType of sensorsToActivate) {
+            $("#toggle-" + sensorType.replace("_", "-")).trigger("click");
+          }
         }
       });
     }
@@ -1667,7 +1675,7 @@ var getCityInBounds = async function() {
   zoomChangedSinceLastIdle = false;
 }
 
-var getShareUrl = function() {
+function getShareUrl() {
   var parentUrl = "";
   var sourceUrl = window.location.href.split("?")[0];
   if (window.top === window.self) {
@@ -1686,7 +1694,9 @@ var getShareUrl = function() {
   var mapZoom = map.getZoom();
   var viewStr = mapCenter.lat().toFixed(6) + "," + mapCenter.lng().toFixed(6) + "," + mapZoom;
   var timeStr = playbackTimeline && mapZoom >= MAP_ZOOM_CHANGEOVER_THRESHOLD ? playbackTimeline.getPlaybackTimeInMs() : null;
-  //var isDaylineOpen = playbackTimeline.isActive();
+  var isPlaybackTimelineOpen = playbackTimeline ? playbackTimeline.isActive() : false;
+  var activeSensors = Object.keys(sensorsEnabledState).filter(key => sensorsEnabledState[key] === true).join(",");
+  var selectedLocationPinCoords = selectedLocationPinVisible() ? selectedLocationPin.position.lat().toFixed(6) + "," + selectedLocationPin.position.lng().toFixed(6) : null;
 
   var urlVars = Util.parseVars(window.location.href);
   urlVars.v = viewStr;
@@ -1694,6 +1704,21 @@ var getShareUrl = function() {
     urlVars.t = timeStr;
   } else {
     delete urlVars.t;
+  }
+  if (isPlaybackTimelineOpen) {
+    urlVars.playbackTimelineOpen = true;
+  } else {
+    delete urlVars.playbackTimelineOpen;
+  }
+  if (activeSensors) {
+    urlVars.activeSensors = activeSensors;
+  } else {
+    delete urlVars.activeSensors;
+  }
+  if (selectedLocationPinCoords) {
+    urlVars.pinnedPoint = selectedLocationPinCoords;
+  } else {
+    delete urlVars.pinnedPoint;
   }
   var urlVarsString = "?";
   for (var urlVar in urlVars) {
@@ -1705,8 +1730,8 @@ var getShareUrl = function() {
 }
 
 
-// TODO: Remove this and use jQuery UI tooltip or generalize this more!
-var setButtonTooltip = function(text, $target, duration, position) {
+// TODO: Remove this and use jQuery UI tooltip or make this more general
+function setButtonTooltip(text, $target, duration, position) {
   if ($tooltip.is(':visible') || ($target && ($target.hasClass("ui-button") && $target.button("option", "disabled")))) {
     return;
   }
@@ -1757,6 +1782,12 @@ var setButtonTooltip = function(text, $target, duration, position) {
   }
 };
 
+function isSensorMarkerVisible(sensorMarker) {
+  if (sensorMarker && ((sensorMarker.getGoogleMapMarker() && sensorMarker.getGoogleMapMarker().visible) || sensorMarker.visible)) {
+    return true;
+  }
+  return false;
+}
 
 function selectedLocationPinVisible() {
   return selectedLocationPin && selectedLocationPin.visible;
@@ -1771,7 +1802,6 @@ function createDataPullWebWorker() {
 
 function isInTour() {
   return inTour;
-  //return $(".introjs-tooltip").length != 0;
 }
 
 function initDomElms() {
@@ -1826,7 +1856,7 @@ function initDomElms() {
   verticalTouchScroll($infobarInitial);
 }
 
-var setupGoogleMapsSearchPlaceChangedHandlers = function() {
+function setupGoogleMapsSearchPlaceChangedHandlers() {
   var autocomplete = new google.maps.places.Autocomplete($searchBox.get(0));
   var geocoder = new google.maps.Geocoder();
 
@@ -1927,19 +1957,6 @@ async function handleDraw(timeInEpoch) {
 }
 
 
-/*async function getMostRecentFootprintTimeInMs() {
-  if (mostRecentAvailableFootprintTimeInMs) {
-    return mostRecentAvailableFootprintTimeInMs;
-  }
-  var snapshot = await  db.collection("stilt-prod").orderBy("job_id").limitToLast(1).get();
-  var jobId = snapshot.docs[0].get("job_id");
-  var dateString = jobId.split("_")[0];
-  mostRecentAvailableFootprintTimeInMs = moment.tz(dateString, "YYYYMMDDhhmm", "UTC").valueOf();
-  //mostRecentAvailableFootprintTimeStr = moment.tz(mostRecentAvailableFootprintTimeInMs, "UTC").tz(DEFAULT_TZ).format("h:mm A");
-  return mostRecentAvailableFootprintTimeInMs;
-}*/
-
-
 async function drawFootprint(lat, lng, fromClick) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
@@ -1962,17 +1979,6 @@ async function drawFootprint(lat, lng, fromClick) {
   }
 
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
-
-  // Show footprint at sensor time
-  // We may instead want to find the latest footprint and then show the sensor value based on that time.
-  /*if (!playbackTimeline.isActive()) {
-    if (selectedSensorMarker) {
-      var sensorData = selectedSensorMarker.getData();
-      if (sensorData) {
-        playbackTimeInMs = sensorData['sensor_data_time'];
-      }
-    }
-  }*/
 
   var m_date = moment(playbackTimeInMs).tz(selected_city_tmz);
 
@@ -2126,6 +2132,7 @@ function resetInfobar() {
   $infobarComponentContainer.hide();
   $infobarInitial.show();
   $infobarHeader.hide();
+  changeBrowserUrlState();
 }
 
 async function loadSensorsListForCity(city_locode) {
@@ -2488,11 +2495,6 @@ function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
     }
     sensors_to_feeds_end_index.push(count);
   }
-
-  // Remove any duplicates
-  //feeds_to_channels = feeds_to_channels.filter(function(item, index, inputArray) {
-  //  return inputArray.indexOf(item) == index;
-  //});
   return [esdr_root_url + "feeds/export/" + feeds_to_channels.toString() + time_range_url_part, sensors_to_feeds_end_index];
 }
 
@@ -2824,9 +2826,16 @@ function safeGet(v, default_val) {
 }
 
 
+function updateSensorsEnabledState(sensorType, state) {
+  sensorsEnabledState[sensorType] = state;
+  changeBrowserUrlState();
+}
+
 // TODO: Refactor so we are not passing in a marker but pulling state elsewhere.
 function updateInfoBar(marker) {
   if (!marker || !selectedLocationPinVisible()) return;
+
+  changeBrowserUrlState();
 
   var markerData = marker.getData();
 
@@ -2850,7 +2859,7 @@ function updateInfoBar(marker) {
 
   // Show sensor pollution value (PM25) in infobar
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'] || 0;
-  if (selectedSensorMarker) {
+  if (isSensorMarkerVisible(selectedSensorMarker)) {
     if (isDaySummary) {
       setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max at "  + markerDataTimeMomentFormatted);
     } else {
@@ -3027,7 +3036,7 @@ function showMarkers(markers, isFirstTime) {
   drewMarkersAtLeastOnce = true;
   markers = safeGet(markers, []);
   let filterExcludes = [];
-  if (!sensorsEnabledState['purpleAir']) {
+  if (!sensorsEnabledState['purple_air']) {
     filterExcludes.push("purple_air")
   }
   for (var i = 0; i < markers.length; i++) {
@@ -3263,7 +3272,7 @@ function initFootprintDialog() {
 
 
 // Add horizontal scroll touch support to a jQuery HTML element.
-var touchHorizontalScroll = function($elem) {
+function touchHorizontalScroll($elem) {
   var scrollStartPos = 0;
   $elem.on("touchstart", function(e) {
     scrollStartPos = this.scrollLeft + e.originalEvent.touches[0].pageX;
@@ -3276,7 +3285,7 @@ var touchHorizontalScroll = function($elem) {
 
 
 // Add vertical scroll touch support to an HTML element
-var verticalTouchScroll = function($elem){
+function verticalTouchScroll($elem){
   var el = $elem[0];
   var scrollStartPos = 0;
   el.addEventListener("touchstart", function(e) {

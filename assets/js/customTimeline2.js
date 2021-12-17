@@ -539,6 +539,7 @@ var create = {};
 
     var setActiveState = function(state) {
       isTimelineActive = state;
+      changeBrowserUrlState();
     };
     this.setActiveState = setActiveState;
 

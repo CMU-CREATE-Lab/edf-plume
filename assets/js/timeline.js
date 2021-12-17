@@ -176,7 +176,8 @@ function initTimeline(options) {
     $("#timeline-handle").removeClass('force-no-visibility');
     playbackTimeline = new create.CustomTimeline2();
     if (selected_day_start_epochtime_milisec) { // If a day has already been set
-      playbackTimeline.setPlaybackTimeInMs(options.playbackTimeInMs);
+      // Pass 'true' to not change browser state.
+      playbackTimeline.setPlaybackTimeInMs(options.playbackTimeInMs, true);
       timeline.selectBlockByEpochTime(selected_day_start_epochtime_milisec);
       //timeline.selectedDayInMs = selected_day_start_epochtime_milisec;
     } else { // Otherwise default to last day
