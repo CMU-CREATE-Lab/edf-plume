@@ -1655,7 +1655,7 @@ async function getCityInBounds() {
           var latLng = urlVars.pinnedPoint.split(",")
           google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
         }
-        if (urlVars.playbackTimelineOpen) {
+        if (urlVars.playbackTimelineOpen == "true") {
           handleTimelineToggling();
         }
         if (urlVars.activeSensors) {
