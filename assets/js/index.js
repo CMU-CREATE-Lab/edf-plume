@@ -2192,7 +2192,6 @@ async function handlePurpleAirTourData() {
 }
 
 async function receivedWorkerMessage(event) {
-  console.log('received', event)
   var result = event.data.result;
   var info = event.data.info;
   var epochtime_milisec = event.data.epochtime_milisec;
