@@ -1,12 +1,11 @@
 "use strict";
 
-var util = new edaplotjs.Util();
+//var util = new edaplotjs.Util();
 var timeline;
-var date_to_index;
 var widgets = new edaplotjs.Widgets();
-var $calendar_dialog;
-var $calendar_select;
-var plume_viz_data;
+//var $calendar_dialog;
+//var $calendar_select;
+//var plume_viz_data;
 
 
 /*function getShareQuery(date_str) {
@@ -151,25 +150,6 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   }
 }*/
 
-
-function addTouchHorizontalScroll(elem) {
-  var scrollStartPos, startTime, endTime, newPos, startTouchX, endTouchX;
-  $(elem).on("touchstart", function (e) {
-    startTime = new Date().getTime();
-    newPos = 0;
-    endTouchX = null;
-    startTouchX = e.originalEvent.touches[0].pageX;
-    scrollStartPos = this.scrollLeft + startTouchX;
-    e.preventDefault();
-  }).on("touchmove", function (e) {
-    endTouchX = e.originalEvent.touches[0].pageX;
-    newPos = scrollStartPos - endTouchX;
-    this.scrollLeft = newPos;
-    e.preventDefault();
-  });
-}
-
-
 function initTimeline(options) {
   widgets.setCustomLegend($("#legend"));
   loadAndCreateTimeline(function() {
@@ -298,14 +278,14 @@ function loadTimelineDataToday(fullData, callback){
         var date = parsed["utcDateTimes"].pop() + "Z";
         var mDate = moment(date);
         var startTimeOfDate = moment(date).tz(selected_city_tmz).startOf("day");
-        startOfLatestAvailableDay = startTimeOfDate.tz(selected_city_tmz).valueOf();
+        //startOfLatestAvailableDay = startTimeOfDate.tz(selected_city_tmz).valueOf();
         var startTimeOfDateFormatted = startTimeOfDate.format("YYYY-MM-DD HH:mm:ss");
         //mostRecentUpdate12HourTimeForLocation = mDate.clone();
         //if (mDate.minute() > 30){
         //  mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).minute(30).second(0);
         //} else{}
         //mostRecentUpdate12HourTimeForLocation = mostRecentUpdate12HourTimeForLocation.tz(DEFAULT_TZ).format("h:mm A");
-        mostRecentUpdateEpochTimeForLocationInMs = mDate.tz(selected_city_tmz).valueOf();
+        //mostRecentUpdateEpochTimeForLocationInMs = mDate.tz(selected_city_tmz).valueOf();
         //mostRecentDayStr = mDate.tz(DEFAULT_TZ).format("MMM DD");
         var val = parsed["aqi"].pop();
         // We may be missing the previous day. Check and if so, get the max value
@@ -333,13 +313,13 @@ function loadTimelineDataToday(fullData, callback){
   });
 }
 
-function preprocessAQIData(raw_data) {
+/*function preprocessAQIData(raw_data) {
   var days = JSON.parse(raw_data)["utcDateTimes"].map(x => x.split(" ")[0]);
   var aqis = JSON.parse(raw_data)["aqi"];
   var result = {};
   days.forEach((key, i) => result[key] = aqis[i]);
   return result;
-}
+}*/
 
 function formatDataForTimeline(data, pad_to_date_obj) {
   //var current_date_obj = new Date();
@@ -351,7 +331,7 @@ function formatDataForTimeline(data, pad_to_date_obj) {
   var batch_2d = []; // the inner small 2D batch data for batch_3d
 
   var sorted_day_strs = Object.keys(data).sort();
-  var sorted_day_strs = sorted_day_strs.slice(sorted_day_strs.indexOf(available_cities[selectedCity].timeline_start_date + " 00:00:00"));
+  sorted_day_strs = sorted_day_strs.slice(sorted_day_strs.indexOf(available_cities[selectedCity].timeline_start_date + " 00:00:00"));
   var last_month;
 
   // If no data, exit
@@ -440,18 +420,18 @@ function dateStringToObject(str, tz) {
   return new Date(year, month - 1, day)*/
 }
 
-function dataObjectToString(date_obj) {
+/*function dataObjectToString(date_obj) {
   return moment(date_obj).format("YYYY-MM-DD");
-  /*var year = date_obj.getFullYear();
-  var month = date_obj.getMonth() + 1;
-  var day = date_obj.getDate();
-  return year + "-" + month + "-" + day;*/
-}
+  //var year = date_obj.getFullYear();
+  //var month = date_obj.getMonth() + 1;
+  //var day = date_obj.getDate();
+  //return year + "-" + month + "-" + day;
+}*/
 
-function isMobile() {
+/*function isMobile() {
   var useragent = navigator.userAgent;
   return useragent.indexOf("iPhone") != -1 || useragent.indexOf("Android") != -1;
-}
+}*/
 
 function addTouchHorizontalScroll(elem) {
   var scrollStartPos, startTime, endTime, newPos, startTouchX, endTouchX;
@@ -467,7 +447,7 @@ function addTouchHorizontalScroll(elem) {
     newPos = scrollStartPos - endTouchX;
     this.scrollLeft = newPos;
     e.preventDefault();
-  }).on("touchend touchcancel", function (e) {
+  });/*.on("touchend touchcancel", function (e) {
     // TODO: Flick/swip ability
     //endTime = new Date().getTime();
     //if (endTouchX && endTime - startTime < 100) {
@@ -475,59 +455,59 @@ function addTouchHorizontalScroll(elem) {
     //  if (endTouchX > startTouchX) flickVal *= -1;
     //  this.scrollLeft = this.scrollLeft + flickVal;
     //}
-  });
+  });*/
 }
 
-function unique(array) {
+/*function unique(array) {
   return array.filter(function (item, i, ar) {
     return ar.indexOf(item) === i;
   })
-}
+}*/
 
 // Is dictionary empty
-function isDictEmpty(dict) {
+/*function isDictEmpty(dict) {
   return Object.keys(dict).length === 0;
-}
+}*/
 
 // Get the end day of the current month
-function firstDayOfNextMonth(date_obj) {
+/*function firstDayOfNextMonth(date_obj) {
   return new Date(date_obj.getFullYear(), date_obj.getMonth() + 1, 1);
-}
+}*/
 
 // Get the first day of the previous month
-function firstDayOfPreviousMonth(date_obj) {
+/*function firstDayOfPreviousMonth(date_obj) {
   return new Date(date_obj.getFullYear(), date_obj.getMonth() - 1, 1);
-}
+}*/
 
 // Get the first day of the current month
-function firstDayOfCurrentMonth(date_obj) {
+/*function firstDayOfCurrentMonth(date_obj) {
   return new Date(date_obj.getFullYear(), date_obj.getMonth(), 1);
-}
+}*/
 
 // Check if a string yyyy-mm-dd is a valid date
-function isValidDate(date_string) {
+/*function isValidDate(date_string) {
   var reg_ex = /^\d{4}-\d{2}-\d{2}$/;
   if (!date_string.match(reg_ex)) return false; // invalid format
   var d = new Date(date_string);
   var d_time = d.getTime();
   if (!d_time && d_time !== 0) return false; // NaN value, invalid date
   return d.toISOString().slice(0, 10) === date_string;
-}
+}*/
 
 // Month here is 1-indexed (January is 1, February is 2, etc). This is
 // because we are using 0 as the day so that it returns the last day
 // of the last month, so you have to add 1 to the month number
 // so it returns the correct amount of days
-function daysInMonth(year, month) {
+/*function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
-}
+}*/
 
 // Check if the date object is the current month in the real-world time
-function isCurrentMonth(date_obj) {
+/*function isCurrentMonth(date_obj) {
   var now = new Date();
   if (now.getFullYear() == date_obj.getFullYear() && now.getMonth() == date_obj.getMonth()) {
     return true;
   } else {
     return false;
   }
-}
+}*/

@@ -66,11 +66,11 @@ async function loadMultiSensorDataAsChunks(urls) {
 }
 
 
-async function loadMultiSensorData(url) {
+/*async function loadMultiSensorData(url) {
   const response = await fetch(url);
   const data = await response.json();
   return data;
-}
+}*/
 
 
 function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk) {
@@ -116,7 +116,7 @@ function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerC
 }
 
 
-function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
+/*function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
   var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
   var epochtime = parseInt(epochtime_milisec / 1000);
   var time_range_url_part = "?format=json&from=" + epochtime + "&to=" + (epochtime + 86399);
@@ -147,7 +147,7 @@ function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
   //  return inputArray.indexOf(item) == index;
   //});
   return [esdr_root_url + "feeds/export/" + feeds_to_channels.toString() + time_range_url_part, sensors_to_feeds_end_index];
-}
+}*/
 
 
 function aggregateSensorData(data, info) {

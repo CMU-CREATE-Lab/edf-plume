@@ -237,7 +237,6 @@ var create = {};
       new ResizeObserver(refocusTimeline).observe($(".materialTimeline")[0]);
 
       //$(window).on("resize", refocusTimeline);
-
     };
 
 
@@ -255,6 +254,7 @@ var create = {};
           handleDraw(playbackTimeInMs);
         }
         setTimezoneText();
+        updateTimeJumpMenu();
       }
 
       if (!timeTick || timeTick.length == 0) {

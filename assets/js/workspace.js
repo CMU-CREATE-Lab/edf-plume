@@ -1,4 +1,8 @@
 // TODO
+
+var hrrrWindErrorMarkers = [];
+var hrrrWindErrorDataByEpochTimeInMs = {};
+
 function setHrrrWindErrorPointsColor(currentPlaybackTimeInMs) {
   var opacity;
   var options = {};
@@ -20,6 +24,16 @@ function setHrrrWindErrorPointsColor(currentPlaybackTimeInMs) {
     var visiblity = opacity != 0;
     marker.setVisible(visiblity);
   }
+}
+
+function resetAllHrrrWindErrorPoints() {
+  for (var site in hrrrWindErrorPointLocations) {
+    var marker = hrrrWindErrorPointLocations[site].marker;
+    marker.setVisible(false);
+  }
+  //if (selectedSensorMarker && selectedSensorMarker.traxId) {
+  //  selectedSensorMarker = null;
+  //}
 }
 
 // TODO
