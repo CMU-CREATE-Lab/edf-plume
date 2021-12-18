@@ -1917,7 +1917,7 @@ async function determineSensorAndUpdateInfoBar() {
   if (!found) {
     var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];}).filter(marker => marker);
     for (var marker of markers) {
-      if (!selectedSensorMarker && isSensorMarkerVisible(marker) &&
+      if (selectedLocationPin && !selectedSensorMarker && isSensorMarkerVisible(marker) &&
           (typeof(marker.getBounds) === "function" && marker.getGoogleMapMarker().getBounds().contains(selectedLocationPin.position)) ||
            marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
         primaryInfoPopulator = marker;
@@ -1930,7 +1930,7 @@ async function determineSensorAndUpdateInfoBar() {
   // animate footprint
   var overlayData = overlay.getData();
   if (Object.keys(overlayData).length > 0) {
-    await drawFootprint(overlayData.lat, overlayData.lng, false);
+    await drawFootprint(overlayData.lat, overlayData.lng, false, true);
   }
 
   if (!primaryInfoPopulator) {
@@ -1961,13 +1961,13 @@ async function handleDraw(timeInEpoch) {
 }
 
 
-async function drawFootprint(lat, lng, fromClick) {
+async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
   }
 
   var fromTour = isInTour();
-  if (!fromTour && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
+  if (!fromTour && !wasVirtualClick && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
     $footprint_dialog.dialog("open");
     drawFootprint.firstTime = false; //do the initialisation
   }
@@ -3000,11 +3000,12 @@ function formatWind(speed,deg) {
 
 
 async function handleMapClicked(mapsMouseEvent) {
-  var fromClick = mapsMouseEvent.fromVirtualClick || !!mapsMouseEvent.domEvent;
+  var wasVirtualClick = mapsMouseEvent.fromVirtualClick;
+  var fromClick = wasVirtualClick || !!mapsMouseEvent.domEvent;
 
   selectedSensorMarker = null;
 
-  await drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng(), fromClick);
+  await drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng(), fromClick, wasVirtualClick);
   updateInfoBar(overlay)
 }
 
