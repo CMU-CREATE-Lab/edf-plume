@@ -2607,7 +2607,7 @@ async function loadAvailableCities() {
           // Need to delay some amount of time for UI to be ready
           setTimeout(function() {
             let $selectedOption = $("#cityOptionSelector .mobileSelect-control.selected");
-            if ($selectedOption.lenth) {
+            if ($selectedOption.length) {
               $selectedOption[0].scrollIntoView();
             }
           }, 20);
