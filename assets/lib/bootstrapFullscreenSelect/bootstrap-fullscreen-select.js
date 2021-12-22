@@ -291,6 +291,7 @@ if (typeof jQuery === 'undefined') {
              * to unbind events while destroy.
              */
             this.$triggerElement.unbind('click');
+            this.$c.find('.mobileSelect-savebtn').unbind('click');
             this.$c.find('.mobileSelect-clearbtn').unbind('click');
             this.$c.find('.mobileSelect-cancelbtn').unbind('click');
             this.$c.find('.mobileSelect-control').unbind('click');
