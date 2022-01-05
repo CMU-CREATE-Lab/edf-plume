@@ -82,8 +82,8 @@ var create = {};
     var isTimelineActive = false;
     var isTimelinePaused = true;
     var seekHoldTimeout;
-    var didScroll = false;
-    var scrollEndTimeout = null;
+    //var didScroll = false;
+    //var scrollEndTimeout = null;
     var mouseDown = false;
 
 

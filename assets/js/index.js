@@ -294,6 +294,8 @@ async function initMap() {
     options: {
       gestureHandling: 'greedy'
     },
+    tilt: 0,
+    rotateControl: false,
     center: { lat: startingView.lat, lng: startingView.lng },
     zoom: startingView.zoom,
     minZoom: isMobileView() ? 4 : 5,
@@ -2882,11 +2884,11 @@ function updateInfoBar(marker) {
         setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
       } else {
         // Clicked on a trax sensor, which is now invisible since the time does not match for it.
-        setInfobarUnavailableSubheadings($infobarPollution,"Click on nearest sensor to see pollution readings.");
+        setInfobarUnavailableSubheadings($infobarPollution,"Click on the nearest sensor to see pollution measurements.");
       }
     }
   } else {
-    setInfobarUnavailableSubheadings($infobarPollution,"Click on nearest sensor to see pollution readings.")
+    setInfobarUnavailableSubheadings($infobarPollution,"Click on the nearest sensor to see pollution measurements.")
   }
 
   // If time selected, show sensor wind in infobar
@@ -2897,11 +2899,11 @@ function updateInfoBar(marker) {
       if (markerData['wind_direction']) {
         setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " at " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
       } else {
-        setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest wind arrow to see wind measurements.")
+        setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest sensor (with an arrow) to see wind measurements.");
       }
     }
   } else {
-    setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest wind arrow to see wind measurements.")
+    setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest sensor (with an arrow) to see wind measurements.");
   }
 
   // Show plume backtrace information
