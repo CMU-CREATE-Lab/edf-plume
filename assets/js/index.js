@@ -1531,6 +1531,7 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
       if (sensorLoadingDeferrers[marker_type] && sensorLoadingDeferrers[marker_type].isProcessing) {
         dataFormatWorker.terminate();
         createDataPullWebWorker();
+        sensorLoadingDeferrers[marker_type].promise = null;
         sensorLoadingDeferrers[marker_type].isProcessing = false;
       }
 
@@ -2912,6 +2913,7 @@ async function showSensorMarkersByTime(epochtime_milisec) {
     if (Object.keys(sensorLoadingDeferrers).find(key => sensorLoadingDeferrers[key].isProcessing === true)) {
       dataFormatWorker.terminate();
       createDataPullWebWorker();
+      sensorLoadingDeferrers[marker_type].promise = null;
     }
 
     var previous_marker_type;
