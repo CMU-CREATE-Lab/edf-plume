@@ -522,6 +522,13 @@ var create = {};
     this.getCurrentFrameNumber = getCurrentFrameNumber;
 
 
+    var getCurrentHumanReadableTime = function() {
+      var date = moment(playbackTimeInMs).tz(selected_city_tmz);
+      return date.format('h:mm A') + " " + date.zoneAbbr();
+    }
+    this.getCurrentHumanReadableTime = getCurrentHumanReadableTime;
+
+
     var setPlaybackTimeInMs = function(newPlaybackTimeInMs, skipBrowserChangeState) {
       playbackTimeInMs = newPlaybackTimeInMs;
       if (!skipBrowserChangeState) {

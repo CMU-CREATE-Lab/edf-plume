@@ -7,6 +7,7 @@ var TRAX_COLLECTION_NAME = "trax-dev";
 //var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
 var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
+var CITY_DATA_ROOT_LOCAL = "./assets/data/cities/";
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
@@ -52,7 +53,7 @@ var selectedLocationPin;
 var selectedSensorMarker;
 var overlay;
 var db;
-// mostRecentUpdateEpochTimeForLocationInMs;
+//var mostRecentUpdateEpochTimeForLocationInMs;
 //var startOfLatestAvailableDay;
 
 var widgets = new edaplotjs.Widgets();
@@ -71,8 +72,6 @@ var currentTouchCount = 0;
 var drewMarkersAtLeastOnce = false;
 
 var isPlaybackTimelineToggling = false;
-var dataFormatWorkerIsProcessing = false;
-var dataFormatPurpleAirWorkerIsProcessing = false;
 var inTour = false;
 
 var traxDataByEpochTimeInMs = {};
@@ -98,11 +97,13 @@ var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
 var $purpleAirToggle;
+var $clarityToggle;
 var $traxToggle;
 var $citySelector;
 var $cityName;
 var $map;
 var $currentDateLegendText;
+var $currentClockPreviewTime;
 var $legend;
 var $searchBoxClear;
 var $searchBox;
@@ -266,6 +267,7 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   }
   sensorLoadingDeferrers['trax'].resolve(null);
 }
+
 
 async function initMap() {
   var urlVars = Util.parseVars(window.location.href);
@@ -706,15 +708,6 @@ async function initMap() {
 
   createDataPullWebWorker();
 
-  $(".cityPickerModal").dialog({
-    resizable: false,
-    autoOpen: false,
-    dialogClass: "customDialog",
-    modal: true,
-    height: 300,
-    width: 300
-  });
-
   $(".shareViewModal").dialog({
     resizable: false,
     autoOpen: false,
@@ -722,16 +715,45 @@ async function initMap() {
     modal: true,
     open: function() {
       $(".shareurl").text(getShareUrl());
+      if (isMobileView()) {
+        $(".shareViewModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+        $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
+      }
     }
   });
+
+  $(".reachOutModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    open: function() {
+      if (isMobileView()) {
+        $(".reachOutModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+        $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
+      }
+    }
+  });
+
+  $(".searchModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    position: { of: window, my: "top+40", at: "top" },
+    open: function() {
+      $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
+    }
+  })
 
   $(".close-modal").on("click", function() {
     $(this).parent().dialog('close');
   });
 
   $(window).resize(function() {
-    $(".shareViewModal").dialog("option", "position", {my: "center", at: "center", of: window});
-    $(".cityPickerModal").dialog("option", "position", {my: "center", at: "center", of: window});
+    if (!isMobileView()) {
+      $(".shareViewModal, .reachOutModal").dialog("option", "position", {my: "center", at: "center", of: window});
+    }
   });
 
   $(".shareurl-copy-text-button").click(function(event) {
@@ -794,9 +816,14 @@ async function initMap() {
     $(this).removeClass("waiting").text("Capture Screenshot");
   });
 
-  $purpleAirToggle.on("click", function(e) {
+  $("#legend-table td input").on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
-    togglePurpleAirs(isChecked);
+    var markerType = $(e.target).data("marker-type");
+    if (markerType == "trax") {
+      toggleTrax(isChecked);
+    } else {
+      toggleMarkersByMarkerType(markerType, isChecked);
+    }
     if (isSensorMarkerVisible(selectedSensorMarker)) {
       updateInfoBar(selectedSensorMarker);
     } else if (selectedLocationPinVisible()) {
@@ -804,21 +831,13 @@ async function initMap() {
     }
   }).on("change", function(e) {
     var isChecked = $(e.target).prop("checked");
-    updateSensorsEnabledState("purple_air", isChecked);
+    var markerType = $(e.target).data("marker-type");
+    updateSensorsEnabledState(markerType, isChecked);
   });
 
-  $traxToggle.on("click", function(e) {
-    var isChecked = $(e.target).prop("checked");
-    toggleTrax(isChecked);
-    if (isSensorMarkerVisible(selectedSensorMarker)) {
-      updateInfoBar(selectedSensorMarker);
-    } else if (selectedLocationPinVisible()) {
-      updateInfoBar(overlay);
-    }
-  }).on("change", function(e) {
-    var isChecked = $(e.target).prop("checked");
-    updateSensorsEnabledState("trax", isChecked);
-  });
+  $("#search-mobile").on("click", function() {
+    $(".searchModal").dialog('open');
+  })
 
   $searchBoxIcon.on("mouseover mouseout", function() {
     $searchBox.toggleClass("hover");
@@ -890,36 +909,65 @@ async function initMap() {
 
 function siteTour() {
   var defaultTourStepTitle = "Air Tracker Tour";
+
+  // TODO: Make tour views/text fit better for mobile
+  var steps = [];
+
+  var step_1_text = "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'.";
+  if (!isMobileView()) {
+    step_1_text += "<br><br> You can also use the forward/backward arrow keys on your keyboard.";
+  }
+  var step_1 = {
+    title: defaultTourStepTitle,
+    intro: step_1_text
+  }
+
+  var step_2 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "Cities featured by Air Tracker are marked with a blue icon on the map. You can click these icons to have the system zoom you in or you can manually zoom in yourself.",
+    highlightPaddings: {width: 86, height: 40, left: -57, top: -50}
+
+  }
+
+  var step_3_text = "You can also select a city by clicking on the city building icon in the upper left corner.";
+  var step_3_element = document.querySelector('#city-picker');
+  var step_3_position = "right";
+  if (isMobileView()) {
+    step_3_text = "You can also select a city by clicking on this menu and choosing 'City Picker'.";
+    step_3_element = document.querySelector('.mobile-menu-toggle.menu-btn');
+    step_3_position = "left";
+  }
+  var step_3 = {
+    title: defaultTourStepTitle,
+    element: step_3_element,
+    intro: step_3_text,
+    position: step_3_position
+  }
+
+  var step_4 = {
+    title: defaultTourStepTitle,
+    intro: "Air Tracker is interactive and works within the dotted lines around each featured city. Click on any location within the box to create a 'back trace' from that point of interest."
+  }
+
+  var step_5 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "A back trace shows the area where a pollution source is most likely to be found. The darker purple indicates the area with the strongest contribution to the back trace. <br> <br> Watch <a target='_blank' href='https://drive.google.com/file/d/1uVzPw4l0GT2S8FcYwGHT430MkIejNXHg/preview'>this video</a> for the basics on what a back trace is.",
+    highlightPaddings:  {top: -50, left: -50, width: 150, height: 400}
+  }
+
   tourObj = introJs().setOptions({
     autoPosition: false,
     exitOnOverlayClick: false,
     showProgress: true,
     showBullets: false,
-    steps: [{
-      title: defaultTourStepTitle,
-      intro: "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'. <br><br> You can also use the forward/backward arrow keys on your keyboard." ,
-    }, {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Cities featured by Air Tracker are marked with a blue icon on the map. You can click these icons to have the system zoom you in or you can manually zoom in yourself.",
-      highlightPaddings: {width: 86, height: 40, left: -57, top: -50}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('#city-picker'),
-      intro: "You can also select a city by clicking on the city building icon in the upper left corner.",
-      position: "right"
-    },
-    {
-      title: defaultTourStepTitle,
-      intro: "Air Tracker is interactive and works within the dotted lines around each featured city. Click on any location within the box to create a 'back trace' from that point of interest."
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "A back trace shows the area where a pollution source is most likely to be found. The darker purple indicates the area with the strongest contribution to the back trace. <br> <br> Watch <a target='_blank' href='https://drive.google.com/file/d/1uVzPw4l0GT2S8FcYwGHT430MkIejNXHg/preview'>this video</a> for the basics on what a back trace is.",
-      highlightPaddings:  {top: -50, left: -50, width: 150, height: 400}
-    },
+    steps: [
+      step_1,
+      step_2,
+      step_3,
+      step_4,
+      step_5,
     {
       title: defaultTourStepTitle,
       element: null,
@@ -1092,8 +1140,8 @@ function siteTour() {
     },
     {
       title: defaultTourStepTitle,
-      element: null,
-      intro: "Closing remarks....",
+      element: document.querySelector("#reach-out"),
+      intro: "Thank you for following along. <br><br> If you have further questions about the methodologies used in this tool or would like to contact us, please click the email icon on the side panel after exiting the tour. <br><br> Happy Exploring!",
     },
 
   ]
@@ -1112,15 +1160,8 @@ function siteTour() {
 
     } else if (this._currentStep == 1) {
 
-      // Turn off purple air
-      if (sensorsEnabledState['purple_air']) {
-        $purpleAirToggle.trigger("click");
-      }
-
-      // turn off TRAX
-      if (sensorsEnabledState['trax']) {
-        $traxToggle.trigger("click");
-      }
+      // Turn off any sensors that can be toggled
+      toggleOffAllNonForcedSensors();
 
       // If we are starting the tour with the playback timeline up, close it.
       if (playbackTimeline && playbackTimeline.isActive()) {
@@ -1174,7 +1215,13 @@ function siteTour() {
         $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
       }
       this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "right";
+      if (isMobileView()) {
+        $(".custom-legend").accordion( "option", "active", false);
+        this._introItems[this._currentStep].position = "top-middle-aligned";
+      } else {
+        this._introItems[this._currentStep].position = "right";
+      }
+
       setTimeout(() => {
         this.refresh();
       }, 500);
@@ -1291,7 +1338,7 @@ function siteTour() {
         google.maps.event.trigger(selectedLocationPin, "click");
       }
       $purpleAirToggle.prop("checked", false).trigger("change");
-      togglePurpleAirs(false);
+      toggleMarkersByMarkerType("purple_air", false);
     } else if (this._currentStep == 14) {
       // 9:30 PM
       playbackTimeline.seekTo(86);
@@ -1318,7 +1365,7 @@ function siteTour() {
       // Turn back on if they exist, otherwise pull them
       await handlePurpleAirTourData();
     } else if (this._currentStep == 15) {
-      togglePurpleAirs(false);
+      toggleMarkersByMarkerType("purple_air", false);
 
       if (sensorsEnabledState['trax']) {
         $traxToggle.trigger("click");
@@ -1410,7 +1457,7 @@ function siteTour() {
     // Share modal may still be open, clsoe it
     $(".close-modal").trigger("click");
     // Purple airs used in the tour may still be up, hide them
-    togglePurpleAirs(false);
+    toggleMarkersByMarkerType("purple_air", false);
     // Turn off purple air UI toggle
     $purpleAirToggle.prop("checked", false).trigger("change");
     // TRAX may still be up, hide them
@@ -1426,6 +1473,7 @@ function siteTour() {
   }).start();
 }
 
+
 function convertLatLngToScreenCoords(latLng) {
   var _projection = map.getProjection();
   var _topRight = _projection.fromLatLngToPoint(map.getBounds().getNorthEast());
@@ -1440,10 +1488,12 @@ function convertLatLngToScreenCoords(latLng) {
   return {left: _posLeft, top: _posTop};
 }
 
+
 function goToDefaultHomeView(){
   map.setCenter({lat: defaultHomeView.lat, lng: defaultHomeView.lng});
   map.setZoom(defaultHomeView.zoom);
 }
+
 
 function changeBrowserUrlState() {
   window.history.replaceState({}, "", getShareUrl());
@@ -1459,39 +1509,37 @@ async function toggleTrax(makeVisible) {
 }
 
 
-function togglePurpleAirs(makeVisible) {
+async function toggleMarkersByMarkerType(marker_type, makeVisible) {
   if (!selectedCity) return;
 
-  let purple_air_sensors = [];
-  let purple_air_sensor_info_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
-    if (sensor.info.marker_type == "purple_air") {
+  let sensors = [];
+  let marker_info_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
+    if (sensor.info.marker_type == marker_type) {
       result.push(sensor.info);
-      purple_air_sensors.push(sensor);
+      sensors.push(sensor);
     }
     return result;
   }, []);
 
-  for (let sensor of purple_air_sensors) {
+  for (let sensor of sensors) {
     if (sensor.marker && sensor.data[timeline.selectedDayInMs]) {
       sensor.marker.getGoogleMapMarker().setVisible(makeVisible);
     } else {
-      // TODO: Dynamic loading of purple airs
-
       // The worker may already be processing so terminate it and create a new one.
       // There is overhead to this but significantly less than having it finish
       // whatever the last worker was doing.
-      if (dataFormatPurpleAirWorkerIsProcessing) {
+      if (sensorLoadingDeferrers[marker_type] && sensorLoadingDeferrers[marker_type].isProcessing) {
         dataFormatWorker.terminate();
         createDataPullWebWorker();
-        dataFormatPurpleAirWorkerIsProcessing = false;
+        sensorLoadingDeferrers[marker_type].isProcessing = false;
       }
 
       if (!makeVisible) {
         continue;
       }
 
-      let purple_air_markers = purple_air_sensors.map(function(sensor){return sensor.marker;});
-      hideMarkers(purple_air_markers);
+      let sensor_markers = sensors.map(function(sensor){return sensor.marker;});
+      hideMarkers(sensor_markers);
       // Check if current day
       // Previous code differentiated between showing current day values and 'max' values for prior days.
       // We no longer want to show 'max' values anymore and instead the value at the time being looked at.
@@ -1500,27 +1548,32 @@ function togglePurpleAirs(makeVisible) {
       //var date_str_sensor = moment(timeline.selectedDayInMs).tz(selected_city_tmz).format("YYYY-MM-DD");
       //var is_current_day = date_str_sensor === current_day_str;
 
-      sensorLoadingDeferrers['purple_air'] = new Deferred();
-      dataFormatPurpleAirWorkerIsProcessing = true;
+      await waitForSensorsLoaded();
+      sensorLoadingDeferrers[marker_type] = new Deferred();
+      sensorLoadingDeferrers[marker_type].isProcessing = true;
+
       dataFormatWorker.postMessage(
       { epochtime_milisec: timeline.selectedDayInMs,
-        sensors_list: purple_air_sensor_info_list,
+        sensors_list: marker_info_list,
+        marker_type: marker_type,
         is_current_day : is_current_day}
       );
-
       break;
     }
   }
 }
 
+
 function toggleOffAllNonForcedSensors() {
-  if (sensorsEnabledState['trax']) {
-    $traxToggle.trigger("click");
-  }
-  if (sensorsEnabledState['purple_air']) {
-    $purpleAirToggle.trigger("click");
+  var activeSensors = Object.keys(sensorsEnabledState).filter(key => sensorsEnabledState[key] === true);
+  for (let activeSensorType of activeSensors) {
+    if (sensorsEnabledState[activeSensorType]) {
+      // TODO: Perhaps cache (earlier on) and store the selector in the sensorsEnabledState dict
+      $("#toggle-" + activeSensorType.replace("_", "-")).trigger("click");
+    }
   }
 }
+
 
 async function getCityInBounds() {
   var lastSelectedCity = selectedCity;
@@ -1601,6 +1654,9 @@ async function getCityInBounds() {
       if (available_cities[selectedCity].has_facility_markers) {
         await loadFacilitiesListForCity(selectedCity);
       }
+      if (available_cities[selectedCity].has_sensor_placeholders) {
+        await loadSensorPlaceholderListForCity(selectedCity);
+      }
     }
 
     // Show markers for the new city.
@@ -1650,7 +1706,7 @@ async function getCityInBounds() {
           await waitForSensorsLoaded();
           var latLng = urlVars.pinnedPoint.split(",");
           google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
-          // TODO: Need a delay for the click to fully register
+          // Need a delay for the click to fully register
           setTimeout(function() {
             determineSensorAndUpdateInfoBar();
           }, 300)
@@ -1666,6 +1722,7 @@ async function getCityInBounds() {
   }
   zoomChangedSinceLastIdle = false;
 }
+
 
 function getShareUrl() {
   var parentUrl = "";
@@ -1774,6 +1831,7 @@ function setButtonTooltip(text, $target, duration, position) {
   }
 }
 
+
 function isSensorMarkerVisible(sensorMarker) {
   if (sensorMarker && ((typeof(sensorMarker.getGoogleMapMarker) == "function" && sensorMarker.getGoogleMapMarker().visible) || sensorMarker.visible)) {
     return true;
@@ -1781,9 +1839,11 @@ function isSensorMarkerVisible(sensorMarker) {
   return false;
 }
 
+
 function selectedLocationPinVisible() {
   return selectedLocationPin && selectedLocationPin.visible;
 }
+
 
 function createDataPullWebWorker() {
   // Create the worker.
@@ -1792,9 +1852,11 @@ function createDataPullWebWorker() {
   dataFormatWorker.onmessage = receivedWorkerMessage;
 }
 
+
 function isInTour() {
   return inTour;
 }
+
 
 function initDomElms() {
   $("#share-picker").show().button({
@@ -1805,15 +1867,22 @@ function initDomElms() {
   }).on("click", function() {
     $(".shareViewModal").dialog('open');
   });
+  $("#share-picker-mobile").on("click", function() {
+    $(".shareViewModal").dialog('open');
+  });
+
   $("#city-picker").show().button({
     icons: {
       primary: "ui-icon-custom-city-picker-black"
     },
     text: false
   }).on("click", function() {
-    //$(".cityPickerModal").dialog('open');
     $("#city-picker-controls .btn-mobileSelect-gen").trigger("click");
   });
+  $("#city-picker-mobile").on("click", function() {
+    $("#city-picker-controls .btn-mobileSelect-gen").trigger("click");
+  });
+
   $("#help-tour").show().button({
     icons: {
       primary: "ui-icon-custom-help-tour-black"
@@ -1822,6 +1891,23 @@ function initDomElms() {
   }).on("click", function() {
     siteTour();
   });
+  $("#help-tour-mobile").on("click", function() {
+    $("#active.mobile-menu-toggle").prop("checked", false);
+    siteTour();
+  });
+
+  $("#reach-out").show().button({
+    icons: {
+      primary: "ui-icon-custom-reach-out-black"
+    },
+    text: false
+  }).on("click", function() {
+    $(".reachOutModal").dialog('open');
+  });
+  $("#reach-out-mobile").on("click", function() {
+    $(".reachOutModal").dialog('open');
+  });
+
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
@@ -1834,19 +1920,26 @@ function initDomElms() {
   $infobarComponentContainer = $("#infobar-component-container");
   $infobarInitial = $("#infobar-initial");
   $purpleAirToggle = $("#toggle-purple-air");
+  $clarityToggle = $("#toggle-clarity");
   $traxToggle = $("#toggle-trax");
   $citySelector = $("#city-selector");
   $cityName = $("#city_name");
   $map = $("#map");
   $legend = $("#legend");
   $currentDateLegendText = $("#current-date-legend");
+  $currentClockPreviewTime = $("#playback-timeline-container #currentTime");
   $searchBoxClear = $(".searchBoxClearIcon");
-  $searchBox = $(".searchBox");
+  if (isMobileView()) {
+    $searchBox = $(".searchBoxMobile");
+  } else {
+    $searchBox = $(".searchBox")
+  }
   $searchBoxIcon = $(".searchBoxIcon");
   $tooltip = $(".button-tooltip");
   $tooltipContent = $(".button-tooltip").find("p");
   verticalTouchScroll($infobarInitial);
 }
+
 
 function setupGoogleMapsSearchPlaceChangedHandlers() {
   var autocomplete = new google.maps.places.Autocomplete($searchBox.get(0));
@@ -1876,6 +1969,8 @@ function setupGoogleMapsSearchPlaceChangedHandlers() {
   });
 
   google.maps.event.addListener(autocomplete, 'place_changed', function() {
+    $("#active.mobile-menu-toggle").prop("checked", false);
+    $(".searchModal").dialog('close');
     var place = autocomplete.getPlace();
     if (place && place.geometry) {
       map.fitBounds(place.geometry.viewport);
@@ -1902,6 +1997,7 @@ function setupGoogleMapsSearchPlaceChangedHandlers() {
     document.activeElement.blur();
   });
 }
+
 
 async function determineSensorAndUpdateInfoBar() {
   var primaryInfoPopulator = selectedSensorMarker;
@@ -2131,6 +2227,7 @@ function expandInfobar() {
   $infobarInitial.hide();
 }
 
+
 function resetInfobar() {
   if (!$infobarComponentContainer) return;
   $infobarComponentContainer.hide();
@@ -2139,22 +2236,23 @@ function resetInfobar() {
   changeBrowserUrlState();
 }
 
+
 async function loadSensorsListForCity(city_locode) {
   available_cities[city_locode].sensors = {};
-  if (available_cities[city_locode].available_sensor_types.includes("air_now")) {
-    let markersList = await loadJsonData("./assets/data/cities/" + city_locode + "/airnow.json");
-    for (let marker of markersList.markers) {
-      available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
-    }
-  }
 
-  if (available_cities[city_locode].available_sensor_types.includes("purple_air")) {
-    let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/purpleair.json");
+  for (let sensor_type of available_cities[city_locode].available_sensor_types) {
+    // Ignore this type. Technically every location should have this feature, since that's the point of AirTracker
+    if (sensor_type == "backtrace") continue;
+    // TRAX is loaded from Firestore
+    if (sensor_type == "trax") continue;
+    // Load json file corresponding to the sensor type
+    let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/" + sensor_type + ".json");
     for (let marker of markersList.markers) {
       available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
     }
   }
 }
+
 
 async function loadFacilitiesListForCity(city_locode) {
   let facilities_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/facilities.json");
@@ -2176,6 +2274,30 @@ async function loadFacilitiesListForCity(city_locode) {
   }
 }
 
+
+async function loadSensorPlaceholderListForCity(city_locode) {
+  let sensor_placeholder_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/placeholders.json");
+  for (let sensor_placeholder of sensor_placeholder_list.placeholders) {
+    let sensor_placeholder_marker = new MarkerWithLabel({
+      position: new google.maps.LatLng(sensor_placeholder["Lat"], sensor_placeholder["Lon"]),
+      draggable: false,
+      clickable: true,
+      map: map,
+      title: sensor_placeholder["Name"],
+      labelContent: "",
+      labelAnchor: new google.maps.Point(0,0),
+      data: {},
+      icon: ASSETS_ROOT + 'img/placeholder_sensor3.png',
+      labelClass: "sensorPlaceholder",
+      visible: true,
+      getSensorType: function() { return "placeholder"; },
+      getGoogleMapMarker: function() { return this; }
+    });
+    available_cities[city_locode].sensor_placeholder_markers.push(sensor_placeholder_marker);
+  }
+}
+
+
 async function handlePurpleAirTourData() {
   let purpleair_tour_list = await loadJsonData("tour-purpleair.json");
   let purpleair_tour_marker_list = purpleair_tour_list.tour.markers;
@@ -2193,15 +2315,17 @@ async function handlePurpleAirTourData() {
   }
 }
 
+
 async function receivedWorkerMessage(event) {
   var result = event.data.result;
   var info = event.data.info;
   var epochtime_milisec = event.data.epochtime_milisec;
   var is_current_day = event.data.is_current_day;
+  var marker_type = event.data.marker_type;
 
   // If the day has changed since we requested the data, don't show it
   if (epochtime_milisec != timeline.selectedDayInMs) {
-    setSensorDataLoaded();
+    setSensorDataLoaded(marker_type);
     return;
   }
 
@@ -2221,7 +2345,7 @@ async function receivedWorkerMessage(event) {
       marker.updateMarker();
       marker.getGoogleMapMarker().setVisible(true);
       if (i == info.length - 1) {
-        setSensorDataLoaded();
+        setSensorDataLoaded(marker_type);
       }
     } else {
       // CREATE MARKER FOR FIRST TIME
@@ -2231,15 +2355,12 @@ async function receivedWorkerMessage(event) {
   jQuery.extend(true, available_cities[selectedCity].sensors, result);
 }
 
-function setSensorDataLoaded() {
-  if (dataFormatWorkerIsProcessing) {
-    dataFormatWorkerIsProcessing = false;
-    sensorLoadingDeferrers['air_now'].resolve(null);
-  } else if (dataFormatPurpleAirWorkerIsProcessing) {
-    dataFormatPurpleAirWorkerIsProcessing = false;
-    sensorLoadingDeferrers['purple_air'].resolve(null);
-  }
+
+function setSensorDataLoaded(marker_type) {
+  sensorLoadingDeferrers[marker_type].isProcessing = false;
+  sensorLoadingDeferrers[marker_type].resolve(null);
 }
+
 
 async function waitForSensorsLoaded() {
   for (var sensor_type in sensorLoadingDeferrers) {
@@ -2247,80 +2368,38 @@ async function waitForSensorsLoaded() {
   }
 }
 
-// Used only by PurpleAir
-async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day) {
-  var [multiUrl, resultsMapping] = generateSensorDataMultiFeedUrl(epochtime_milisec, info);
-  var data = await loadJsonData(multiUrl);
-  var lastIdx = 0;
-  var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
-  for (var i = 0; i < resultsMapping.length; i++) {
-    var d = [];
-    for (var a = 0; a < data['data'].length; a++) {
-      d.push([data['data'][a][0], data['data'][a].slice(lastIdx + 1, resultsMapping[i] + 1)].flat());
-    }
-    var dataSegment = {
-      "channel_names" :data['channel_names'].slice(lastIdx, resultsMapping[i]),
-      "data" : d
-    }
-    lastIdx = resultsMapping[i];
-
-    dataSegment['data'] = aggregateSensorData(d, info[i]);
-    var tmp = formatAndMergeSensorData(dataSegment, info[i]);
-    // Roll the sensor data to fill in some missing values
-    tmp = rollSensorData(tmp, info[i]);
-
-    var sensorName = info[i]["name"];
-    var sensorTimes = tmp.data.map(entry => entry.time * 1000);
-    var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
-    var newData = tmp.data[indexOfAvailableTime];
-
-    if (!available_cities[selectedCity].sensors[sensorName].data) {
-      available_cities[selectedCity].sensors[sensorName].data = {};
-      createAndShowSensorMarker(newData, epochtime_milisec, is_current_day, info[i]);
-    } else {
-      var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
-      marker.setData(parseSensorMarkerDataForPlayback(newData, is_current_day, info[i]));
-      marker.updateMarker();
-    }
-    available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = tmp;
-  }
-}
-
-/*async function loadAndCreateSensorMarker(epochtime_milisec, info, is_current_day, i) {
-  // Generate a list of urls that we need to request
-  var urls = generateSensorDataUrlList(epochtime_milisec, info);
-
-  // Request urls and load all sensor data
-  await loadSensorData(urls, function (responses) {
-    // Merge all sensor data
-    var data = formatAndMergeSensorData(responses, info);
-    // Roll the sensor data to fill in some missing values
-    data = rollSensorData(data, info);
-    // For VOC sensors with faster sampling rates, we need to average data points
-    data = aggregateSensorData(data, info);
-    // Create markers
-    var sensorName = info["name"];
-    if (!available_cities[selectedCity].sensors[sensorName].data) {
-      available_cities[selectedCity].sensors[sensorName].data = {"data" : {}};
-      createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i);
-    } else {
-      var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
-      marker.setData(parseSensorMarkerDataForPlayback(data, is_current_day, info));
-      marker.updateMarker();
-    }
-    available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = data;
-    //createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i);
-    //createMarkerTableFromSensorData(data, epochtime_milisec, info, i);
-  });
-}*/
-
 
 function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info, i, num_sensors) {
+  // TODO: Move to json file?
+  var getMarkerIcon = function(marker_type) {
+    if (marker_type == "air_now") {
+      return "circle";
+    } else if (marker_type == "purple_air") {
+      return "square";
+    } else if (marker_type == "clarity") {
+      return "diamond";
+    } else {
+      return null;
+    }
+  }
+
+  // TODO: Move to json file?
+  var getMarkerIconSize = function(marker_type) {
+    if (marker_type == "purple_air") {
+      return 12;
+    } else if (marker_type == "clarity") {
+      return 20;
+    } else {
+      return null;
+    }
+  }
+
   return new CustomMapMarker({
     "type": getSensorType(info),
     "sensor_type" : info['marker_type'],
-    "marker_icon_size" : info['marker_type'] == "purple_air" ? 12 : null,
-    "marker_draw_level_padding" : info['marker_type'] != "purple_air" ? 10 : null,
+    "marker_icon" : getMarkerIcon(info['marker_type']),
+    "marker_icon_size" : getMarkerIconSize(info['marker_type']),
+    "marker_draw_level_padding" : info['marker_type'] == "air_now" ? 10 : null,
     "data": parseSensorMarkerDataForPlayback(data, is_current_day, info),
     "click": function (marker) {
       selectedSensorMarker = marker;
@@ -2331,7 +2410,7 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
       available_cities[selectedCity].sensors[sensorName].marker = marker;
       showMarkers([marker], true);
       if (i == num_sensors - 1) {
-        setSensorDataLoaded();
+        setSensorDataLoaded(info['marker_type']);
       }
     }
   });
@@ -2381,68 +2460,6 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
 }
 
 
-/*function parseSensorMarkerData(data, is_current_day, info, i) {
-  var sensor_type = getSensorType(info);
-  if (typeof sensor_type === "undefined") return undefined;
-  var marker_data = {
-    "is_current_day": is_current_day,
-    "name": info["name"],
-    "latitude": info["latitude"],
-    "longitude": info["longitude"],
-    "feed_id": sensor_type == "WIND_ONLY" ? info["sensors"]["wind_direction"]["sources"][0]["feed"] : info["sensors"][sensor_type]["sources"][0]["feed"]
-  };
-
-  if (is_current_day) {
-    ///////////////////////////////////////////////////////////////////////////////
-    // If the selected day is the current day
-    if (typeof i === "undefined") {
-      i = data["data"].length - 1;
-    }
-    var d = data["data"][i];
-    if (typeof d === "undefined") return marker_data;
-    // For PM25 or VOC (these two types cannot both show up in info)
-    if (typeof d[sensor_type] !== "undefined" && sensor_type != "WIND_ONLY") {
-      if (typeof d[sensor_type] === "object") {
-        marker_data["sensor_value"] = roundTo(d[sensor_type]["value"], 2);
-        marker_data["sensor_data_time"] = d[sensor_type]["time"] * 1000;
-      } else {
-        marker_data["sensor_value"] = roundTo(d[sensor_type], 2);
-        marker_data["sensor_data_time"] = d["time"] * 1000;
-      }
-    }
-    // For wind direction
-    if (typeof d["wind_direction"] !== "undefined") {
-      if (typeof d["wind_direction"] === "object") {
-        marker_data["wind_direction"] = roundTo(d["wind_direction"]["value"], 2);
-        marker_data["wind_data_time"] = d["wind_direction"]["time"] * 1000;
-      } else {
-        marker_data["wind_direction"] = roundTo(d["wind_direction"], 2);
-        marker_data["wind_data_time"] = d["time"] * 1000;
-      }
-    }
-    // For wind speed
-    if (typeof d["wind_speed"] !== "undefined") {
-      if (typeof d["wind_speed"] === "object") {
-        marker_data["wind_speed"] = roundTo(d["wind_speed"]["value"], 2);
-      } else {
-        marker_data["wind_speed"] = roundTo(d["wind_speed"], 2);
-      }
-    }
-  } else {
-    if (sensor_type == "WIND_ONLY") return null;
-    ///////////////////////////////////////////////////////////////////////////////
-    // If the selected day is not the current day, use the max
-    var data_max = data["summary"]["max"];
-    if (typeof data_max[sensor_type] !== "undefined") {
-      marker_data["sensor_value"] = roundTo(data_max[sensor_type]["value"], 2);
-      marker_data["sensor_data_time"] = data_max[sensor_type]["time"] * 1000;
-    }
-  }
-
-  return marker_data;
-}*/
-
-
 function getSensorType(info) {
   var sensor_type;
   if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
@@ -2455,81 +2472,6 @@ function getSensorType(info) {
   return sensor_type;
 }
 
-
-/*function generateSensorDataUrlList(epochtime_milisec, info) {
-  var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
-  var epochtime = parseInt(epochtime_milisec / 1000);
-  var time_range_url_part = "/export?format=json&from=" + epochtime + "&to=" + (epochtime + 86399);
-
-  // Parse sensor info into several urls (data may come from different feeds and channels)
-  var sensors = info["sensors"];
-  var feeds_to_channels = {};
-  for (var k in sensors) {
-    var sources = safeGet(sensors[k]["sources"], []);
-    for (var i = 0; i < sources.length; i++) {
-      var s = sources[i];
-      var feed = s["feed"];
-      var channel = s["channel"];
-      if (feed in feeds_to_channels) {
-        feeds_to_channels[feed].push(channel);
-      } else {
-        feeds_to_channels[feed] = [channel];
-      }
-    }
-  }
-
-  // Assemble urls
-  var urls = [];
-  for (var f in feeds_to_channels) {
-    urls.push(esdr_root_url + "feeds/" + f + "/channels/" + feeds_to_channels[f].toString() + time_range_url_part);
-  }
-
-  return urls;
-}*/
-
-function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
-  var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
-  var epochtime = parseInt(epochtime_milisec / 1000);
-  var time_range_url_part = "?format=json&from=" + epochtime + "&to=" + (epochtime + 86399);
-
-  // Parse sensor info into several urls (data may come from different feeds and channels)
-  var feeds_to_channels = [];
-  var sensors_to_feeds_end_index = [];
-  var count = 0;
-  for (var sensorIdx = 0; sensorIdx < info.length; sensorIdx++) {
-    var sensors = info[sensorIdx]["sensors"];
-    var sensorNames = Object.keys(sensors);
-    for (var k = 0; k < sensorNames.length; k++) {
-      var sensor = sensorNames[k];
-      var sources = safeGet(sensors[sensor]["sources"], []);
-      for (var i = 0; i < sources.length; i++) {
-        var s = sources[i];
-        var feed = s["feed"];
-        var channel = s["channel"];
-        feeds_to_channels.push(feed + "." + channel);
-        count++;
-      }
-    }
-    sensors_to_feeds_end_index.push(count);
-  }
-  return [esdr_root_url + "feeds/export/" + feeds_to_channels.toString() + time_range_url_part, sensors_to_feeds_end_index];
-}
-
-
-/*async function loadSensorData(urls, callback) {
-  var deferreds = [];
-  var responses = [];
-  for (var i = 0; i < urls.length; i++) {
-    deferreds.push($.getJSON(urls[i], function (json) {
-      responses.push(json);
-    }));
-  }
-  await $.when.apply($, deferreds).then(function () {
-    if (typeof callback === "function") {
-      callback(responses);
-    }
-  });
-}*/
 
 async function loadAvailableCities() {
   let result;
@@ -2589,6 +2531,7 @@ async function loadAvailableCities() {
         });
         available_cities[city_locode].marker = city_marker;
         available_cities[city_locode].facility_markers = [];
+        available_cities[city_locode].sensor_placeholder_markers = [];
         city_selector_data.push({id: city_locode, text: city_title});
       }
 
@@ -2621,6 +2564,7 @@ async function loadAvailableCities() {
         let city_locode = e.currentTarget.value;
         if (city_locode && city_locode != selectedCity) {
           google.maps.event.trigger(available_cities[city_locode].marker, "click");
+          $("#active.mobile-menu-toggle").prop("checked", false);
         }
       })
   } catch (error) {
@@ -2628,211 +2572,13 @@ async function loadAvailableCities() {
   }
 }
 
+
 async function loadJsonData(url) {
-  let result;
-
-      result = await $.ajax({
-        url: url,
-        dataType : 'json',
-      });
-      return result;
-
-}
-
-/*function formatAndMergeSensorDataLite(responses, info) {
-  if (!Array.isArray(responses)) {
-    responses = [responses];
-  }
-  var channels = Object.keys(info['sensors']);
-  // Add to start of array
-  channels.unshift("time")
-  var formatted_data = [];
-  var max_data = {};
-  for (var i = 0; i < responses.length; i++) {
-    for (var row of responses[i].data) {
-      var data = {};
-      for (var col = 0; col < row.length; col++) {
-        var channel_name = channels[col];
-        data[channel_name]= row[col];
-        if (col > 0 && (!max_data[channel_name] || row[col] > max_data[channel_name].value)) {
-          max_data[channel_name] = {time: row[0], value : row[col]};
-        }
-      }
-      formatted_data.push(data);
-    }
-  }
-  return {
-    data : formatted_data,
-    summary : {
-      max: max_data
-    }
-  };
-}*/
-
-
-function formatAndMergeSensorData(responses, info, method) {
-  if (!Array.isArray(responses)) {
-    responses = [responses];
-  }
-  // TODO: implement more methods for merging, e.g. average
-  //method = typeof method === "undefined" ? "last" : method;
-
-  ////////////////////////////////////////////////////////////////
-  // First pass: loop through all responses and merge data points
-  ////////////////////////////////////////////////////////////////
-  var data = {};
-  for (var i = 0; i < responses.length; i++) {
-    var r = responses[i];
-    // Get the channel names
-    var channel_names = [];
-    for (var j = 0; j < r["channel_names"].length; j++) {
-      var c = r["channel_names"][j];
-      var c_split = c.split(".");
-      channel_names.push(c_split[c_split.length - 1]);
-    }
-    // Loop through all data points in each response
-    for (var k = 0; k < r["data"].length; k++) {
-      var d = r["data"][k];
-      var key = d[0]; // Use epochtime as the key
-      if (typeof data[key] === "undefined") {
-        data[key] = {};
-      }
-      for (var m = 1; m < d.length; m++) {
-        // This assume that the last data source overrides the previous ones.
-        // If the later source has the channel name that appears before,
-        // it will override the data in that channel.
-        if (d[m] !== null) {
-          data[key][channel_names[m - 1]] = d[m];
-        }
-      }
-    }
-  }
-
-  ////////////////////////////////////////////////////////////////
-  // Second pass: merge channels and rename them
-  // Also find the latest one and the max
-  // (one sensor can have data from different channels)
-  ////////////////////////////////////////////////////////////////
-  var sensors_to_channels = {};
-  for (var sensor_name in info["sensors"]) {
-    var s = safeGet(safeGet(info["sensors"][sensor_name], {})["sources"], []);
-    // Get the unique set of channel names
-    var channel_names = [];
-    for (var i = 0; i < s.length; i++) {
-      channel_names.push(s[i]["channel"]);
-    }
-    if (channel_names.length > 1) {
-      channel_names = Array.from(new Set(channel_names));
-    }
-    sensors_to_channels[sensor_name] = channel_names;
-  }
-  // Sort the epoch times
-  var t_all = Object.keys(data).map(Number).sort(function (a, b) {
-    return a - b;
+  let result = await $.ajax({
+    url: url,
+    dataType : 'json',
   });
-  // Loop through all data points and merge channels
-  var data_merged = [];
-  var data_max = {};
-  for (var i = 0; i < t_all.length; i++) {
-    var t = t_all[i];
-    var tmp = {
-      time: t
-    };
-    // Loop through channels
-    for (var sensor_name in sensors_to_channels) {
-      var channel_names = sensors_to_channels[sensor_name];
-      for (var j = 0; j < channel_names.length; j++) {
-        var d = data[t][channel_names[j]];
-        // The new data will override the old ones
-        if (typeof d !== "undefined") {
-          tmp[sensor_name] = d;
-          if (typeof data_max[sensor_name] === "undefined" || d > data_max[sensor_name]["value"]) {
-            data_max[sensor_name] = {
-              time: t,
-              value: d
-            };
-          }
-        }
-      }
-    }
-    data_merged.push(tmp);
-  }
-
-  return {
-    data: data_merged,
-    summary: {
-      max: data_max
-    }
-  };
-}
-
-
-// Fill in missing values based on previous observed ones
-function rollSensorData(data, info) {
-  var data = $.extend({}, data); // copy object
-
-  // Fill in missing values
-  var cache = {}; // cache previous observations
-  var threshold = 3600; // one hour to look back
-  for (var i = 0; i < data["data"].length; i++) {
-    var d = data["data"][i];
-    for (var name in info["sensors"]) {
-      if (typeof d[name] === "undefined") {
-        // We need to back fill data according to the threshold
-        if (typeof cache[name] !== "undefined") {
-          if (d["time"] - cache[name]["time"] <= threshold) {
-            d[name] = {};
-            d[name]["time"] = cache[name]["time"];
-            d[name]["value"] = cache[name]["value"];
-          }
-        }
-      } else {
-        // No need for back filling, we only need to store data
-        cache[name] = safeGet(cache[name], {});
-        cache[name]["time"] = d["time"];
-        cache[name]["value"] = d[name];
-      }
-    }
-  }
-
-  return data;
-}
-
-function aggregateSensorData(data, info) {
-  var sensor_type = getSensorType(info);
-  if (info['marker_type'] != "purple_air" && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
-    return data;
-  }
-  if (data.length <= 1) {
-    return data;
-  }
-
-  function round(date, duration, method) {
-    return moment(Math[method]((+date) / (+duration)) * (+duration));
-  }
-
-  var new_data = [];
-  var threshold = 900; // average previous 15 minutes of data
-  var current_time = round(moment(data[0][0] * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
-  var current_sum = 0;
-  var count = 0;
-  for (var col = 1; col < data[0].length; col++) {
-    for (var row = 0; row < data.length; row++) {
-      var time = data[row][0];
-      if (data[row][col] == null)
-        continue;
-      if (time - current_time <= threshold) {
-        current_sum +=  data[row][col];
-        count++;
-      } else {
-        new_data.push([current_time, current_sum / Math.max(1, count)]);
-        current_sum = data[row][col];
-        count = 1;
-        current_time += threshold;
-      }
-    }
-  }
-  return new_data;
+  return result;
 }
 
 
@@ -2974,33 +2720,6 @@ function formatTRAXLineName(traxID) {
 }
 
 
-/*function formatPM25(val) {
-  if (val){
-    return val.toFixed(1) + " μg/m3";
-  }
-  else {
-    return "No PM 2.5 data available ";
-  }
-}
-
-
-function formatWind(speed,deg) {
-  var returnString;
-  if (speed){
-    returnString = speed + " mph";
-  } else {
-    returnString = "Unknown speed";
-  }
-  if (deg) {
-    returnString += " from " + getWindDirFromDeg(deg) + " direction"
-  }
-  if (!speed || !deg) {
-    return "No wind data available ";
-  }
-  return returnString;
-}*/
-
-
 async function handleMapClicked(mapsMouseEvent) {
   var wasVirtualClick = mapsMouseEvent.fromVirtualClick;
   var fromClick = wasVirtualClick || !!mapsMouseEvent.domEvent;
@@ -3021,12 +2740,15 @@ function getWindDirFromDeg(deg) {
   return arr[(val % 16)];
 }
 
+
 function hideMarkersByCity(city_locode, fromTimeChange) {
   // Get sensors
   var markers = Object.keys(available_cities[city_locode].sensors).map(function(k){return available_cities[city_locode].sensors[k]['marker'];});
   if (!fromTimeChange) {
     // Get facility icon markers
     markers = markers.concat(available_cities[city_locode].facility_markers);
+    // Get placeholder markers
+    markers = markers.concat(available_cities[city_locode].sensor_placeholder_markers);
   }
   hideMarkers(markers);
 }
@@ -3046,6 +2768,9 @@ function hideMarkers(markers) {
 
 function showMarkersByCity(city_locode) {
   var markers = Object.keys(available_cities[city_locode].sensors).map(function(sensorName){return available_cities[city_locode].sensors[sensorName]['marker'];});
+  if (available_cities[selectedCity].has_sensor_placeholders) {
+    markers = markers.concat(available_cities[city_locode].sensor_placeholder_markers);
+  }
   showMarkers(markers);
 }
 
@@ -3053,10 +2778,7 @@ function showMarkers(markers, isFirstTime) {
   var zoom = map.getZoom();
   drewMarkersAtLeastOnce = true;
   markers = safeGet(markers, []);
-  let filterExcludes = [];
-  if (!sensorsEnabledState['purple_air']) {
-    filterExcludes.push("purple_air")
-  }
+  let filterExcludes = Object.keys(sensorsEnabledState).filter(key => sensorsEnabledState[key] === false);
   for (var i = 0; i < markers.length; i++) {
     if (typeof markers[i] !== "undefined" && !filterExcludes.includes(markers[i].getSensorType())) {
       if (isFirstTime) {
@@ -3092,8 +2814,7 @@ function resetMapToCitiesOverview(city_locode) {
   available_cities[city_locode].footprint_region.setVisible(false);
   $citySelector.val("");
   $controls.hide();
-  // TODO: If we no longer show legend when fully zoomed out, then remove the legend selector here
-  $("#map, #infobar, #legend").addClass("no-controls");
+  $("#map, #infobar").addClass("no-controls");
   toggleOffAllNonForcedSensors();
   if (selectedLocationPinVisible()) {
     google.maps.event.trigger(selectedLocationPin, "click");
@@ -3127,13 +2848,15 @@ function showHideMarkersByZoomLevel() {
 function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   if (!selectedCity) return;
 
-  var purpleAirToggleOn = $purpleAirToggle.prop("checked");
+  var activeSensorToggles = $("#legend-table input:checked").map(function() { return $(this).data("marker-type")}).toArray();
+  activeSensorToggles.push("air_now");
+
   var markers_with_data_for_chosen_epochtime = {markers_to_show: [], marker_types_to_load: []};
   for (var sensorName in available_cities[selectedCity].sensors) {
     var sensor = available_cities[selectedCity].sensors[sensorName];
     if (!sensor.data || !sensor.data[selected_day_start_epochtime_milisec]) {
       var sensor_marker_type = sensor.info.marker_type;
-      if (sensor_marker_type == "purple_air" && !purpleAirToggleOn) continue;
+      if (!activeSensorToggles.includes(sensor_marker_type)) continue;
       if (markers_with_data_for_chosen_epochtime.marker_types_to_load.indexOf(sensor_marker_type) == -1) {
         markers_with_data_for_chosen_epochtime.marker_types_to_load.push(sensor_marker_type)
       }
@@ -3179,47 +2902,36 @@ async function showSensorMarkersByTime(epochtime_milisec) {
 
     // The worker may already be processing so terminate it and create a new one.
     // There is overhead to this but significantly less than having it finish
-    // the whatever the last worker was doing.
-    if (dataFormatWorkerIsProcessing || dataFormatPurpleAirWorkerIsProcessing) {
+    // whatever the last worker was doing.
+    if (Object.keys(sensorLoadingDeferrers).find(key => sensorLoadingDeferrers[key].isProcessing === true)) {
       dataFormatWorker.terminate();
       createDataPullWebWorker();
     }
 
+    var previous_marker_type;
     for (var marker_type of markers_with_data_at_or_near_chosen_epochtime.marker_types_to_load) {
-      if (marker_type == "air_now") {
-        sensorLoadingDeferrers['air_now'] = new Deferred();
-        dataFormatWorkerIsProcessing = true;
+      sensorLoadingDeferrers[marker_type] = new Deferred();
+      sensorLoadingDeferrers[marker_type].isProcessing = true;
 
-        // AirNow sensors
-        let air_now_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
-          if (sensor.info.marker_type == "air_now") {
-            result.push(sensor.info);
-          }
-          return result;
-        }, []);
-        dataFormatWorker.postMessage(
-        { epochtime_milisec: timeline.selectedDayInMs,
-          sensors_list: air_now_list,
-          is_current_day : is_current_day }
-        );
-      } else if (marker_type == "purple_air") {
-        sensorLoadingDeferrers['purple_air'] = new Deferred();
-        dataFormatPurpleAirWorkerIsProcessing = true;
+      let marker_info_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
+        if (sensor.info.marker_type == marker_type) {
+          result.push(sensor.info);
+        }
+        return result;
+      }, []);
 
-        // PurpleAir sensors
-        let purple_air_list = Object.values(available_cities[selectedCity].sensors).reduce(function(result, sensor) {
-          if (sensor.info.marker_type == "purple_air") {
-            result.push(sensor.info);
-          }
-          return result;
-        }, []);
-        await sensorLoadingDeferrers['air_now'].promise;
-        dataFormatWorker.postMessage(
-        { epochtime_milisec: timeline.selectedDayInMs,
-          sensors_list: purple_air_list,
-          is_current_day : is_current_day }
-        );
+      if (previous_marker_type) {
+        await sensorLoadingDeferrers[previous_marker_type].promise;
       }
+      previous_marker_type = marker_type;
+
+      dataFormatWorker.postMessage(
+      { epochtime_milisec: timeline.selectedDayInMs,
+        sensors_list: marker_info_list,
+        marker_type: marker_type,
+        is_current_day : is_current_day }
+      );
+
     }
   }
 }
@@ -3260,6 +2972,7 @@ function handleTimelineToggling(e) {
     $controls.addClass("playbackTimelineOff");
     $(".selected-block")[0].scrollIntoView(false);
     $("#timeline-handle").slideDown(500);
+    $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
   }
 }
 
@@ -3317,6 +3030,7 @@ function roundTo(val, n) {
   return Math.round(parseFloat(val) * d) / d;
 }
 
+
 function stepThroughExplanation(direction) {
   var $elm = $("#explanationstep-container");
   $("#footprint-first-click-dialog").scrollTop(0);
@@ -3345,6 +3059,7 @@ function convertFrom24To12Format(time24) {
   return hours + ":" + minutes + " " + period;
 }
 
+
 function convertFrom12To24Format(time12) {
   var [sHours, sMinutes] = time12.match(/([0-9]{1,2}):([0-9]{2})/).slice(1);
   var hours = parseInt(sHours);
@@ -3362,13 +3077,16 @@ const setAsyncTimeout = (cb, ms = 0) => new Promise(resolve => {
   }, ms);
 });
 
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
 function roundDate(date, duration, method) {
   return moment.tz((Math[method]((+date) / (+duration)) * (+duration)), selected_city_tmz);
 }
+
 
 function Deferred() {
   var self = this;

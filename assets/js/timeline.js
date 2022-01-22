@@ -112,6 +112,8 @@ async function handleTimelineButtonClicked(epochtime_milisec, day_label) {
   // This method gets called after "handleTimelineButtonSelected"
 
   timeline.selectedDay = day_label;
+  // Change time in URL to newly clicked day
+  changeBrowserUrlState();
 }
 
 async function handleTimelineButtonSelected(epochtime_milisec) {
@@ -137,6 +139,8 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   var mostRecentDayStrFull = timeObj.format("MMM DD YYYY");
   // Update selected day in the legend
   $currentDateLegendText.text(mostRecentDayStrFull);
+  // Update timestamp preview displayed under clock button
+  $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
 }
 
 

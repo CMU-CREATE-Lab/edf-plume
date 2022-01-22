@@ -10,12 +10,13 @@ onmessage = async function(event) {
   var epochtime_milisec = event.data.epochtime_milisec;
   var info = event.data.sensors_list;
   var is_current_day = event.data.is_current_day;
+  var marker_type = event.data.marker_type;
 
   esdr_sensors = {};
 
   var result = await loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day);
   // Send back the results.
-  postMessage({epochtime_milisec: epochtime_milisec, info: info, is_current_day: is_current_day, result: result});
+  postMessage({epochtime_milisec: epochtime_milisec, info: info, is_current_day: is_current_day, result: result, marker_type: marker_type});
 };
 
 
@@ -152,7 +153,9 @@ function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerC
 
 function aggregateSensorData(data, info) {
   var sensor_type = getSensorType(info);
-  if (info['marker_type'] != "purple_air" && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
+
+  // TODO
+  if ((info['marker_type'] != "purple_air" && info['marker_type'] != "clarity") && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
     return data;
   }
   if (data.length <= 1) {

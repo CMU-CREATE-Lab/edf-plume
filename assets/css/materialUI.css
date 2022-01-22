@@ -63,7 +63,7 @@
   margin-top: -12px
 }
 
-.materialUI #city-picker {
+.materialUI #city-picker, .materialUI #help-tour, .materialUI #reach-out {
   background: #f1f1f1;
   width: 0px;
   height: 40px;
@@ -85,34 +85,12 @@
   display: none;
 }
 
-.materialUI #help-tour {
-  background: #f1f1f1;
-  width: 0px;
-  height: 40px;
-  padding: 0px;
-  -webkit-box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
-  box-shadow: 2px 2px 3px rgba(0,0,0,0.3);
-  border-top-left-radius: 1px;
-  border-bottom-left-radius: 1px;
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-  outline: none;
-  border: 1px solid #d3d3d3;
-  padding-left: 38px;
-  padding-right: 0px;
-  border-radius: 4px;
-  position: relative;
-  z-index: 99;
-  bottom: auto;
-  display: none;
-}
-
-.materialUI #city-picker, .materialUI #help-tour {
+.materialUI #city-picker, .materialUI #help-tour, .materialUI #reach-out {
   left: auto;
   right: auto;
 }
 
-.materialUI #city-picker .ui-button, .materialUI #help-tour .ui-button {
+.materialUI #city-picker .ui-button, .materialUI #help-tour .ui-button, .materialUI #reach-out .ui-button {
   margin-top: 0px;
   display: block;
   width: 40px;
@@ -125,7 +103,7 @@
   border-radius: 0px;
 }
 
-.materialUI #city-picker.ui-state-hover, .materialUI #help-tour.ui-state-hover {
+.materialUI #city-picker.ui-state-hover, .materialUI #help-tour.ui-state-hover, .materialUI #reach-out.ui-state-hover {
   border: 1px solid #d3d3d3;
 }
 
@@ -152,7 +130,19 @@
   background-repeat: no-repeat;
 }
 
-.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black, .materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black {
+.materialUI #reach-out .ui-icon-custom-reach-out-black {
+  background: url('../img/reach-out.png');
+  width: 24px;
+  height: 24px;
+  opacity: 0.6;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -12px;
+  margin-top: -12px;
+  background-repeat: no-repeat;
+}
+
+.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black, .materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black, .materialUI #reach-out:not(.ui-button-disabled):hover .ui-icon-custom-reach-out-black {
   opacity: 0.9;
 }
 
@@ -249,6 +239,17 @@
 }
 .materialUI .playbackButton:hover .ui-icon.ui-icon-custom-play {
   opacity: 1.0;
+}
+
+.materialUI .timestampPreview #currentTime {
+  font-size: 8px;
+  text-align: center;
+  vertical-align: bottom;
+  display: inline-block;
+  bottom: 4px;
+  font-weight: bold;
+  position: absolute;
+  font-family: "Roboto", "Open Sans", Helvetica, Arial, sans-serif;
 }
 
 .materialUI .timestampPreview {
