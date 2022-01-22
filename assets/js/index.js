@@ -1969,8 +1969,14 @@ function setupGoogleMapsSearchPlaceChangedHandlers() {
   });
 
   google.maps.event.addListener(autocomplete, 'place_changed', function() {
-    $("#active.mobile-menu-toggle").prop("checked", false);
-    $(".searchModal").dialog('close');
+    if (isMobileView()) {
+      $("#active.mobile-menu-toggle").prop("checked", false);
+      // Need a delay, otherwise tapping a search autocomplete choice triggers a click to the original
+      // mobile menu below the modal.
+      setTimeout(function () {
+        $(".searchModal").dialog('close');
+      }, 100)
+    }
     var place = autocomplete.getPlace();
     if (place && place.geometry) {
       map.fitBounds(place.geometry.viewport);
