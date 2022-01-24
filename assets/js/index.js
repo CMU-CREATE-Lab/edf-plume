@@ -2300,6 +2300,9 @@ async function loadSensorPlaceholderListForCity(city_locode) {
       getSensorType: function() { return "placeholder"; },
       getGoogleMapMarker: function() { return this; }
     });
+    google.maps.event.addListener(sensor_placeholder_marker, "click", async function (e) {
+      await drawFootprint(e.latLng.lat(),e.latLng.lng(), true, false);
+    });
     available_cities[city_locode].sensor_placeholder_markers.push(sensor_placeholder_marker);
   }
 }
