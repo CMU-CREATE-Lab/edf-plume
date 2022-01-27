@@ -141,6 +141,10 @@ body {
   bottom: unset;
 }
 
+.legend-row-units {
+  font-size: 10px;
+}
+
 #legend .legend-scale {
   height: auto !important;
 }
@@ -210,6 +214,15 @@ body {
 
 #legend-table .entry-title {
   text-align: left;
+}
+
+#legend-table .entry-title.two-rows {
+  line-height: 7px;
+}
+
+#trax-legend-row .entry-title {
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .legend-label {
