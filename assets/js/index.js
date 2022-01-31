@@ -2916,7 +2916,6 @@ async function showSensorMarkersByTime(epochtime_milisec) {
     if (Object.keys(sensorLoadingDeferrers).find(key => sensorLoadingDeferrers[key].isProcessing === true)) {
       dataFormatWorker.terminate();
       createDataPullWebWorker();
-      sensorLoadingDeferrers[marker_type].promise = null;
     }
 
     var previous_marker_type;
