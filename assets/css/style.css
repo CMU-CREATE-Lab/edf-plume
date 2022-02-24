@@ -122,6 +122,16 @@ body {
   color: gray;
 }
 
+.infobar-table {
+  font-size: 12px;
+  text-align: center;
+  width: -webkit-fill-available;
+}
+
+.infobar-table td {
+  font-size: 14px;
+}
+
 .more-info {
   background-image: url('../img/info-icon.png');
   background-size: contain;

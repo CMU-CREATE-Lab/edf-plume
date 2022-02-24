@@ -2130,12 +2130,19 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
   var data;
   var iconPath;
-  var loc = latTrunc + "," + lngTrunc
+  var loc = latTrunc + "," + lngTrunc;
+
+  var tmp = m_closestDate.format("YYYYMMDDHHmm") + "Z";
+  var formatted_tmp = tmp + "_" + lngTrunc + "_" + latTrunc + "_1";
+  var uncertaintyData = await handleFootprintUncertainty(formatted_tmp);
+
+  overlayData.uncertainty = uncertaintyData;
 
   if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
     var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
+    console.log(parsedIsoString);
     try {
       var result = await $.ajax({
         url: STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png",
@@ -2666,10 +2673,22 @@ function updateInfoBar(marker) {
   if (overlay) {
     var overlayData = overlay.getData();
     var infoStr = "";
+    var showDetail = Util.parseVars(window.location.href).uncertaintyDetail;
     if (overlayData.hasData) {
-      infoStr = "Snapshot from model at " + moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)");
-      setInfobarSubheadings($infobarPlume,infoStr,"","","");
-      $infobarPlume.children(".infobar-text").addClass('display-unset');
+      var tm = moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)")
+      if(overlayData.uncertainty) {
+        if(!showDetail){
+          setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,"Model Confidence",tm);
+          $infobarPlume.children(".infobar-text").addClass('display-unset');
+        }
+        else {
+          createUncertaintyTable($infobarPlume,overlayData.uncertainty)
+        }
+      }
+      else {
+        infoStr = "Snapshot from model at " + tm
+        setInfobarSubheadings($infobarPlume,infoStr,"","","")
+      }
     } else {
       var pollution_time = playbackTimeline.getPlaybackTimeInMs();
       if (selectedSensorMarker) {
@@ -2679,10 +2698,25 @@ function updateInfoBar(marker) {
       setInfobarUnavailableSubheadings($infobarPlume,infoStr);
       $infobarPlume.children(".infobar-text").removeClass('display-unset');
       $infobarPlume.children(".infobar-unit").hide();
+      $infobarPlume.children(".infobar-table").hide();
     }
   }
 }
 
+function createUncertaintyTable($element, data) {
+  for(const x in data) {
+    if(typeof(data[x]) === 'number') {
+      data[x] = roundTo(data[x],2)
+    }
+  }
+  var tableString = ""
+  tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>"
+  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>"
+  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>"
+  tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>"
+  $element.children(".infobar-text")[0].innerHTML = tableString
+  $element.children(".infobar-text").children("table").addClass("infobar-table")
+}
 
 function setInfobarSubheadings($element, text, data, unit, time) {
   $element.children(".infobar-text")[0].innerHTML = text;
@@ -3104,4 +3138,37 @@ function Deferred() {
     self.reject = reject;
     self.resolve = resolve;
   })
+}
+
+async function handleFootprintUncertainty(lookupStr) {
+  //var docRefString = "202202091400Z_-111.76_40.41_1";
+  
+  if(selectedCity !== 'US-SLC') {
+    return;
+  }
+
+  var docRefString = lookupStr;
+  console.log(docRefString)
+  const snapshot = await db.collection("hrrr-uncertainty-kriged").doc(docRefString).get();
+  var data = snapshot.data();
+  if(!data) {
+    return;
+  }
+  var label;
+  if (data.wind_direction_err < 30) {
+    if (data.wind_speed_err < 1) {
+      label = "High"
+    }
+    else {
+      label = "Medium"
+    }  
+  } else if (data.wind_speed_err < 1) {
+    label = "Medium"
+  }
+  else {
+    label = "Low"
+  }
+  data.label = label;
+  console.log(data);
+  return data;
 }
