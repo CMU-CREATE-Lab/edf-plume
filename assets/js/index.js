@@ -2709,11 +2709,21 @@ function createUncertaintyTable($element, data) {
       data[x] = roundTo(data[x],2)
     }
   }
+  var confidenceColor = "green"
+  if (data.label === "Low"){
+    confidenceColor = "darkred"
+  }
+  else if (data.label === "Medium") {
+    confidenceColor = "goldenrod"
+  }
+
+
   var tableString = ""
   tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>"
   tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>"
   tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>"
   tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>"
+  tableString += "<tr><td></td><td colspan='2' style='text-decoration:underline;color:" + confidenceColor + "'>"+data.label + " Confidence</td></tr>"
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
 }
