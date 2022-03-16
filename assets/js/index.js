@@ -371,6 +371,24 @@ async function initMap() {
               ]
           },
           {
+            "featureType": "poi.school",
+            "elementType": "labels.icon",
+            "stylers": [
+              {
+                "visibility": "on"
+            },
+            {
+                "saturation": 50
+            },
+            {
+                "gamma": 0
+            },
+            {
+                "hue": "#747aa8"
+            }
+            ]
+          },
+          {
               "featureType": "road",
               "elementType": "geometry",
               "stylers": [
@@ -2163,7 +2181,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
   if (data) {
     overlayData['hasData'] = true;
-    iconPath = ASSETS_ROOT + 'img/red-pin.png';
+    iconPath = ASSETS_ROOT + 'img/black-pin.png';
 
     plume_backtraces[loc][closestDateEpoch] = data;
     overlay.set('image', data.image);

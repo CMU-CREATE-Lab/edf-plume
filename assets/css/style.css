@@ -640,9 +640,9 @@ body {
   border: none;
 }
 
-#infobar-plume, #infobar-pollution, #infobar-wind {
+/*#infobar-plume, #infobar-pollution, #infobar-wind {
   font-style: italic;
-}
+}*/
 
 #timeline-handle {
   position: absolute;
