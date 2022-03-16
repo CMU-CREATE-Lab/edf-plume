@@ -2673,21 +2673,19 @@ function updateInfoBar(marker) {
   if (overlay) {
     var overlayData = overlay.getData();
     var infoStr = "";
-    var showDetail = Util.parseVars(window.location.href).uncertaintyDetail;
+    var uncertaintyDetailLevel = Util.parseVars(window.location.href).uncertaintyDetail;
     if (overlayData.hasData) {
-      var tm = moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)")
-      if(overlayData.uncertainty) {
-        if(!showDetail){
+      var tm = moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)");
+      if(uncertaintyDetailLevel && overlayData.uncertainty) {
+        if (uncertaintyDetailLevel == "1") {
           setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,"Model Confidence",tm);
           $infobarPlume.children(".infobar-text").addClass('display-unset');
+        } else if (uncertaintyDetailLevel == "2") {
+          createUncertaintyTable($infobarPlume,overlayData.uncertainty);
         }
-        else {
-          createUncertaintyTable($infobarPlume,overlayData.uncertainty)
-        }
-      }
-      else {
-        infoStr = "Snapshot from model at " + tm
-        setInfobarSubheadings($infobarPlume,infoStr,"","","")
+      } else {
+        infoStr = "Snapshot from model at " + tm;
+        setInfobarSubheadings($infobarPlume,infoStr,"","","");
       }
     } else {
       var pollution_time = playbackTimeline.getPlaybackTimeInMs();
@@ -2723,7 +2721,7 @@ function createUncertaintyTable($element, data) {
   tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>"
   tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>"
   tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>"
-  tableString += "<tr><td></td><td colspan='2' style='text-decoration:underline;color:" + confidenceColor + "'>"+data.label + " Confidence</td></tr>"
+  tableString += "<tr><td></td><td colspan='2' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Confidence</td></tr>"
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
 }
@@ -3152,7 +3150,7 @@ function Deferred() {
 
 async function handleFootprintUncertainty(lookupStr) {
   //var docRefString = "202202091400Z_-111.76_40.41_1";
-  
+
   if(selectedCity !== 'US-SLC') {
     return;
   }
@@ -3171,7 +3169,7 @@ async function handleFootprintUncertainty(lookupStr) {
     }
     else {
       label = "Medium"
-    }  
+    }
   } else if (data.wind_speed_err < 1) {
     label = "Medium"
   }
