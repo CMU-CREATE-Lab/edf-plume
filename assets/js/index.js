@@ -6,6 +6,7 @@ var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
 var TRAX_COLLECTION_NAME = "trax-dev";
 //var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
+var CLOUD_STORAGE_PARENT_URL = "https://storage.googleapis.com/{BUCKET_NAME}/by-simulation-id";
 var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
 var CITY_DATA_ROOT_LOCAL = "./assets/data/cities/";
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
@@ -290,6 +291,7 @@ async function initMap() {
 
   // DEBUG
   STILT_GCLOUD_BUCKET = STILT_GCLOUD_BUCKET.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
+  CLOUD_STORAGE_PARENT_URL = CLOUD_STORAGE_PARENT_URL.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
   // DEBUG
 
   map = new google.maps.Map(document.getElementById("map"), {
@@ -599,11 +601,13 @@ async function initMap() {
       img.style.height = "100%";
       img.style.position = "absolute";
       img.style.opacity = "80%";
+      // Ensure this layer is the top most in the pane
+      img.style.zIndex = "99999";
 
       this.div.appendChild(img);
-      // Add the element to the "overlayLayer" pane.
+      // Add the element to the "markerLayer" pane.
       const panes = this.getPanes();
-      panes.overlayLayer.appendChild(this.div);
+      panes.markerLayer.appendChild(this.div);
     }
     draw() {
       // We use the south-west and north-east
@@ -2040,9 +2044,9 @@ async function determineSensorAndUpdateInfoBar() {
   if (!found) {
     var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];}).filter(marker => marker);
     for (var marker of markers) {
-      if (selectedLocationPin && !selectedSensorMarker && isSensorMarkerVisible(marker) &&
+      if (selectedLocationPinVisible() && !selectedSensorMarker && isSensorMarkerVisible(marker) &&
           (typeof(marker.getBounds) === "function" && marker.getGoogleMapMarker().getBounds().contains(selectedLocationPin.position)) ||
-           marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
+          selectedLocationPinVisible() && marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
         primaryInfoPopulator = marker;
         selectedSensorMarker = primaryInfoPopulator;
         found = true;
@@ -2088,6 +2092,8 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
   }
+
+  var backtraceMode = Util.parseVars(window.location.href).backtraceMode;
 
   var fromTour = isInTour();
   if (!fromTour && !wasVirtualClick && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
@@ -2160,7 +2166,6 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
     var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
-    console.log(parsedIsoString);
     try {
       var result = await $.ajax({
         url: STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png",
@@ -2184,7 +2189,14 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     iconPath = ASSETS_ROOT + 'img/black-pin.png';
 
     plume_backtraces[loc][closestDateEpoch] = data;
-    overlay.set('image', data.image);
+
+    if (backtraceMode == "1") {
+      let url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
+      url = await alterOverlayImage(url);
+      overlay.set('image', url);
+    } else {
+      overlay.set('image', data.image);
+    }
 
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(parseFloat(data.metadata.ymin) + latOffset, parseFloat(data.metadata.xmin) + lngOffset),
@@ -2195,7 +2207,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     overlay.show();
   } else {
     overlayData['hasData'] = false;
-    iconPath = ASSETS_ROOT + 'img/gray-pin.png';
+    iconPath = ASSETS_ROOT + 'img/gray-pin2.png';
     if (!fromClick && previousFootprintData.hasData) {
       if (overlay) {
         overlay.hide();
@@ -2232,7 +2244,9 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       map,
       title: "Selected pollution footprint location",
       animation: fromClick && !fromTour ? google.maps.Animation.DROP : null,
-      icon: iconPath
+      icon: iconPath,
+      /*optimized: false,*/
+      zIndex: 99999999
     });
     google.maps.event.addListener(selectedLocationPin, "click", function (e) {
       if (selectedLocationPin) {
@@ -3166,35 +3180,76 @@ function Deferred() {
   })
 }
 
-async function handleFootprintUncertainty(lookupStr) {
-  //var docRefString = "202202091400Z_-111.76_40.41_1";
 
-  if(selectedCity !== 'US-SLC') {
+async function handleFootprintUncertainty(lookupStr) {
+  if (selectedCity !== 'US-SLC') {
     return;
   }
 
   var docRefString = lookupStr;
-  console.log(docRefString)
   const snapshot = await db.collection("hrrr-uncertainty-kriged").doc(docRefString).get();
   var data = snapshot.data();
-  if(!data) {
+  if (!data) {
     return;
   }
   var label;
   if (data.wind_direction_err < 30) {
     if (data.wind_speed_err < 1) {
       label = "High"
-    }
-    else {
+    } else {
       label = "Medium"
     }
   } else if (data.wind_speed_err < 1) {
     label = "Medium"
-  }
-  else {
+  } else {
     label = "Low"
   }
   data.label = label;
-  console.log(data);
   return data;
+}
+
+
+async function loadImage(src) {
+  return await new Promise((resolve, reject) => {
+    let img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.crossOrigin = "Anonymous";
+    img.src = src;
+  })
+}
+
+
+async function alterOverlayImage(url) {
+  var image = await loadImage(url);
+  var canvas =  document.createElement("canvas");
+  var ctx = canvas.getContext('2d');
+  canvas.width = image.width;
+  canvas.height = image.height;
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  for(var i = 0; i < imageData.data.length; i += 4) {
+    let r = imageData.data[i+0], g = imageData.data[i+1], b = imageData.data[i+2];
+    let a = imageData.data[i+3];
+    let s = Math.max(r, g, b) - Math.min(r, g, b); // color saturation
+    r = g = b = 200;
+    if (a < 128) {
+      // Outside backtrace; heavy grey overlay
+       a = 255;
+    } else {
+      // Inside backtrace; alpha goes to zero as saturation increases
+      let gain = 14; // higher gain means sharper transition
+      a = Math.max(0, 255 - s * gain);
+    }
+    imageData.data[i+0] = r;
+    imageData.data[i+1] = g;
+    imageData.data[i+2] = b;
+    imageData.data[i+3] = a;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  return canvas.toDataURL();
 }
