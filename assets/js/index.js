@@ -81,6 +81,8 @@ var traxMarkers = [];
 var sensorsEnabledState = {};
 var sensorLoadingDeferrers = {};
 
+var worldMask;
+
 
 // DOM
 var $infobar;
@@ -576,7 +578,6 @@ async function initMap() {
   }
 
 
-
   //------------------- create custom map overlay to draw footprint ---------------------------------
   class FootprintOverlay extends google.maps.OverlayView {
     constructor(bounds, image) {
@@ -900,6 +901,21 @@ async function initMap() {
 
 
   setupGoogleMapsSearchPlaceChangedHandlers();
+
+  var DummyOverlay = function() { };
+  DummyOverlay.prototype = new google.maps.OverlayView();
+  DummyOverlay.prototype.draw = function() {
+   var self = this;
+   if (!map.getMapPanes) {
+     map.getMapPanes = function() {
+        return self.getPanes();
+     };
+   }
+  };
+  // Add the dummy overlay to the map so it's draw method is called and we gain a new function to get map panes
+  (new DummyOverlay()).setMap(map);
+
+  worldMask = new MaskClass(map);
 
   // !!DO LAST!!
 
@@ -2162,10 +2178,10 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
   overlayData.uncertainty = uncertaintyData;
 
+  var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
   if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
-    var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
     try {
       var result = await $.ajax({
         url: STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png",
@@ -2190,13 +2206,14 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
     plume_backtraces[loc][closestDateEpoch] = data;
 
+    var url = data.image;
+
     if (backtraceMode == "1") {
-      let url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
+      url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
       url = await alterOverlayImage(url);
-      overlay.set('image', url);
-    } else {
-      overlay.set('image', data.image);
     }
+
+    overlay.set('image', url);
 
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(parseFloat(data.metadata.ymin) + latOffset, parseFloat(data.metadata.xmin) + lngOffset),
@@ -2205,14 +2222,20 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     overlay.set('bounds', bounds);
     overlay.setMap(map);
     overlay.show();
+    if (backtraceMode == "1") {
+      worldMask.setMaskCut(overlay.bounds.getSouthWest(), overlay.bounds.getNorthEast());
+    }
   } else {
     overlayData['hasData'] = false;
-    iconPath = ASSETS_ROOT + 'img/gray-pin2.png';
-    if (!fromClick && previousFootprintData.hasData) {
+    iconPath = ASSETS_ROOT + 'img/white-pin.png';
+    if (backtraceMode == "1") {
+      worldMask.setMaskFull();
+    }
+    /*if (!fromClick && previousFootprintData.hasData) {
       if (overlay) {
         overlay.hide();
       }
-    }
+    }*/
   }
 
   overlay.setData(overlayData);
@@ -2224,6 +2247,8 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
   if (fromClick) {
     expandInfobar();
   }
+
+  iconPath += "#selectedLocationPin";
 
   if (selectedLocationPin) {
     selectedLocationPin.setPosition(new google.maps.LatLng(lat,lng));
@@ -2245,7 +2270,10 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       title: "Selected pollution footprint location",
       animation: fromClick && !fromTour ? google.maps.Animation.DROP : null,
       icon: iconPath,
-      /*optimized: false,*/
+      /* This is required to ensure that the element always remain in the DOM tree.
+         Otherwise, some seemingly magical things occur when lots of markers are added to the map.
+      */
+      optimized: false,
       zIndex: 99999999
     });
     google.maps.event.addListener(selectedLocationPin, "click", function (e) {
@@ -2256,8 +2284,19 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       overlay.setData({});
       resetInfobar();
       selectedSensorMarker = null;
+      worldMask.setAllVisible(false);
     });
   }
+  if (!overlayData['hasData']) {
+    setTimeout(function() {
+      var $locationPinElm = $(map.getMapPanes().markerLayer).find("img[src*=selectedLocationPin]").parent();
+      $locationPinElm.prependTo(map.getMapPanes().overlayLayer);
+      map.getMapPanes().markerLayer.style.zIndex = 10;
+    }, 200);
+  } else {
+    map.getMapPanes().markerLayer.style.zIndex = 103;
+  }
+
 }
 
 
@@ -3252,4 +3291,87 @@ async function alterOverlayImage(url) {
   ctx.putImageData(imageData, 0, 0);
 
   return canvas.toDataURL();
+}
+
+function MaskClass(map) {
+  var MAP_MAX_LAT = 85;
+  var MAP_MIN_LAT = -85.05115;
+  var MAP_MAX_LNG = 180;
+  var MAP_MIN_LNG = -180;
+
+  // Create 4 rectangles to mask off the area
+  var rectangleMaskOptions = {
+    map: map,
+    fillColor: "#c8c8c8",
+    fillOpacity: 0.8,
+    strokeOpacity: 0,
+    clickable: false,
+    zIndex: 99999999
+  };
+  this.rectangleWorld = new google.maps.Rectangle(rectangleMaskOptions);
+  this.rectangle1 = new google.maps.Rectangle(rectangleMaskOptions);
+  this.rectangle2 = new google.maps.Rectangle(rectangleMaskOptions);
+  this.rectangle3 = new google.maps.Rectangle(rectangleMaskOptions);
+  this.rectangle4 = new google.maps.Rectangle(rectangleMaskOptions);
+
+
+  this.setMaskFull = function() {
+    this.rectangleWorld.setBounds(
+      new google.maps.LatLngBounds(
+        new google.maps.LatLng(MAP_MIN_LAT, MAP_MIN_LNG),
+        new google.maps.LatLng(MAP_MAX_LAT, MAP_MAX_LNG)));
+
+    this.setMaskFullVisible(true);
+    this.setMaskCutVisible(false);
+  };
+
+  // Place the cut-out
+  this.setMaskCut = function(boundsSouthWest, boundsNorthEast){
+      var swLat = boundsSouthWest.lat();
+      var swLng = boundsSouthWest.lng();
+      var neLat = boundsNorthEast.lat();
+      var neLng = boundsNorthEast.lng();
+
+      this.rectangle1.setBounds(
+        new google.maps.LatLngBounds(
+          new google.maps.LatLng(neLat, MAP_MIN_LNG),
+          new google.maps.LatLng(MAP_MAX_LAT, MAP_MAX_LNG)));
+
+      this.rectangle2.setBounds(
+        new google.maps.LatLngBounds(
+          new google.maps.LatLng(MAP_MIN_LAT, MAP_MIN_LNG),
+          new google.maps.LatLng(swLat, MAP_MAX_LNG)));
+
+      this.rectangle3.setBounds(
+        new google.maps.LatLngBounds(
+          new google.maps.LatLng(swLat, MAP_MIN_LNG),
+          new google.maps.LatLng(neLat, swLng)));
+
+      this.rectangle4.setBounds(
+        new google.maps.LatLngBounds(
+          new google.maps.LatLng(swLat, neLng),
+          new google.maps.LatLng(neLat, MAP_MAX_LNG)));
+
+      this.setMaskCutVisible(true);
+      this.setMaskFullVisible(false);
+  };
+
+  this.setAllVisible = function(visibility) {
+    this.setMaskCutVisible(visibility);
+    this.setMaskFullVisible(visibility);
+  }
+
+  // Show/hide the cut mask
+  this.setMaskCutVisible = function(visibility) {
+    this.rectangle1.setVisible(visibility);
+    this.rectangle2.setVisible(visibility);
+    this.rectangle3.setVisible(visibility);
+    this.rectangle4.setVisible(visibility);
+  }
+
+  // Show/hide the full mask
+  this.setMaskFullVisible = function(visibility) {
+    this.rectangleWorld.setVisible(visibility);
+  };
+
 }
