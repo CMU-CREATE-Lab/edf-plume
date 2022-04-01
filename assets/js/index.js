@@ -2285,18 +2285,17 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       resetInfobar();
       selectedSensorMarker = null;
       worldMask.setAllVisible(false);
+      // Default zIndex for marker layer pane
+      map.getMapPanes().markerLayer.style.zIndex = 103;
     });
   }
-  if (!overlayData['hasData']) {
-    setTimeout(function() {
-      var $locationPinElm = $(map.getMapPanes().markerLayer).find("img[src*=selectedLocationPin]").parent();
-      $locationPinElm.prependTo(map.getMapPanes().overlayLayer);
-      map.getMapPanes().markerLayer.style.zIndex = 10;
-    }, 200);
-  } else {
-    map.getMapPanes().markerLayer.style.zIndex = 103;
-  }
 
+  // Ensure that the clicked location pin is above the masked layer and that all markers are below the mask layer
+  setTimeout(function() {
+    var $locationPinElm = $(map.getMapPanes().markerLayer).find("img[src*=selectedLocationPin]").parent();
+    $locationPinElm.prependTo(map.getMapPanes().overlayLayer);
+    map.getMapPanes().markerLayer.style.zIndex = 10;
+  }, 200);
 }
 
 
@@ -2594,7 +2593,8 @@ async function loadAvailableCities() {
                 ],
           map: map,
           clickable: false,
-          visible: false
+          visible: false,
+          zIndex: 99999999
         });
         available_cities[city_locode].footprint_region = cityClickRegion;
 
