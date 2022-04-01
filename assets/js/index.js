@@ -48,6 +48,7 @@ var selected_city_tmz = "";
 var plume_backtraces = {};
 var tourObj;
 var selected_day_start_epochtime_milisec;
+var previous_selected_day_start_epochtime_milisec;
 var zoomChangedSinceLastIdle = false;
 var currentZoom = -1;
 var selectedLocationPin;
@@ -1672,6 +1673,9 @@ async function getCityInBounds() {
       }
     }
     showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+    if (available_cities[selectedCity].has_smell_reports) {
+      handleSmellReports(playbackTimeline.getPlaybackTimeInMs());
+    }
   }
 
   let currentMapBounds = map.getBounds();
@@ -1715,6 +1719,12 @@ async function getCityInBounds() {
     for (let sensory_type of available_cities[selectedCity].available_sensor_types) {
       var sensor_type_legend_name = sensory_type.replace(/_/g, "-") + "-legend-row";
       $("#" + sensor_type_legend_name).show();
+    }
+
+    if (available_cities[selectedCity].has_smell_reports) {
+      $("#smell-report-legend-row").show();
+    } else {
+      $("#smell-report-legend-row").hide();
     }
 
     $cityName.text(available_cities[selectedCity].name);
@@ -2131,6 +2141,8 @@ async function handleDraw(timeInEpoch) {
   //  handleHrrrWindErrorPointsByEpochTime(timeInEpoch);
   //}
   await showSensorMarkersByTime(timeInEpoch);
+
+  await handleSmellReports(timeInEpoch);
 
   await waitForSensorsLoaded()
 
@@ -2656,6 +2668,7 @@ async function loadAvailableCities() {
         available_cities[city_locode].marker = city_marker;
         available_cities[city_locode].facility_markers = [];
         available_cities[city_locode].sensor_placeholder_markers = [];
+        available_cities[city_locode].smell_report_markers = [];
         city_selector_data.push({id: city_locode, text: city_title});
       }
 
@@ -2908,6 +2921,8 @@ function hideMarkersByCity(city_locode, fromTimeChange) {
     markers = markers.concat(available_cities[city_locode].facility_markers);
     // Get placeholder markers
     markers = markers.concat(available_cities[city_locode].sensor_placeholder_markers);
+    // Get smell report markers
+    markers = markers.concat(available_cities[city_locode].smell_report_markers[selected_day_start_epochtime_milisec]);
   }
   hideMarkers(markers);
 }
@@ -2939,7 +2954,7 @@ function showMarkers(markers, isFirstTime) {
   markers = safeGet(markers, []);
   let filterExcludes = Object.keys(sensorsEnabledState).filter(key => sensorsEnabledState[key] === false);
   for (var i = 0; i < markers.length; i++) {
-    if (typeof markers[i] !== "undefined" && !filterExcludes.includes(markers[i].getSensorType())) {
+    if ((typeof(markers[i]) !== "undefined" && markers[i].getMarkerType && markers[i].getMarkerType() == "smell") || (typeof(markers[i]) !== "undefined" &&  !filterExcludes.includes(markers[i].getSensorType()))) {
       if (isFirstTime) {
         markers[i].setMap(map);
       } else {
@@ -3410,4 +3425,65 @@ function MaskClass(map) {
     this.rectangleWorld.setVisible(visibility);
   };
 
+}
+
+
+async function handleSmellReports(epochtime_milisec) {
+  var epochtime_sec = parseInt(epochtime_milisec / 1000);
+  var smell_report_markers = available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec];
+  // Hide previously visible smell reports
+  if (previous_selected_day_start_epochtime_milisec) {
+    var previous_smell_report_markers = available_cities[selectedCity].smell_report_markers[previous_selected_day_start_epochtime_milisec];
+    hideMarkers(previous_smell_report_markers);
+  }
+  if (smell_report_markers === undefined) {
+    loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec);
+  } else {
+    var smell_report_markers_to_hide = [];
+    var smell_report_markers_to_show = []
+    smell_report_markers.forEach((s) => (s.getData().observed_at <= epochtime_sec ? smell_report_markers_to_show : smell_report_markers_to_hide).push(s));
+    hideMarkers(smell_report_markers_to_hide);
+    showMarkers(smell_report_markers_to_show);
+  }
+}
+
+
+async function loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec) {
+  var m_d = moment(epochtime_milisec).tz(selected_city_tmz);
+  var start_time = m_d.startOf("day").unix();
+  var end_time = m_d.endOf("day").unix();
+  var state_id = 1; // PA
+  $.ajax({
+    "url": "https://api.smellpittsburgh.org/api/v2/smell_reports?start_time=" + start_time + "&end_time=" + end_time + "&state_ids=" + state_id + "&timezone_string=" + encodeURIComponent(selected_city_tmz),
+    "success": function (data) {
+      for (var i = 0; i < data.length; i++) {
+        createAndShowSmellMarker(data[i], epochtime_sec);
+      }
+    },
+    "error": function (response) {
+      console.log("server error:", response);
+    }
+  });
+}
+
+
+function createAndShowSmellMarker(data, epochtime_sec) {
+  return new CustomMapMarker({
+    "type": "smell",
+    "data": data,
+    "initZoomLevel": map.getZoom(),
+    "click": function (marker) {
+      //handleSmellMarkerClicked(marker);
+    },
+    "complete": function (marker) {
+      marker.setMap(map);
+      if (marker.getData().observed_at > epochtime_sec) {
+        hideMarkers([marker]);
+      }
+      if (!available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec]) {
+        available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec] = [];
+      }
+      available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec].push(marker);
+    }
+  });
 }

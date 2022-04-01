@@ -176,6 +176,7 @@ body {
   background-repeat: no-repeat;
   background-size: 15px 15px;
   background-position: center;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 #legend-table .trax-span {
@@ -327,6 +328,26 @@ body {
 
 .trax-color-6 {
   background-color: #7e0023;
+}
+
+.smell-color-1 {
+  background-image: url("../img/smell_1.png");
+}
+
+.smell-color-2 {
+  background-image: url("../img/smell_2.png");
+}
+
+.smell-color-3 {
+  background-image: url("../img/smell_3.png");
+}
+
+.smell-color-4 {
+  background-image: url("../img/smell_4.png");
+}
+
+.smell-color-5 {
+  background-image: url("../img/smell_5.png");
 }
 
 .wind-arrow {

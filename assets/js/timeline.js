@@ -119,6 +119,9 @@ async function handleTimelineButtonClicked(epochtime_milisec, day_label) {
 async function handleTimelineButtonSelected(epochtime_milisec) {
   // This method gets called before "handleTimelineButtonClicked"
 
+  if (selected_day_start_epochtime_milisec) {
+    previous_selected_day_start_epochtime_milisec = selected_day_start_epochtime_milisec;
+  }
   selected_day_start_epochtime_milisec = epochtime_milisec;
   timeline.selectedDayInMs = epochtime_milisec;
 
