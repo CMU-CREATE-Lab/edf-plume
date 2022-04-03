@@ -39,7 +39,7 @@ var pm25ColorLookup = function(pm25) {
 };
 
 var map;
-//var infowindow;
+var infowindow;
 var playbackTimeline;
 var dataFormatWorker;
 var available_cities = {};
@@ -296,6 +296,12 @@ async function initMap() {
   STILT_GCLOUD_BUCKET = STILT_GCLOUD_BUCKET.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
   CLOUD_STORAGE_PARENT_URL = CLOUD_STORAGE_PARENT_URL.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
   // DEBUG
+
+  // Set information window
+  infowindow = new google.maps.InfoWindow({
+    pixelOffset: new google.maps.Size(-1, 0),
+    maxWidth: 250
+  });
 
   map = new google.maps.Map(document.getElementById("map"), {
     options: {
@@ -2149,6 +2155,10 @@ async function handleDraw(timeInEpoch) {
   if (selectedLocationPinVisible()) {
     determineSensorAndUpdateInfoBar();
   }
+
+  if (infowindow) {
+    infowindow.close();
+  }
 }
 
 
@@ -3473,7 +3483,7 @@ function createAndShowSmellMarker(data, epochtime_sec) {
     "data": data,
     "initZoomLevel": map.getZoom(),
     "click": function (marker) {
-      //handleSmellMarkerClicked(marker);
+      handleSmellMarkerClicked(marker);
     },
     "complete": function (marker) {
       marker.setMap(map);
@@ -3486,4 +3496,15 @@ function createAndShowSmellMarker(data, epochtime_sec) {
       available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec].push(marker);
     }
   });
+}
+
+function handleSmellMarkerClicked(marker) {
+  infowindow.setContent(marker.getContent());
+  infowindow.open(map, marker.getGoogleMapMarker());
+
+  // Remove highlight of popup close button
+  // Apparently need a slight delay to allow for the button to initially be focused
+  setTimeout(function() {
+    document.activeElement.blur();
+  }, 50);
 }
