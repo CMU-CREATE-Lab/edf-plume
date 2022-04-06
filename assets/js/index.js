@@ -2285,7 +2285,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     }
   } else {
     overlayData['hasData'] = false;
-    iconPath = ASSETS_ROOT + 'img/white-pin.png';
+    iconPath = ASSETS_ROOT + 'img/white-pin2.png';
     if (backtraceMode == "1") {
       worldMask.setMaskFull();
     }
