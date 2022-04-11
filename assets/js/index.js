@@ -2289,11 +2289,12 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     if (backtraceMode == "1") {
       worldMask.setMaskFull();
     }
-    /*if (!fromClick && previousFootprintData.hasData) {
+    // Hide prior backtrace if no new one is available for the selected time
+    if (!fromClick && previousFootprintData.hasData) {
       if (overlay) {
         overlay.hide();
       }
-    }*/
+    }
   }
 
   overlay.setData(overlayData);
