@@ -277,9 +277,10 @@ function loadTimelineData(start_time, end_time, callback) {
 function loadTimelineDataToday(fullData, callback){
   $.ajax({
     "url": generateURLForHourlyAQI(),
+    "dataType": "json",
     "success": function (data) {
       if (typeof callback === "function") {
-        var parsed = JSON.parse(data)
+        var parsed = data;
         // Most recent date and data point
         // The hourly timestamps are actualy in UTC. whereas the daily timestamps
         // show midnight, and are marked as UTC, but are NOT actually UTC midnight.
