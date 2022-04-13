@@ -2037,12 +2037,12 @@ function initDomElms() {
   $("#toggle-backtrace-likelihood").on("click", async function() {
     backtraceMode = $(this).prop("checked") ? "1" : "0";
     worldMask.setAllVisible(false);
-    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true);
+    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true, true);
   });
 
   $("#toggle-uncertainty-details").on("click", async function() {
     uncertaintyDetailLevel = $(this).prop("checked") ? "2" : "1";
-    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true);
+    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true, true);
     updateInfoBar(overlay);
   });
 
