@@ -561,7 +561,7 @@ async function initMap() {
   });
 
   $(".more-info-backtrace").on("click", function() {
-    setButtonTooltip("During the occurence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots below to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
+    setButtonTooltip("During the occurrence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots below to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
   });
 
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
