@@ -132,7 +132,11 @@ body {
   font-size: 14px;
 }
 
-.more-info {
+#infobar-plume-section.detailed {
+  margin-bottom: 40px !important;
+}
+
+.more-info, .more-info-backtrace {
   background-image: url('../img/info-icon.png');
   background-size: contain;
   width: 20px;
@@ -161,6 +165,25 @@ body {
 
 .custom-legend {
   margin: 0px;
+}
+
+.plume-expand-icon {
+  background-image: url('../img/more-black.png');
+  background-size: contain;
+  width: 30px;
+  height: 30px;
+  image-rendering: -webkit-optimize-contrast;
+  cursor: pointer;
+  left: 243px;
+  position: relative;
+  top: 4px;
+  opacity: 0.88;
+  transition: all .2s ease-in-out;
+}
+
+.plume-expand-icon:hover {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 #legend-table td {
@@ -791,28 +814,47 @@ body {
 
 
 .button-tooltip p {
-  max-width: 160px;
+  max-width: 170px;
   margin-top: 0px;
   margin-bottom: -11px;
   margin-left: 0px;
   margin-right: 0px;
   padding-top: 9px;
   padding-bottom: 19px;
-  padding-left: 14px;
+  padding-left: 20px;
   padding-right: 14px;
-  background-repeat: no-repeat;
-  background-image: url('../img/bubble_edge_horizontal.png');
-  background-position: 50% 100%;
+
   font: 13px "Helvetica Neue", Sans-Serif;
   color: white;
 }
 
-.button-tooltip.left p {
-  background-position: 10% 100%;
+.button-tooltip p::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 12px;
+  background-repeat: no-repeat;
+  background-image: url('../img/bubble_edge_horizontal.png');
+  background-position: 50% 100%;
 }
 
-.button-tooltip.right p {
-  background-position: 90% 100%;
+.button-tooltip.left p::before {
+  /* background-position: 10% 100%; */
+  left: 9%;
+}
+
+.button-tooltip.right p::before {
+  /* background-position: 90% 100%; */
+  right: 9%;
+}
+
+.button-tooltip.bottom p::before {
+  bottom: -15%;
+}
+
+.button-tooltip.top p::before {
+  transform: rotate(180deg);
+  top: -6%;
 }
 
 .always-selectable {
@@ -833,8 +875,19 @@ div.pac-container {
   z-index: 99999999999 !important;
 }
 
-.reachOutModal div {
+.reachOutModal div, .backtraceSettingsModal div {
   font-size: 13px;
+}
+
+.backtraceSettingsModal td {
+  padding-right: 30px;
+  padding-bottom: 5px;
+}
+
+.backtraceSettingsModal .switch {
+  font-size: 11px;
+  width: 40px;
+  top: -1px;
 }
 
 .reachOutModal div a {
@@ -869,7 +922,7 @@ div.pac-container {
   word-break: break-all;
 }
 
-.shareViewModal .close-modal, .cityPickerModal .close-modal, .searchModal .close-modal, .reachOutModal .close-modal {
+.shareViewModal .close-modal, .cityPickerModal .close-modal, .searchModal .close-modal, .reachOutModal .close-modal, .backtraceSettingsModal  .close-modal {
   background: url('../img/close.png') center center no-repeat;
   background-size: 20px 20px;
   display: inline-block;
@@ -878,7 +931,7 @@ div.pac-container {
   cursor: default;
   opacity: 0.67;
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 10px;
   cursor: pointer;
 }
@@ -887,11 +940,11 @@ div.pac-container {
   right: 12px;
 }
 
-.shareViewModal .close-modal:hover, .cityPickerModal .close-modal:hover, .searchModal .close-modal:hover, .reachOutModal .close-modal:hover {
+.shareViewModal .close-modal:hover, .cityPickerModal .close-modal:hover, .searchModal .close-modal:hover, .reachOutModal .close-modal:hover .backtraceSettingsModal .close-modal:hover {
   opacity: 0.9;
 }
 
-.shareViewModal .close-modal:after, .cityPickerModal .close-modal:after, .searchModal .close-modal:after, .reachOutModal .close-modal:after {
+.shareViewModal .close-modal:after, .cityPickerModal .close-modal:after, .searchModal .close-modal:after, .reachOutModal .close-modal:after, .backtraceSettingsModal .close-modal:after {
   content:'';
   position: absolute;
   top: -12px;
@@ -927,7 +980,7 @@ div.pac-container {
   right: -12px;
 }
 
-.shareViewModal #share-link-container-main p.heading, .shareViewModal #embed-link-container-main p.heading, .searchModal p.heading, .reachOutModal p.heading {
+.shareViewModal #share-link-container-main p.heading, .shareViewModal #embed-link-container-main p.heading, .searchModal p.heading, .reachOutModal p.heading, .backtraceSettingsModal p.heading {
   font-family: 'Open Sans', Helvetica, Arial, sans-serif;
   font-size: 18px;
 }

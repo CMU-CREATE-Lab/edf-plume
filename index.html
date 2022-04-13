@@ -82,8 +82,10 @@
         </div>
         <div id="infobar-component-container">
           <div id="infobar-plume-section" class="infobar-component">
-            <div class="infobar-component-header">Backtrace: </div>
+            <div class="infobar-component-header">Backtrace: <span class='more-info-backtrace'></span></div>
             <div id="infobar-plume">
+              <div class="plume-expand-icon" title="More details"></div>
+              <div class="plume-expand"></div>
               <div class="infobar-text"></div>
               <div class="infobar-data"></div>
               <div class="infobar-unit"></div>
@@ -362,6 +364,36 @@
         <br>
         <p class="heading">Contact</p>
         <div>Have any questions? Would you like to see Air Tracker in your neighborhood? Let us know at <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a></div>
+      </div>
+      <span class="close-modal" title="Close"></span>
+    </div>
+    <div class="backtraceSettingsModal">
+      <div>
+        <p class="heading">Backtrace Settings</p>
+        <table>
+          <tr>
+            <td>Show contribution likelihoods:</td>
+            <td>
+              <label class="switch" title="Show backtrace contribution likelihoods">
+                <input type="checkbox" id="toggle-backtrace-likelihood">
+                <span class="slider round">
+                  <span class="input-state-text"></span>
+                </span>
+              </label>
+            </td>
+          </tr>
+          <tr>
+            <td>Show detailed uncertainty info:</td>
+            <td>
+              <label class="switch" title="Show detailed uncertainty info">
+                <input type="checkbox" id="toggle-uncertainty-details">
+                <span class="slider round">
+                  <span class="input-state-text"></span>
+                </span>
+              </label>
+            </td>
+          </tr>
+        </table>
       </div>
       <span class="close-modal" title="Close"></span>
     </div>

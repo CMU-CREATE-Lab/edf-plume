@@ -83,7 +83,15 @@ var sensorsEnabledState = {};
 var sensorLoadingDeferrers = {};
 
 var worldMask;
-
+// modes:
+// 0 = masked out area, unmasked shows where pollution could have covered covered
+// 1 = show likelihood of where pollution has come from
+var backtraceMode = "0";
+// modes:
+// 0 = no uncertainty details
+// 1 = basic uncertainty info
+// 2 = detailed uncertainty info, which includes kriging info, wind info, etc
+var uncertaintyDetailLevel = "1"
 
 // DOM
 var $infobar;
@@ -552,6 +560,10 @@ async function initMap() {
     setButtonTooltip("Data displayed is from the closest available capture time, in relation to the selected playback time.", $(this), null, {at: "top", my: 'left bottom-10'})
   });
 
+  $(".more-info-backtrace").on("click", function() {
+    setButtonTooltip("During the occurence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots below to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
+  });
+
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
 
   $(".explanation-step-button").on("click", function(e) {
@@ -801,6 +813,20 @@ async function initMap() {
     }
   });
 
+  $(".backtraceSettingsModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    width: "350px",
+    open: function() {
+      if (isMobileView()) {
+        $(".backtraceSettingsModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+        $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
+      }
+    }
+  });
+
   $(".searchModal").dialog({
     resizable: false,
     autoOpen: false,
@@ -818,7 +844,7 @@ async function initMap() {
 
   $(window).resize(function() {
     if (!isMobileView()) {
-      $(".shareViewModal, .reachOutModal").dialog("option", "position", {my: "center", at: "center", of: window});
+      $(".shareViewModal, .reachOutModal, .backtraceSettingsModal").dialog("option", "position", {my: "center", at: "center", of: window});
     }
   });
 
@@ -1679,7 +1705,7 @@ async function getCityInBounds() {
       }
     }
     showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
-    if (available_cities[selectedCity].has_smell_reports) {
+    if (selectedCity && available_cities[selectedCity].has_smell_reports) {
       handleSmellReports(playbackTimeline.getPlaybackTimeInMs());
     }
   }
@@ -1888,8 +1914,13 @@ function setButtonTooltip(text, $target, duration, position) {
       my: position.my,
       collision: "flip fit",
       using: function (obj,info) {
-        $(this).removeClass("left right");
+        $(this).removeClass("left right top bottom");
         var horizontalShiftAmt = 28;
+        if (info.vertical == "top") {
+          $(this).addClass("top");
+        } else if (info.vertical == "bottom") {
+          $(this).addClass("bottom");
+        }
         if (info.horizontal == "right") {
           obj.left += horizontalShiftAmt;
           $(this).addClass("right");
@@ -1997,6 +2028,22 @@ function initDomElms() {
   });
   $("#reach-out-mobile").on("click", function() {
     $(".reachOutModal").dialog('open');
+  });
+
+  $(".plume-expand-icon").on("click", function() {
+    $(".backtraceSettingsModal").dialog('open');
+  });
+
+  $("#toggle-backtrace-likelihood").on("click", async function() {
+    backtraceMode = $(this).prop("checked") ? "1" : "0";
+    worldMask.setAllVisible(false);
+    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true);
+  });
+
+  $("#toggle-uncertainty-details").on("click", async function() {
+    uncertaintyDetailLevel = $(this).prop("checked") ? "2" : "1";
+    await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true);
+    updateInfoBar(overlay);
   });
 
   $infobarPollution = $("#infobar-pollution");
@@ -2167,7 +2214,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     return;
   }
 
-  var backtraceMode = Util.parseVars(window.location.href).backtraceMode;
+  //var backtraceMode = Util.parseVars(window.location.href).backtraceMode;
 
   var fromTour = isInTour();
   if (!fromTour && !wasVirtualClick && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
@@ -2266,7 +2313,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
     var url = data.image;
 
-    if (backtraceMode == "1") {
+    if (backtraceMode == "0") {
       url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
       url = await alterOverlayImage(url);
     }
@@ -2280,13 +2327,13 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     overlay.set('bounds', bounds);
     overlay.setMap(map);
     overlay.show();
-    if (backtraceMode == "1") {
+    if (backtraceMode == "0") {
       worldMask.setMaskCut(overlay.bounds.getSouthWest(), overlay.bounds.getNorthEast());
     }
   } else {
     overlayData['hasData'] = false;
     iconPath = ASSETS_ROOT + 'img/white-pin2.png';
-    if (backtraceMode == "1") {
+    if (backtraceMode == "0") {
       worldMask.setMaskFull();
     }
     // Hide prior backtrace if no new one is available for the selected time
@@ -2804,15 +2851,18 @@ function updateInfoBar(marker) {
   if (overlay) {
     var overlayData = overlay.getData();
     var infoStr = "";
-    var uncertaintyDetailLevel = Util.parseVars(window.location.href).uncertaintyDetail;
+    //var uncertaintyDetailLevel = Util.parseVars(window.location.href).uncertaintyDetail;
     if (overlayData.hasData) {
       var tm = moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)");
-      if(uncertaintyDetailLevel && overlayData.uncertainty) {
+      if (uncertaintyDetailLevel && overlayData.uncertainty) {
         if (uncertaintyDetailLevel == "1") {
           setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,"Model Confidence",tm);
           $infobarPlume.children(".infobar-text").addClass('display-unset');
+          $("#infobar-plume-section").removeClass("detailed");
         } else if (uncertaintyDetailLevel == "2") {
+          setInfobarSubheadings($infobarPlume,"","","",tm);
           createUncertaintyTable($infobarPlume,overlayData.uncertainty);
+          $("#infobar-plume-section").addClass("detailed");
         }
       } else {
         infoStr = "Snapshot from model at " + tm;
@@ -2833,26 +2883,23 @@ function updateInfoBar(marker) {
 }
 
 function createUncertaintyTable($element, data) {
-  for(const x in data) {
-    if(typeof(data[x]) === 'number') {
-      data[x] = roundTo(data[x],2)
+  for (const x in data) {
+    if (typeof(data[x]) === 'number') {
+      data[x] = roundTo(data[x],2);
     }
   }
-  var confidenceColor = "green"
-  if (data.label === "Low"){
-    confidenceColor = "darkred"
+  var confidenceColor = "green";
+  if (data.label === "Low") {
+    confidenceColor = "darkred";
+  } else if (data.label === "Medium") {
+    confidenceColor = "goldenrod";
   }
-  else if (data.label === "Medium") {
-    confidenceColor = "goldenrod"
-  }
-
-
-  var tableString = ""
-  tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>"
-  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>"
-  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>"
-  tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>"
-  tableString += "<tr><td></td><td colspan='2' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Confidence</td></tr>"
+  var tableString = "";
+  tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>";
+  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>";
+  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>";
+  tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
+  tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Model Confidence</td></tr>";
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
 }
@@ -3440,6 +3487,8 @@ function MaskClass(map) {
 
 
 async function handleSmellReports(epochtime_milisec) {
+  if (!selectedCity || !available_cities[selectedCity].has_smell_reports) return;
+
   var epochtime_sec = parseInt(epochtime_milisec / 1000);
   var smell_report_markers = available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec];
   // Hide previously visible smell reports
