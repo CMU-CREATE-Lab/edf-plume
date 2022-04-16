@@ -165,7 +165,7 @@ var create = {};
       });
 
       // TODO
-      touchHorizontalScroll($timeline)
+      touchHorizontalScroll($timeline);
 
       //// TODO: Do we want this only for mobile?
       /*$timeline.on("scroll", function(e) {
@@ -250,6 +250,8 @@ var create = {};
       if (!fromRefocus) {
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         setPlaybackTimeInMs(newPlaybackTimeInMs);
+        plotManager.getDateAxis().setCursorPosition(newPlaybackTimeInMs / 1000);
+
         if (!skipDraw) {
           handleDraw(playbackTimeInMs);
         }
@@ -515,7 +517,7 @@ var create = {};
         return currentFrameNumber;
       } else {
         //var date = moment().tz(selected_city_tmz)
-        var roundedDate = roundDate(playbackTimeInMs, moment.duration(15, "minutes"), "floor");
+        var roundedDate = roundDate(playbackTimeInMs, moment.duration(incrementAmtInMin, "minutes"), "floor");
         return captureTimes.indexOf(roundedDate.format('h:mm A'));
       }
     };

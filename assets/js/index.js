@@ -3247,7 +3247,7 @@ function handleTimelineToggling(e) {
     var $timeTicks = $("#playback-timeline-container .materialTimeline span.materialTimelineTick");
     $timeTicks.removeClass("disabled");
     if (currentDate.isSame(moment.tz(playbackTimeInMs, selected_city_tmz), 'day')) {
-      var latestClosestTime = roundDate(currentDate, moment.duration(15, "minutes"), "floor");
+      var latestClosestTime = roundDate(currentDate, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor");
       // TODO: Note does not take DST start/end into account
       var numMinutesElapsedForLatestClosestTime = latestClosestTime.get('hour') * 60 + latestClosestTime.get('minute');
       $timeTicks.filter("[data-minutes-lapsed='" + numMinutesElapsedForLatestClosestTime + "']").nextAll().addClass("disabled");

@@ -129,7 +129,7 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
   var timeObj = moment.tz(epochtime_milisec, selected_city_tmz);
   var currentDate = moment().tz(selected_city_tmz);
-  var currentDateRounded = roundDate(currentDate, moment.duration(15, "minutes"), "floor");
+  var currentDateRounded = roundDate(currentDate, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor");
   if (playbackTimeInMs == 0) {
     timeInc = {hour:currentDateRounded.hour(), minute:currentDateRounded.minute(), second:0, millisecond:0};
   } else {

@@ -63,15 +63,17 @@ function addPlot(markerData) {
     if (event && event.type == "mousedown") {
       var newSelectedTimeInMs = dataPoint.x * 1000;
       var m = moment.tz(newSelectedTimeInMs, selected_city_tmz);
+      var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor")
+      var closestTimeInMs = closestM.valueOf();
       var startOfDayForNewSelectedTime = m.clone().startOf("day");
       if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
-        playbackTimeline.setPlaybackTimeInMs(newSelectedTimeInMs);
+        playbackTimeline.setPlaybackTimeInMs(closestTimeInMs);
         await loadNewDay(startOfDayForNewSelectedTime);
       }
       if (playbackTimeline && !playbackTimeline.isActive()) {
         handleTimelineToggling();
       }
-      var timeLapsedInMin = m.diff(startOfDayForNewSelectedTime, 'minutes');
+      var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
       //$(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").trigger("click");
       var frame = $(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").data("frame");
       playbackTimeline.seekTo(frame);
