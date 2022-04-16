@@ -29,6 +29,7 @@
     <script type="text/javascript" src="./assets/js/Util.js"></script>
     <script type="text/javascript" src="./assets/js/customTimeline2.js"></script>
     <script type="text/javascript" src="./assets/js/index.js"></script>
+    <script type="text/javascript" src="./assets/js/plots.js"></script>
     <script type="text/javascript" src="./assets/js/timeline.js"></script>
     <script type="text/javascript" src="./assets/js/purpleAirTourHelpers.js"></script>
     <script type="text/javascript" src="./assets/lib/gmaps-utils/map_marker/CustomMapMarker.js"></script>
@@ -39,6 +40,12 @@
     <script type="text/javascript" src="./assets/lib/downloadjs/download.min.js"></script>
     <script type="text/javascript" src="./assets/lib/js-markerwithlabel/js-markerwithlabel-1.3.11.min.js"></script>
     <script type="text/javascript" src="./assets/lib/introjs/intro.min.js"></script>
+
+    <script type="text/javascript" src="./assets/lib/grapher/grapher.min.js"></script>
+    <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
+    <script src="https://moment.github.io/luxon/global/luxon.min.js"></script>
+
   </head>
   <body class="materialUI">
     <div id="controls" class="playbackTimelineOff" style="display: none">
@@ -61,11 +68,53 @@
       </button>
     </div>
     <div id="infobar" class='infocontainer no-controls'>
+      <div id="timeseries">
+        <div id="infobar-header">Air Tracker</div>
+        <div id="back-arrow-container" title="Exit time series mode">
+          <div id="back-arrow"></div>
+          <span id="back-arrow-text">Exit Time Series</span>
+        </div>
+        <!-- <div id="plot-from-map">+ Plot another selected sensor from map</div> -->
+        <div id="grapher_container" class="noselect">
+          <div class="alert">
+            Only up to 5 sensors can be graphed. Delete one before adding another.
+          </div>
+          <table id="grapher" border="0" cellpadding="0" cellspacing="0">
+             <tr>
+                <td>
+                   <div id="date_axis" class="date_axis" style="width:400px;"></div>
+                </td>
+                <td>
+                  <div id="zoomGrapherIn" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom in the graphs">
+                    <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-plus-white"></span>
+                  </div>
+                  <div id="zoomGrapherOut" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom out the graphs">
+                    <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-minus-white"></span>
+                  </div>
+                </td>
+             </tr>
+             <tr>
+               <td>
+                 <div id="plot_container" class="plot_container" style="width:400px;height:300px;"></div>
+                </td>
+                <td>
+                  <div id="y_axis" class="y_axis" style="height:300px">
+                    <div id="y_axis_label" class="rotate_90 y_axis_label">(ug/m<sup>3</sup>)</div>
+                  </div>
+                </td>
+             </tr>
+             <tr><td id="hover_sample_value_and_time"></td></tr>
+          </table>
+          <div id='grapher_legend'>
+            <table id="graph_legend_content"></table>
+          </div>
+        </div>
+      </div>
       <div id="infobar-content">
         <div id="infobar-header">Air Tracker</div>
         <div id="infobar-location-header"></div>
         <div id="infobar-initial" class="initial">
-          <p>That air you’re breathing, where’s it been?</p>
+          <p>That air you're breathing, where's it been?</p>
           <p>AirTracker makes visual connections between the air you are breathing and the locations
             of air pollution sources in your city. Users can view back traces, which show where
             air comes from at any time.
@@ -82,9 +131,8 @@
         </div>
         <div id="infobar-component-container">
           <div id="infobar-plume-section" class="infobar-component">
-            <div class="infobar-component-header">Backtrace: <span class='more-info-backtrace'></span></div>
+            <div class="infobar-component-header">Backtrace: <span class='more-info-backtrace'></span><div class="plume-expand-icon" title="More details"></div></div>
             <div id="infobar-plume">
-              <div class="plume-expand-icon" title="More details"></div>
               <div class="plume-expand"></div>
               <div class="infobar-text"></div>
               <div class="infobar-data"></div>
@@ -93,7 +141,7 @@
             </div>
           </div>
           <div id="infobar-pollution-section" class="infobar-component">
-            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info'></span></div>
+            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info'></span><span class='chart-btn' title="Explore time series data"></span></div>
             <div id="infobar-pollution" class="infobar-component-value">
               <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements.</i></div>
               <div class="infobar-data"></div>
@@ -318,11 +366,11 @@
           See how the wind arrow overlaps with the back trace, and they both point into the selected location (red pin)? That suggests that the model wind
           direction agrees with the measured wind direction, and we have a lot of confidence that the back trace is correct.
           <br><br>
-          When the wind arrow and the back trace don’t match:
+          When the wind arrow and the back trace don't match:
           <br><br>
           <div><img src="./assets/img/edf-wind-pt2.jpg"></div>
           <br>
-          See how the arrow and the back trace don’t line up at all? This means we have less confidence that the back trace is correct.
+          See how the arrow and the back trace don't line up at all? This means we have less confidence that the back trace is correct.
         </div>
       </div>
       <div id="explanationstep-container" data-max-steps="2" data-current-step="1">

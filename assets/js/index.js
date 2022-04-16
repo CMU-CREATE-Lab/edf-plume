@@ -91,7 +91,9 @@ var backtraceMode = "0";
 // 0 = no uncertainty details
 // 1 = basic uncertainty info
 // 2 = detailed uncertainty info, which includes kriging info, wind info, etc
-var uncertaintyDetailLevel = "1"
+var uncertaintyDetailLevel = "1";
+
+var checkIfPinOnLoadIsReadyInterval;
 
 // DOM
 var $infobar;
@@ -129,6 +131,7 @@ var $tooltipContent;
 //var hrrrWindErrorPointLocations = {};
 var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
 var startingView = Object.assign({}, defaultHomeView);
+
 
 function isMobileView() {
   return $(window).width() <= 450;
@@ -561,7 +564,7 @@ async function initMap() {
   });
 
   $(".more-info-backtrace").on("click", function() {
-    setButtonTooltip("During the occurrence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots below to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
+    setButtonTooltip("During the occurrence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots on the side to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
   });
 
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
@@ -836,7 +839,17 @@ async function initMap() {
     open: function() {
       $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
     }
-  })
+  });
+
+  // $("#plot-from-map").on("click", function() {});
+
+  $(".chart-btn").on("click", function() {
+    if ($(this).hasClass("disabled")) return;
+    timeSeriesModeEnabled = true;
+    $("#infobar").addClass("timeseries");
+    $("#timeseries").show();
+    handleTimeSeries();
+  });
 
   $(".close-modal").on("click", function() {
     $(this).parent().dialog('close');
@@ -967,7 +980,6 @@ async function initMap() {
       $searchBoxClear.show();
     }
   });
-
 
   setupGoogleMapsSearchPlaceChangedHandlers();
 
@@ -1640,6 +1652,7 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
         createDataPullWebWorker();
         sensorLoadingDeferrers[marker_type].promise = null;
         sensorLoadingDeferrers[marker_type].isProcessing = false;
+        sensorLoadingDeferrers[marker_type].isQueued = false;
       }
 
       if (!makeVisible) {
@@ -1656,9 +1669,12 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
       //var date_str_sensor = moment(timeline.selectedDayInMs).tz(selected_city_tmz).format("YYYY-MM-DD");
       //var is_current_day = date_str_sensor === current_day_str;
 
+      sensorLoadingDeferrers[marker_type] = {};
+      sensorLoadingDeferrers[marker_type].isQueued = true;
       await waitForSensorsLoaded();
       sensorLoadingDeferrers[marker_type] = new Deferred();
       sensorLoadingDeferrers[marker_type].isProcessing = true;
+      sensorLoadingDeferrers[marker_type].isQueued = false;
 
       dataFormatWorker.postMessage(
       { epochtime_milisec: timeline.selectedDayInMs,
@@ -1824,9 +1840,17 @@ async function getCityInBounds() {
           var latLng = urlVars.pinnedPoint.split(",");
           google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
           // Need a delay for the click to fully register
-          setTimeout(function() {
-            determineSensorAndUpdateInfoBar();
-          }, 300)
+          // TODO: Make this done through a Promise
+          var waitForReady = function() {
+            if (selectedLocationPinVisible()) {
+              clearInterval(checkIfPinOnLoadIsReadyInterval);
+              determineSensorAndUpdateInfoBar();
+            }
+          }
+          clearInterval(checkIfPinOnLoadIsReadyInterval);
+          checkIfPinOnLoadIsReadyInterval = setInterval(function() {
+            waitForReady();
+          }, 50);
         }
 
       });
@@ -2169,6 +2193,7 @@ async function determineSensorAndUpdateInfoBar() {
       }
     }
   }
+
   // animate footprint
   var overlayData = overlay.getData();
   if (Object.keys(overlayData).length > 0) {
@@ -2182,8 +2207,12 @@ async function determineSensorAndUpdateInfoBar() {
   // Update info panel
   if (primaryInfoPopulator) {
     updateInfoBar(primaryInfoPopulator);
+    if (primaryInfoPopulator.getData() && typeof(primaryInfoPopulator.getData().pm25_channel) == "string") {
+      $(".chart-btn").removeClass("disabled");
+    }
   }
 }
+
 
 async function handleDraw(timeInEpoch) {
   if (sensorsEnabledState['trax']) {
@@ -2396,6 +2425,9 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     });
   }
 
+  // Enable/Disable chart button based on whether a sensor was clicked and whether it has pm25 readings.
+  selectedSensorMarker && typeof(selectedSensorMarker.getData().pm25_channel) == "string" ? $(".chart-btn").removeClass("disabled") : $(".chart-btn").addClass("disabled");
+
   // Ensure that the clicked location pin is above the masked layer and that all markers are below the mask layer
   setTimeout(function() {
     var $locationPinElm = $(map.getMapPanes().markerLayer).find("img[src*=selectedLocationPin]").parent();
@@ -2556,7 +2588,11 @@ function setSensorDataLoaded(marker_type) {
 
 
 async function waitForSensorsLoaded() {
-  for (var sensor_type in sensorLoadingDeferrers) {
+  for (let sensor_type in sensorLoadingDeferrers) {
+    // TODO: Gross
+    if (sensorLoadingDeferrers[sensor_type].isQueued) {
+      await new Promise(r => setTimeout(r, 50));
+    }
     await sensorLoadingDeferrers[sensor_type].promise;
   }
 }
@@ -2613,12 +2649,17 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
 function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
   var sensor_type = getSensorType(info);
   if (typeof sensor_type === "undefined") return undefined;
+  var marker_sources = sensor_type == "WIND_ONLY" ? info["sensors"]["wind_direction"]["sources"] : info["sensors"][sensor_type]["sources"];
+  var most_recent_data_source = marker_sources[marker_sources.length - 1];
   var marker_data = {
     "is_current_day": typeof(is_current_day) === "undefined" ? true : is_current_day,
     "name": info["name"],
     "latitude": info["latitude"],
     "longitude": info["longitude"],
-    "feed_id": sensor_type == "WIND_ONLY" ? info["sensors"]["wind_direction"]["sources"][0]["feed"] : info["sensors"][sensor_type]["sources"][0]["feed"]
+    // NOTE: This only gets the most recent feed id. There may be an older one, that is no longer used but has past data.
+    "feed_id": most_recent_data_source["feed"],
+    // "feed_channels": Object.keys(info["sensors"])
+    "pm25_channel" : sensor_type != "WIND_ONLY" ? most_recent_data_source["channel"] : []
   };
   if (typeof data === "undefined") return marker_data;
   // For PM25 or VOC (these two types cannot both show up in info)
@@ -2789,6 +2830,7 @@ function updateSensorsEnabledState(sensorType, state) {
   changeBrowserUrlState();
 }
 
+
 // TODO: Refactor so we are not passing in a marker but pulling state elsewhere.
 function updateInfoBar(marker) {
   if (!marker || !selectedLocationPinVisible()) return;
@@ -2882,6 +2924,7 @@ function updateInfoBar(marker) {
   }
 }
 
+
 function createUncertaintyTable($element, data) {
   for (const x in data) {
     if (typeof(data[x]) === 'number') {
@@ -2903,6 +2946,7 @@ function createUncertaintyTable($element, data) {
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
 }
+
 
 function setInfobarSubheadings($element, text, data, unit, time) {
   $element.children(".infobar-text")[0].innerHTML = text;
@@ -2929,6 +2973,12 @@ async function handleSensorMarkerClicked(marker) {
   await drawFootprint(marker.getData()['latitude'], marker.getData()['longitude'], true);
 
   updateInfoBar(marker);
+
+  // TODO
+  if (timeSeriesModeEnabled) {
+    addPlotToLegend(selectedSensorMarker.getData())
+  }
+
 }
 
 
@@ -2985,6 +3035,7 @@ function hideMarkersByCity(city_locode, fromTimeChange) {
   hideMarkers(markers);
 }
 
+
 function hideMarkers(markers) {
   markers = safeGet(markers, []);
   for (var i = 0; i < markers.length; i++) {
@@ -2998,6 +3049,7 @@ function hideMarkers(markers) {
   }
 }
 
+
 function showMarkersByCity(city_locode) {
   var markers = Object.keys(available_cities[city_locode].sensors).map(function(sensorName){return available_cities[city_locode].sensors[sensorName]['marker'];});
   if (available_cities[selectedCity].has_sensor_placeholders) {
@@ -3005,6 +3057,7 @@ function showMarkersByCity(city_locode) {
   }
   showMarkers(markers);
 }
+
 
 function showMarkers(markers, isFirstTime) {
   var zoom = map.getZoom();
@@ -3022,6 +3075,7 @@ function showMarkers(markers, isFirstTime) {
   }
 }
 
+
 function setupTimeline(startTime, initCallback) {
   var options = {
     playbackTimeInMs: startTime,
@@ -3038,6 +3092,7 @@ function setupTimeline(startTime, initCallback) {
   initTimeline(options);
 }
 
+
 function resetMapToCitiesOverview(city_locode) {
   resetAllTrax();
   //resetAllHrrrWindErrorPoints();
@@ -3053,7 +3108,9 @@ function resetMapToCitiesOverview(city_locode) {
   }
   selectedCity = "";
   $legend.hide();
+  $("#back-arrow-container").trigger("click");
 }
+
 
 function showHideMarkersByZoomLevel() {
   var previousZoom = currentZoom;
@@ -3107,6 +3164,7 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   }
   return markers_with_data_for_chosen_epochtime;
 }
+
 
 async function showSensorMarkersByTime(epochtime_milisec) {
   if (!selectedCity) return;
@@ -3168,6 +3226,7 @@ async function showSensorMarkersByTime(epochtime_milisec) {
   }
 }
 
+
 function handleTimelineToggling(e) {
   if (e) {
     var $currentTarget = $(e.currentTarget);
@@ -3207,6 +3266,7 @@ function handleTimelineToggling(e) {
     $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
   }
 }
+
 
 function initFootprintDialog() {
   $footprint_dialog = widgets.createCustomDialog({
@@ -3402,6 +3462,7 @@ async function alterOverlayImage(url) {
   return canvas.toDataURL();
 }
 
+
 function MaskClass(map) {
   var MAP_MAX_LAT = 85;
   var MAP_MIN_LAT = -85.05115;
@@ -3547,6 +3608,7 @@ function createAndShowSmellMarker(data, epochtime_sec) {
     }
   });
 }
+
 
 function handleSmellMarkerClicked(marker) {
   infowindow.setContent(marker.getContent());

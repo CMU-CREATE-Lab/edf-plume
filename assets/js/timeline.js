@@ -145,6 +145,13 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   $currentDateLegendText.text(mostRecentDayStrFull);
   // Update timestamp preview displayed under clock button
   $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
+
+  if (plotManager) {
+    var m = moment.tz(epochtime_milisec, selected_city_tmz);
+    var min = m.clone().subtract(12, 'hours').unix();
+    var max =  m.clone().endOf("day").add(12, 'hours').unix();
+    plotManager.getDateAxis().setRange({min : min, max: max});
+  }
 }
 
 
