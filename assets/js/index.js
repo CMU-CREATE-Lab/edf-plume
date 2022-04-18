@@ -596,7 +596,7 @@ async function initMap() {
       }
       lastYPos = currentYPos;
       var dist = startYPos - currentYPos;
-      var max = selectedLocationPinVisible() ? 218 : 258;
+      var max = 218;
       var maxHeight = Math.min(max, (startHeight - dist));
       $infobar.height(maxHeight);
     });
@@ -604,7 +604,7 @@ async function initMap() {
       $(document).trigger("click");
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: selectedLocationPinVisible() ? "210px" : "250px"
+          height: "210px"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
@@ -2067,7 +2067,11 @@ function initDomElms() {
   $("#toggle-uncertainty-details").on("click", async function() {
     uncertaintyDetailLevel = $(this).prop("checked") ? "2" : "1";
     await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true, true);
-    updateInfoBar(overlay);
+    if (isSensorMarkerVisible(selectedSensorMarker)) {
+      updateInfoBar(selectedSensorMarker);
+    } else if (selectedLocationPinVisible()) {
+      updateInfoBar(overlay);
+    }
   });
 
   $infobarPollution = $("#infobar-pollution");
@@ -2899,7 +2903,7 @@ function updateInfoBar(marker) {
       if (uncertaintyDetailLevel && overlayData.uncertainty) {
         if (uncertaintyDetailLevel == "1") {
           setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,"Model Confidence",tm);
-          $infobarPlume.children(".infobar-text").addClass('display-unset');
+          $infobarPlume.children(".infobar-text");
           $("#infobar-plume-section").removeClass("detailed");
         } else if (uncertaintyDetailLevel == "2") {
           setInfobarSubheadings($infobarPlume,"","","",tm);

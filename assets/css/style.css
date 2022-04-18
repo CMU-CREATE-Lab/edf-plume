@@ -1796,7 +1796,7 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar.no-controls {
-    height: 250px;
+    height: 210px;
   }
 
   #infobar-initial {
@@ -1831,7 +1831,7 @@ div.gmnoprint[role='menubar'] {
 
   #infobar {
     font-size: 14px;
-    height: 250px;
+    height: 210px;
     width: 100%;
     width: -moz-available;
     width: -webkit-fill-available;
@@ -1899,6 +1899,10 @@ div.gmnoprint[role='menubar'] {
     border-left: 1px solid lightgray;
   }
 
+  #infobar-content {
+    height: calc(100% - 40px);
+  }
+
   #infobar-plume-section {
     border-left: none;
   }
@@ -1944,5 +1948,9 @@ div.gmnoprint[role='menubar'] {
 
   .infobar-time {
     font-size: 12px;
+  }
+
+  .chart-btn {
+    display: none;
   }
 }
