@@ -100,8 +100,8 @@ var createDatasource = function(feedIdOrApiKey, channelName) {
 };
 
 
-function addPlotToLegend(markerData, forceOn) {
-  if (timeSeriesColors.length == 0) {
+function addPlotToLegend(markerData, forceOn, fromMapSensorClick) {
+  if (fromMapSensorClick && timeSeriesColors.length == 0) {
     $('.alert').fadeIn(1000).delay(5000).fadeOut(1000);
     return;
   }

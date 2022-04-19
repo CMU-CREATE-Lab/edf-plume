@@ -2980,7 +2980,7 @@ async function handleSensorMarkerClicked(marker) {
 
   // TODO
   if (timeSeriesModeEnabled) {
-    addPlotToLegend(selectedSensorMarker.getData())
+    addPlotToLegend(selectedSensorMarker.getData(), null, true)
   }
 
 }
