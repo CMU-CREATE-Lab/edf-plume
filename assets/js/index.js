@@ -2978,8 +2978,8 @@ async function handleSensorMarkerClicked(marker) {
 
   updateInfoBar(marker);
 
-  // TODO
-  if (timeSeriesModeEnabled) {
+  // TODO: Add message to say only PM25 sensors can be graphed?
+  if (timeSeriesModeEnabled && marker.getData() && typeof(marker.getData().pm25_channel) == "string") {
     addPlotToLegend(selectedSensorMarker.getData(), null, true)
   }
 
