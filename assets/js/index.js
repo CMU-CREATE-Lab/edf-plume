@@ -2310,7 +2310,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
   var iconPath;
   var loc = latTrunc + "," + lngTrunc;
 
-  var tmp = m_closestDate.format("YYYYMMDDHHmm") + "Z";
+  var tmp = m_closestDate.tz("UTC").format("YYYYMMDDHHmm") + "Z";
   var formatted_tmp = tmp + "_" + lngTrunc + "_" + latTrunc + "_1";
   var uncertaintyData = await handleFootprintUncertainty(formatted_tmp);
 
@@ -2943,12 +2943,22 @@ function createUncertaintyTable($element, data) {
   }
   var tableString = "";
   tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>";
-  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td>"+data.hrrr_wd+"</td></tr>";
-  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td>"+data.kriged_wd+"</td></tr>";
+  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td id='hrrr-wd'>"+data.hrrr_wd+"</td></tr>";
+  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td id='kriged-wd'>"+data.kriged_wd+"</td></tr>";
   tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
   tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Model Confidence</td></tr>";
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
+
+  if(data.hrrr_u){
+    $("#hrrr-wd").on("click", function() {
+      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null, {at: "right"})
+    });
+
+    $("#kriged-wd").on("click", function() {
+      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "right"})
+    });
+  }
 }
 
 
