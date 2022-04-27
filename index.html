@@ -116,7 +116,7 @@
         <div id="infobar-initial" class="initial">
           <p>That air you're breathing, where's it been?</p>
           <p>AirTracker makes visual connections between the air you are breathing and the locations
-            of air pollution sources in your city. Users can view back traces, which show where
+            of air pollution sources in your city. Users can view source areas, which show where
             air comes from at any time.
             <br><br>
             Key interactive features include:
@@ -124,14 +124,14 @@
           <ul>
             <li>View real-time air pollution and wind measurements across your city. Click on a blue circle, indicating an available city. Once the region has loaded, click on a circle to see these sensor measurements.</li>
             <br>
-            <li>Click anywhere in the dotted region of the city to create a back trace that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
+            <li>Click anywhere in the dotted region of the city to create a source area that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
             <br>
-            <li>When examining a city, explore past air pollution measurements and back traces to learn more about areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
+            <li>When examining a city, explore past air pollution measurements and source areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
           </ul>
         </div>
         <div id="infobar-component-container">
           <div id="infobar-plume-section" class="infobar-component">
-            <div class="infobar-component-header">Backtrace: <span class='more-info-backtrace'></span><div class="plume-expand-icon" title="More details"></div></div>
+            <div class="infobar-component-header">Source Area: <span class='more-info-backtrace'></span><div class="plume-expand-icon" title="More details"></div></div>
             <div id="infobar-plume">
               <div class="plume-expand"></div>
               <div class="infobar-text"></div>
@@ -196,7 +196,7 @@
             <td colspan="2" id="current-date-legend"></td>
           </tr>
           <tr id="backtrace-legend-row" class="legend-row">
-            <td class="entry-title">Backtrace: </td>
+            <td class="entry-title">Source Area: </td>
             <td colspan="2" class="backtrace-color-map"></td>
           </tr>
           <tr id="backtrace-details-legend-row">
@@ -351,26 +351,26 @@
     <div id="footprint-first-click-dialog" title="Reminder!">
       <div id="explanation-content-container">
         <div id="explanation-1" class="explanation-content">
-          Clicking on the map will show you the <b>pollution backtrace</b> for that place at the selected time. <br><br>
+          Clicking on the map will show you the <b>pollution source area</b> for that place at the selected time. <br><br>
           The dark purple area is the area that the air parcels at your selected location most likely came <i>from.</i> <br><br>
           As the color fades to white, this shows areas that are less and less likely to have contributed air parcels to the location you selected.
         </div>
         <div id="explanation-2" class="explanation-content">
           <h4>Wind:</h4>
           The wind arrow points in the direction that the air is blowing. It is positioned based on real-time meteorological measurements at that site.
-          The back trace uses wind data from a weather model data developed by NOAA. While those weather models are quite good, they do not always match
+          The source area uses wind data from a weather model data developed by NOAA. While those weather models are quite good, they do not always match
           measured data exactly. Here is what to look for:
           <br><br>
           <div><img src="./assets/img/edf-wind-pt1.jpg"></div>
           <br>
-          See how the wind arrow overlaps with the back trace, and they both point into the selected location (red pin)? That suggests that the model wind
-          direction agrees with the measured wind direction, and we have a lot of confidence that the back trace is correct.
+          See how the wind arrow overlaps with the source area, and they both point into the selected location (red pin)? That suggests that the model wind
+          direction agrees with the measured wind direction, and we have a lot of confidence that the source area is correct.
           <br><br>
-          When the wind arrow and the back trace don't match:
+          When the wind arrow and the source area don't match:
           <br><br>
           <div><img src="./assets/img/edf-wind-pt2.jpg"></div>
           <br>
-          See how the arrow and the back trace don't line up at all? This means we have less confidence that the back trace is correct.
+          See how the arrow and the source area don't line up at all? This means we have less confidence that the source area is correct.
         </div>
       </div>
       <div id="explanationstep-container" data-max-steps="2" data-current-step="1">
@@ -417,7 +417,7 @@
     </div>
     <div class="backtraceSettingsModal">
       <div>
-        <p class="heading">Backtrace Settings</p>
+        <p class="heading">Source Area Settings</p>
         <table>
           <tr>
             <td>Show contribution likelihoods:</td>

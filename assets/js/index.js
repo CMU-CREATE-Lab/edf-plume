@@ -564,7 +564,7 @@ async function initMap() {
   });
 
   $(".more-info-backtrace").on("click", function() {
-    setButtonTooltip("During the occurrence of a pollution event, a backtrace can show the area that pollution has passed through to reach the point in question. To further help pinpoint a potential pollution source, click the 3 dots on the side to get more details about contribution likelihoods.", $(this), null, {at: "bottom", my: 'left top+10'})
+    setButtonTooltip("To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", $(this), null, {at: "bottom", my: 'left top+10'})
   });
 
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
@@ -2950,13 +2950,13 @@ function createUncertaintyTable($element, data) {
   $element.children(".infobar-text")[0].innerHTML = tableString
   $element.children(".infobar-text").children("table").addClass("infobar-table")
 
-  if(data.hrrr_u){
+  if (data.hrrr_u){
     $("#hrrr-wd").on("click", function() {
-      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null, {at: "right"})
+      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null)
     });
 
     $("#kriged-wd").on("click", function() {
-      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "right"})
+      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "top"})
     });
   }
 }
