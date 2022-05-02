@@ -131,7 +131,7 @@
         </div>
         <div id="infobar-component-container">
           <div id="infobar-plume-section" class="infobar-component">
-            <div class="infobar-component-header">Source Area: <span class='more-info-backtrace'></span><div class="plume-expand-icon" title="More details"></div></div>
+            <div class="infobar-component-header">Source Area: <span class='more-info' title="Learn more" data-info="side-panel-backtrace"></span><div class="plume-expand-icon" title="More details"></div></div>
             <div id="infobar-plume">
               <div class="plume-expand"></div>
               <div class="infobar-text"></div>
@@ -141,7 +141,7 @@
             </div>
           </div>
           <div id="infobar-pollution-section" class="infobar-component">
-            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info'></span><span class='chart-btn' title="Explore time series data"></span></div>
+            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="Learn more" data-info="side-panel-data"></span><span class='chart-btn' title="Explore time series data"></span></div>
             <div id="infobar-pollution" class="infobar-component-value">
               <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements.</i></div>
               <div class="infobar-data"></div>
@@ -150,7 +150,7 @@
             </div>
           </div>
           <div id="infobar-wind-section" class="infobar-component">
-            <div class="infobar-component-header">Wind: <span class='more-info'></span></div>
+            <div class="infobar-component-header">Wind: <span class='more-info' title="Learn more" data-info="side-panel-data"></span></div>
             <div id="infobar-wind" class="infobar-component-value">
               <div class="infobar-text"><i>Click on the nearest sensor (with an arrow) to see wind measurements.</i></div>
               <div class="infobar-data-intro">Coming from</div>
@@ -179,6 +179,9 @@
           <button id="reach-out">
             Reach out
           </button>
+          <button id="methodology">
+            Methodology
+          </button>
           <div class="searchBoxContainer">
             <input class="searchBox" placeholder="Search for a point of interest..." autocomplete="off">
             <span class="searchBoxIcon" title="Toggle search"></span>
@@ -196,7 +199,7 @@
             <td colspan="2" id="current-date-legend"></td>
           </tr>
           <tr id="backtrace-legend-row" class="legend-row">
-            <td class="entry-title">Source Area: </td>
+            <td class="entry-title">Source Area: <span class='more-info more-info-legend' title="Learn more" data-info="legend-backtrace"></span></td>
             <td colspan="2" class="backtrace-color-map"></td>
           </tr>
           <tr id="backtrace-details-legend-row">
@@ -207,7 +210,7 @@
           <tr id="air-now-legend-row" class="legend-row">
             <td class="entry-title two-rows">
               AirNow PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span>
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-airnow"></span>
             </td>
             <td colspan="2">
               <table>
@@ -231,7 +234,7 @@
           <tr id="purple-air-legend-row" class="legend-row">
             <td class="entry-title two-rows">
               PurpleAir PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span>
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-purpleair"></span>
             </td>
             <td colspan="2">
               <table>
@@ -263,7 +266,7 @@
           <tr id="clarity-legend-row" class="legend-row">
             <td class="entry-title two-rows">
               Clarity PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span>
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-clarity"></span>
             </td>
             <td colspan="2">
               <table>
@@ -311,7 +314,7 @@
           <tr id="trax-legend-row" class="legend-row">
             <td class="entry-title two-rows">
               TRAX PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span>
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-trax"></span>
             </td>
             <td colspan="2">
               <span class="trax-color-1 trax-span opacity-25"></span>
@@ -341,7 +344,7 @@
             </td>
           </tr>
           <tr id="wind-legend-row">
-            <td class="entry-title">Wind:</td>
+            <td class="entry-title">Wind: <span class='more-info more-info-legend' title="Learn more" data-info="legend-wind"></span></td>
             <td colspan="4" class="wind-arrow-td wind-arrow"></td>
           </tr>
         </table>
@@ -407,11 +410,15 @@
     </div>
     <div class="reachOutModal">
       <div>
-        <p class="heading">Learn More</p>
-        <div>Read more about our methodology <a href="https://docs.google.com/document/d/1lleQIVY1aq89n9kFmljzW-FxjRRgghTlOcFbTwNkQUY/edit?usp=sharing" target="_blank">here.</a></div>
-        <br>
         <p class="heading">Contact</p>
         <div>Have any questions? Would you like to see Air Tracker in your neighborhood? Let us know at <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a></div>
+      </div>
+      <span class="close-modal" title="Close"></span>
+    </div>
+    <div class="methodologyModal">
+      <div>
+        <p class="heading">Learn More</p>
+        <div>Read more about our methodology <a href="https://docs.google.com/document/d/1lleQIVY1aq89n9kFmljzW-FxjRRgghTlOcFbTwNkQUY/edit?usp=sharing" target="_blank">here.</a></div>
       </div>
       <span class="close-modal" title="Close"></span>
     </div>
@@ -469,6 +476,7 @@
           <li id="share-picker-mobile"><span class="mobile-share-icon"></span><a href="#">Share</a></li>
           <!-- <li id="help-tour-mobile"><span class="mobile-tour-icon"></span><a href="#">Tour</a></li> -->
           <li id="reach-out-mobile"><span class="mobile-reach-out-icon"></span><a href="#">Reach Out</a></li>
+          <li id="methodology-mobile"><span class="mobile-methodology-icon"></span><a href="#">Methodology</a></li>
           <li id="search-mobile">
             <span class="searchBoxIconMobile" title="Toggle search"></span>
             <a href="#">Search</a>

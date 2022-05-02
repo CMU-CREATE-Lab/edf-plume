@@ -255,7 +255,7 @@ body {
   margin-bottom: 40px !important;
 }
 
-.more-info, .more-info-backtrace {
+.more-info {
   background-image: url('../img/info-icon.png');
   background-size: contain;
   width: 20px;
@@ -265,6 +265,21 @@ body {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
   display: inline-flex;
+}
+
+.more-info-legend {
+  background-image: url('../img/info-icon.png');
+  background-size: contain;
+  width: 14px;
+  height: 14px;
+  image-rendering: -webkit-optimize-contrast;
+  cursor: pointer;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  position: absolute;
+  margin-left: 2px;
+  margin-top: 1px;
 }
 
 .chart-btn {
@@ -1029,14 +1044,14 @@ body {
 }
 
 .button-tooltip.bottom p::before {
-  bottom: -15%;
+  bottom: -12px;
 }
 
 .button-tooltip.top p::before {
   -webkit-transform: rotate(180deg);
       -ms-transform: rotate(180deg);
           transform: rotate(180deg);
-  top: -6%;
+  top: -12px;
 }
 
 .always-selectable {
@@ -1056,7 +1071,7 @@ div.pac-container {
   z-index: 99999999999 !important;
 }
 
-.reachOutModal div, .backtraceSettingsModal div {
+.reachOutModal div, .backtraceSettingsModal div, .methodologyModal div {
   font-size: 13px;
 }
 
@@ -1071,11 +1086,11 @@ div.pac-container {
   top: -1px;
 }
 
-.reachOutModal div a {
+.reachOutModal div a, .methodologyModal div a  {
   color: #007de1;
 }
 
-.shareViewModal.ui-dialog-content,  .reachOutModal.ui-dialog-content {
+.shareViewModal.ui-dialog-content, .reachOutModal.ui-dialog-content, .methodologyModal.ui-dialog-content {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -1103,7 +1118,7 @@ div.pac-container {
   word-break: break-all;
 }
 
-.shareViewModal .close-modal, .cityPickerModal .close-modal, .searchModal .close-modal, .reachOutModal .close-modal, .backtraceSettingsModal  .close-modal {
+.shareViewModal .close-modal, .cityPickerModal .close-modal, .searchModal .close-modal, .reachOutModal .close-modal, .backtraceSettingsModal  .close-modal, .methodologyModal .close-modal {
   background: url('../img/close.png') center center no-repeat;
   background-size: 20px 20px;
   display: inline-block;
@@ -1121,11 +1136,11 @@ div.pac-container {
   right: 12px;
 }
 
-.shareViewModal .close-modal:hover, .cityPickerModal .close-modal:hover, .searchModal .close-modal:hover, .reachOutModal .close-modal:hover .backtraceSettingsModal .close-modal:hover {
+.shareViewModal .close-modal:hover, .cityPickerModal .close-modal:hover, .searchModal .close-modal:hover, .reachOutModal .close-modal:hover, .backtraceSettingsModal .close-modal:hover, .methodologyModal .close-modal:hover {
   opacity: 0.9;
 }
 
-.shareViewModal .close-modal:after, .cityPickerModal .close-modal:after, .searchModal .close-modal:after, .reachOutModal .close-modal:after, .backtraceSettingsModal .close-modal:after {
+.shareViewModal .close-modal:after, .cityPickerModal .close-modal:after, .searchModal .close-modal:after, .reachOutModal .close-modal:after, .backtraceSettingsModal .close-modal:after, .methodologyModal .close-modal:after {
   content:'';
   position: absolute;
   top: -12px;
@@ -1161,7 +1176,7 @@ div.pac-container {
   right: -12px;
 }
 
-.shareViewModal #share-link-container-main p.heading, .shareViewModal #embed-link-container-main p.heading, .searchModal p.heading, .reachOutModal p.heading, .backtraceSettingsModal p.heading {
+.shareViewModal #share-link-container-main p.heading, .shareViewModal #embed-link-container-main p.heading, .searchModal p.heading, .reachOutModal p.heading, .backtraceSettingsModal p.heading, .methodologyModal p.heading {
   font-family: 'Open Sans', Helvetica, Arial, sans-serif;
   font-size: 18px;
 }
@@ -1739,6 +1754,21 @@ div.gmnoprint[role='menubar'] {
     z-index: 9000;
     float: left;
     background: url('../img/reach-out.png');
+    -webkit-filter: invert(1);
+            filter: invert(1);
+    background-size: 30px 30px;
+    background-repeat: no-repeat;
+    margin-top: 19px;
+    margin-left: 6px;
+    margin-right: -5px;
+  }
+
+  .mobile-methodology-icon {
+    width: 35px;
+    height: 50px;
+    z-index: 9000;
+    float: left;
+    background: url('../img/methodology-small.png');
     -webkit-filter: invert(1);
             filter: invert(1);
     background-size: 30px 30px;

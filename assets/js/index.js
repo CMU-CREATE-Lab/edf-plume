@@ -560,11 +560,18 @@ async function initMap() {
   });
 
   $(".more-info").on("click", function() {
-    setButtonTooltip("Data displayed is from the closest available capture time, in relation to the selected playback time.", $(this), null, {at: "top", my: 'left bottom-10'})
-  });
-
-  $(".more-info-backtrace").on("click", function() {
-    setButtonTooltip("To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", $(this), null, {at: "bottom", my: 'left top+10'})
+    var text = {
+      "side-panel-data" : {text: "Data displayed is from the closest available capture time, in relation to the selected playback time.", pos: {at: "top", my: 'left bottom-10'}},
+      "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
+      "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-airnow" : {text: "AirNow monitors provide hourly PM2.5 readings. These government sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM2.5 readings. Click on the colored squares to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM2.5 along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM2.5 readings. Click on the colored diamonds to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+    };
+    var selectedInfo = text[$(this).data("info")];
+    setButtonTooltip(selectedInfo.text, $(this), null, selectedInfo.pos);
   });
 
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
@@ -840,6 +847,20 @@ async function initMap() {
       $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
     }
   });
+
+  $(".methodologyModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    open: function() {
+      if (isMobileView()) {
+        $(".methodologyModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+        $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });
+      }
+    }
+  });
+
 
   // $("#plot-from-map").on("click", function() {});
 
@@ -2053,6 +2074,19 @@ function initDomElms() {
   $("#reach-out-mobile").on("click", function() {
     $(".reachOutModal").dialog('open');
   });
+
+  $("#methodology").show().button({
+    icons: {
+      primary: "ui-icon-custom-methodology-black"
+    },
+    text: false
+  }).on("click", function() {
+    $(".methodologyModal").dialog('open');
+  });
+  $("#methodology-mobile").on("click", function() {
+    $(".methodologyModal").dialog('open');
+  });
+
 
   $(".plume-expand-icon").on("click", function() {
     $(".backtraceSettingsModal").dialog('open');
