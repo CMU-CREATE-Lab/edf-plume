@@ -119,14 +119,14 @@
 }
 
 .materialUI #help-tour .ui-icon-custom-help-tour-black {
-  background: url('../img/help.png');
-  width: 20px;
-  height: 20px;
-  opacity: 0.6;
+  background: url('../img/tour.png');
+  width: 30px;
+  height: 30px;
+  opacity: 0.7;
   background-size: contain;
   -webkit-background-size: contain;
-  margin-left: -6px;
-  margin-top: -10px;
+  margin-left: -15px;
+  margin-top: -14px;
   background-repeat: no-repeat;
 }
 
@@ -146,11 +146,11 @@
   background: url('../img/methodology-small.png');
   width: 24px;
   height: 24px;
-  opacity: 0.6;
+  opacity: 0.65;
   background-size: contain;
   -webkit-background-size: contain;
   margin-left: -12px;
-  margin-top: -12px;
+  margin-top: -11px;
   background-repeat: no-repeat;
 }
 

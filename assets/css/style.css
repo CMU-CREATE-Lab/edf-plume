@@ -1738,10 +1738,10 @@ div.gmnoprint[role='menubar'] {
     height: 50px;
     z-index: 9000;
     float: left;
-    background: url('../img/help.png');
+    background: url('../img/tour.png');
     -webkit-filter: invert(1);
             filter: invert(1);
-    background-size: 20px 30px;
+    background-size: 30px 30px;
     background-repeat: no-repeat;
     margin-top: 19px;
     margin-left: 10px;
