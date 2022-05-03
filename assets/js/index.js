@@ -1047,6 +1047,259 @@ async function initMap() {
 }
 
 
+function siteTourShort() {
+  var defaultTourStepTitle = "Air Tracker Tour";
+
+  // TODO: Make tour views/text fit better for mobile
+  var steps = [];
+
+  var step_0_text = "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'.";
+  if (!isMobileView()) {
+    step_0_text += "<br><br> You can also use the forward/backward arrow keys on your keyboard.";
+  }
+  var step_0 = {
+    title: defaultTourStepTitle,
+    intro: step_0_text
+  }
+
+  var step_1 = {
+    title: defaultTourStepTitle,
+    intro: "Air Tracker is interactive and works within the dotted bounds around each featured city. <br><br> You can click anywhere within those bounds to find a source area influencing that point of interest."
+  }
+
+  var step_2 = {
+    title: defaultTourStepTitle,
+    element: null,
+    highlightPaddings:  {top: -150, left: -50, width: 500, height: 200},
+    intro: "A source area, which is depicted as a non-masked out region, shows where pollution is most likely originating."
+  }
+
+  var step_3 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "These colored circles represent regulatory air quality monitors. The colors within the circle represent real-time air pollution readings.",
+    position: "right",
+    highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
+  }
+
+  var step_4 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "The blue arrow points in the direction that wind is moving. You can click on these monitors to show real-time wind and pollution readings on the side bar.",
+    position: "right",
+    highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
+  }
+
+  var step_5 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "Once you've click on a monitor, you can also click the chart emblem on the side bar to see pollution concentrations over time at that monitor.",
+    position: "right",
+  }
+
+  var step_6 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector("#purple-air-legend-row"),
+    intro: "'PurpleAir' and 'Clarity' sensor data can be added to the map using the toggle button in the legend.",
+    highlightPaddings:  {height: 38},
+    position: "left",
+  }
+
+  var step_7 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector("#legend"),
+    intro: "Additional air quality data sources vary by city. <br><br> In Salt Lake City, three trains from the light rail system 'TRAX' feature real-time air pollution monitors that map readings when those trains are running. <br><br> In Pittsburgh, real-time smell reports highlight areas where citizens have reported nuisance smells.",
+    position: "left"
+  }
+
+  var step_8 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector('#timeline-container'),
+    intro: "The default map of Air Tracker shows current, real-time data. <br><br> You can also look up source areas in the past. Scroll through the dates at the bottom of the page. When you click on a new date, the map will update, showing the data from the selected day.",
+    position: "top-middle-aligned"
+  }
+
+  var step_9 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector('.timestampPreview'),
+    intro: "To select a new time within a day, click on the clock in the lower left-hand corner of the screen.",
+    position: "top-left-aligned",
+  }
+
+  var step_10 = {
+    title: defaultTourStepTitle,
+    element: null,
+    intro: "Once you clicked the clock, you can change the time of day in 3 ways: <br><br> <ol><li>Use the scroll bar on the timeline.</li><li>Click the left/right arrows on your keyboard.</li><li>Hold down the left or right arrow buttons on the timeline and a pop-up will allow you to select a time to jump to.</li>",
+    position: "top-left-aligned",
+  }
+
+  var step_11 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector('.playbackButton'),
+    intro: "To animate source areas on a specific date, click the play button next to the calendar. This will play through measured air pollution and source area data.",
+    position: "top-left-aligned",
+  }
+
+  var step_12 = {
+    title: defaultTourStepTitle,
+    element: document.querySelector("#share-picker"),
+    intro: "You can share a snapshot of the map view you were looking at by clicking this button. A pop-up will appear with various options.",
+    position: "right",
+  }
+
+  tourObj = introJs().setOptions({
+    autoPosition: false,
+    exitOnOverlayClick: false,
+    showProgress: true,
+    showBullets: false,
+    steps: [
+      step_0,
+      step_1,
+      step_2,
+      step_3,
+      step_4,
+      step_5,
+      step_6,
+      step_7,
+      step_8,
+      step_9,
+      step_10,
+      step_11,
+      step_12
+    ]
+  }).onbeforechange(async function() {
+    // Steps are 0 indexed
+    if (this._currentStep == 0) {
+      inTour = true;
+
+      // Add tour css indicator to any elements that we want to handle css transitions differently when in tour mode
+      $(".materialTimelineContainerMain").addClass("tour");
+
+      if (selectedLocationPinVisible()) {
+        google.maps.event.trigger(selectedLocationPin, "click");
+      }
+
+    } else if (this._currentStep == 1) {
+      // Remove pin
+      if (selectedLocationPinVisible()) {
+        google.maps.event.trigger(selectedLocationPin, "click");
+      }
+
+      // Turn off any sensors that can be toggled
+      toggleOffAllNonForcedSensors();
+
+      // If we are starting the tour with the playback timeline up, close it.
+      if (playbackTimeline && playbackTimeline.isActive()) {
+        handleTimelineToggling();
+      }
+
+      // Bring SLC bounds into view
+      google.maps.event.trigger(available_cities["US-HOU"].marker, "click");
+
+    } else if (this._currentStep == 2) {
+      // Bring up Nov 3rd 2021 @ noon
+      playbackTimeline.seekTo(39, true);
+      $(".block-click-region[data-epochtime_milisec='1651035600000']").trigger("click");
+      await waitForSensorsLoaded();
+      // A lat/lng point in SLC region
+      var latLng = new google.maps.LatLng(29.726360689, -95.44894116);
+      var e = { latLng: latLng, fromVirtualClick: true };
+      // TODO: Likely need to tweak for mobile
+      map.setZoom(12);
+      // Trigger a click to show a backtrace
+      google.maps.event.trigger(map, 'click', e);
+      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
+      var screenPos = convertLatLngToScreenCoords(latLng);
+      var id = "tour-manual-region-" + this._currentStep;
+      if (!document.querySelector("#" + id)) {
+        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
+      }
+      this._introItems[this._currentStep].element = document.querySelector("#" + id);
+      if (isMobileView()) {
+        $(".custom-legend").accordion( "option", "active", false);
+        this._introItems[this._currentStep].position = "top-middle-aligned";
+      } else {
+        this._introItems[this._currentStep].position = "right";
+      }
+
+      // Reposition
+      map.setCenter(new google.maps.LatLng(29.726360689, -95.30371547509765));
+
+      setTimeout(() => {
+        this.refresh();
+      }, 500);
+
+    } else if (this._currentStep == 3) {
+      // Remove pin
+      if (selectedLocationPinVisible()) {
+        google.maps.event.trigger(selectedLocationPin, "click");
+      }
+
+      var marker = available_cities["US-HOU"].sensors["Houston Westhollow C410 AirNow"].marker.getGoogleMapMarker();
+      var latLng = marker.position;
+      map.setCenter(latLng);
+      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
+      var screenPos = convertLatLngToScreenCoords(latLng);
+      var id = "tour-manual-region-" + this._currentStep;
+      if (!document.querySelector("#" + id)) {
+        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
+      }
+      this._introItems[this._currentStep].element = document.querySelector("#" + id);
+      this._introItems[this._currentStep].position = "left";
+      this.refresh();
+    } else if (this._currentStep == 4) {
+      var id = "tour-manual-region-3";
+      this._introItems[this._currentStep].element = document.querySelector("#" + id);
+      this._introItems[this._currentStep].position = "left";
+      this.refresh();
+    } else if (this._currentStep == 5) {
+      if (!selectedLocationPinVisible()) {
+        var marker = available_cities["US-HOU"].sensors["Houston Westhollow C410 AirNow"].marker.getGoogleMapMarker();
+        google.maps.event.trigger(marker, "click");
+      }
+      var that = this;
+      setTimeout(() => {
+        that._introItems[that._currentStep].element = document.querySelector(".chart-btn");
+        that._introItems[that._currentStep].position = "right";
+        that.refresh();
+      }, 250);
+    } else if (this._currentStep == 6) {
+      // Remove pin
+      if (selectedLocationPinVisible()) {
+        google.maps.event.trigger(selectedLocationPin, "click");
+      }
+    } else if (this._currentStep == 9) {
+      // If we are starting the tour with the playback timeline up, close it.
+      if (playbackTimeline && playbackTimeline.isActive()) {
+        handleTimelineToggling();
+      }
+    } else if (this._currentStep == 10) {
+      if (playbackTimeline && !playbackTimeline.isActive()) {
+        handleTimelineToggling();
+      }
+    }
+
+  }).onexit(function() {
+    // Turn off tour mode
+    inTour = false;
+    // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
+    if (this._currentStep == 0) {
+      return;
+    }
+    // Remove pin
+    if (selectedLocationPinVisible()) {
+      google.maps.event.trigger(selectedLocationPin, "click");
+    }
+    // Go to most recent available day
+    $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
+    // Remove all manual tour div regions
+    $("tour-overlay-region").remove();
+    // Remove tour CSS indicator
+    $(".materialTimelineContainerMain").removeClass("tour");
+  }).start();
+}
+
+
 function siteTour() {
   var defaultTourStepTitle = "Air Tracker Tour";
 
@@ -1131,7 +1384,7 @@ function siteTour() {
     {
       title: defaultTourStepTitle,
       element: null,
-      intro: "Regulatory air quality monitors (supported by U.S. EPA’s AirNow Network) are represented by colored circles. The colors within the circle represent air pollution readings as indicated by the legend in the upper right. <br><br> Air Tracker currently includes measurements of fine particulate matter (PM<sub>2.5</sub>), but it can be used to track any primary pollutant. Read more about this [HERE].",
+      intro: "Regulatory air quality monitors (supported by U.S. EPA's AirNow Network) are represented by colored circles. The colors within the circle represent air pollution readings as indicated by the legend in the upper right. <br><br> Air Tracker currently includes measurements of fine particulate matter (PM<sub>2.5</sub>), but it can be used to track any primary pollutant. Read more about this [HERE].",
       position: "left",
       highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
     },
@@ -1288,7 +1541,6 @@ function siteTour() {
   }).onbeforechange(async function() {
     // Steps are 0 indexed
     if (this._currentStep == 0) {
-
       inTour = true;
 
       // Add tour css indicator to any elements that we want to handle css transitions differently when in tour mode
@@ -1586,6 +1838,8 @@ function siteTour() {
       goToDefaultHomeView();
     }
   }).onexit(function() {
+    // Turn off tour mode
+    inTour = false;
     // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
     if (this._currentStep == 0) {
       return;
@@ -1594,7 +1848,7 @@ function siteTour() {
     $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
     // Zoom to national view
     goToDefaultHomeView();
-    // Share modal may still be open, clsoe it
+    // Share modal may still be open, close it
     $(".close-modal").trigger("click");
     // Purple airs used in the tour may still be up, hide them
     toggleMarkersByMarkerType("purple_air", false);
@@ -1608,8 +1862,6 @@ function siteTour() {
     $("tour-overlay-region").remove();
     // Remove tour CSS indicator
     $(".materialTimelineContainerMain").removeClass("tour");
-    // Turn off tour mode
-    inTour = false;
   }).start();
 }
 
@@ -2056,11 +2308,11 @@ function initDomElms() {
     },
     text: false
   }).on("click", function() {
-    siteTour();
+    siteTourShort();
   });
   $("#help-tour-mobile").on("click", function() {
     $("#active.mobile-menu-toggle").prop("checked", false);
-    siteTour();
+    siteTourShort();
   });
 
   $("#reach-out").show().button({
