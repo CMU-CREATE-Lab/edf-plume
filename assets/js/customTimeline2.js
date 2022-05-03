@@ -292,10 +292,10 @@ var create = {};
 
     var updateTimeJumpMenu = function() {
       // The jump-to menu only shows hours, so we need to snap to the closest hour, rounding down.
-      var ignoreSnapTo = (currentFrameNumber / (60 / playbackTimeline.getIncrementAmt())) % 1 == 0;
+      var ignoreSnapTo = (currentFrameNumber / (60 / incrementAmtInMin)) % 1 == 0;
       var jumpFrame = currentFrameNumber;
       if (!ignoreSnapTo) {
-        var m = moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz);
+        var m = moment.tz(playbackTimeInMs, selected_city_tmz);
         jumpFrame = captureTimes.indexOf(m.startOf('hour').format("h:mm A"));
       }
       $timeJumpOptions.val(jumpFrame);
@@ -569,6 +569,20 @@ var create = {};
       $customPlay.trigger("click");
     };
     this.togglePlayPause = togglePlayPause;
+
+
+    var handleTimelineDateDisabling = function() {
+      // Disable time ticks for current day that have not occured yet for that city
+      var currentDate = moment().tz(selected_city_tmz);
+      $timelineTicks.removeClass("disabled");
+      if (currentDate.isSame(moment.tz(playbackTimeInMs, selected_city_tmz), 'day')) {
+        var latestClosestTime = roundDate(currentDate, moment.duration(incrementAmtInMin, "minutes"), "floor");
+        // TODO: Note does not take DST start/end into account
+        var numMinutesElapsedForLatestClosestTime = latestClosestTime.get('hour') * 60 + latestClosestTime.get('minute');
+        $timelineTicks.filter("[data-minutes-lapsed='" + numMinutesElapsedForLatestClosestTime + "']").nextAll().addClass("disabled");
+      }
+    };
+    this.handleTimelineDateDisabling = handleTimelineDateDisabling;
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////

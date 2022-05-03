@@ -3289,17 +3289,7 @@ function handleTimelineToggling(e) {
     $calendarBtn.addClass("playbackTimelineOn calendar-specific-day-icon").removeClass("force-hidden").prop("title", "Choose a different day");
     $dayTimeToggle.addClass("force-no-visibility");
     $("#timeline-handle").slideUp(500);
-    // Disable time ticks for current day that have not occured yet for that city
-    var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
-    var currentDate = moment().tz(selected_city_tmz);
-    var $timeTicks = $("#playback-timeline-container .materialTimeline span.materialTimelineTick");
-    $timeTicks.removeClass("disabled");
-    if (currentDate.isSame(moment.tz(playbackTimeInMs, selected_city_tmz), 'day')) {
-      var latestClosestTime = roundDate(currentDate, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor");
-      // TODO: Note does not take DST start/end into account
-      var numMinutesElapsedForLatestClosestTime = latestClosestTime.get('hour') * 60 + latestClosestTime.get('minute');
-      $timeTicks.filter("[data-minutes-lapsed='" + numMinutesElapsedForLatestClosestTime + "']").nextAll().addClass("disabled");
-    }
+    playbackTimeline.handleTimelineDateDisabling();
     playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber(), true);
   } else {
     if ($currentTarget && $currentTarget.hasClass("playbackButton")) return;

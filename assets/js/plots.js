@@ -72,6 +72,8 @@ function addPlot(markerData) {
       }
       if (playbackTimeline && !playbackTimeline.isActive()) {
         handleTimelineToggling();
+      } else {
+        playbackTimeline.handleTimelineDateDisabling();
       }
       var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
       //$(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").trigger("click");
