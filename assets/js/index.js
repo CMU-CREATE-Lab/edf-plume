@@ -3912,4 +3912,5 @@ async function handleSmellMarkerClicked(marker) {
   }, 50);
 
   await drawFootprint(mapMarker.position.lat(), mapMarker.position.lng(), true);
+  updateInfoBar(overlay);
 }
