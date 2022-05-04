@@ -3900,13 +3900,16 @@ function createAndShowSmellMarker(data, epochtime_sec) {
 }
 
 
-function handleSmellMarkerClicked(marker) {
+async function handleSmellMarkerClicked(marker) {
+  var mapMarker = marker.getGoogleMapMarker();
   infowindow.setContent(marker.getContent());
-  infowindow.open(map, marker.getGoogleMapMarker());
+  infowindow.open(map, mapMarker);
 
   // Remove highlight of popup close button
   // Apparently need a slight delay to allow for the button to initially be focused
   setTimeout(function() {
     document.activeElement.blur();
   }, 50);
+
+  await drawFootprint(mapMarker.position.lat(), mapMarker.position.lng(), true);
 }
