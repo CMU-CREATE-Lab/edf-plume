@@ -3848,13 +3848,19 @@ async function handleSmellReports(epochtime_milisec) {
     hideMarkers(previous_smell_report_markers);
   }
   if (smell_report_markers === undefined) {
-    loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec);
+    await loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec);
   } else {
     var smell_report_markers_to_hide = [];
     var smell_report_markers_to_show = []
     smell_report_markers.forEach((s) => (s.getData().observed_at <= epochtime_sec ? smell_report_markers_to_show : smell_report_markers_to_hide).push(s));
     hideMarkers(smell_report_markers_to_hide);
     showMarkers(smell_report_markers_to_show);
+  }
+
+  for (const marker of available_cities[selectedCity].smell_report_markers[selected_day_start_epochtime_milisec]) {
+    var markerTimeInMs = marker.getData().observed_at * 1000;
+    var opacity = Math.abs(markerTimeInMs - playbackTimeline.getPlaybackTimeInMs()) <= 3600000 ? 1 : 0.30;
+    marker.setOpacity(opacity);
   }
 }
 
@@ -3864,7 +3870,7 @@ async function loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec) {
   var start_time = m_d.startOf("day").unix();
   var end_time = m_d.endOf("day").unix();
   var state_id = 1; // PA
-  $.ajax({
+  await $.ajax({
     "url": "https://api.smellpittsburgh.org/api/v2/smell_reports?start_time=" + start_time + "&end_time=" + end_time + "&state_ids=" + state_id + "&timezone_string=" + encodeURIComponent(selected_city_tmz),
     "success": function (data) {
       for (var i = 0; i < data.length; i++) {
@@ -3902,8 +3908,14 @@ function createAndShowSmellMarker(data, epochtime_sec) {
 
 async function handleSmellMarkerClicked(marker) {
   var mapMarker = marker.getGoogleMapMarker();
-  infowindow.setContent(marker.getContent());
-  infowindow.open(map, mapMarker);
+
+  var smellReportTimeInMs = marker.getData().observed_at * 1000;
+  var m = moment.tz(smellReportTimeInMs, selected_city_tmz);
+  var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "ceil")
+  var startOfDayForNewSelectedTime = m.clone().startOf("day");
+  var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
+  var frame = $(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").data("frame");
+  playbackTimeline.seekTo(frame);
 
   // Remove highlight of popup close button
   // Apparently need a slight delay to allow for the button to initially be focused
@@ -3913,4 +3925,6 @@ async function handleSmellMarkerClicked(marker) {
 
   await drawFootprint(mapMarker.position.lat(), mapMarker.position.lng(), true);
   updateInfoBar(overlay);
+  infowindow.setContent(marker.getContent());
+  infowindow.open(map, mapMarker);
 }
