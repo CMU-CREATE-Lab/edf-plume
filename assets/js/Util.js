@@ -486,6 +486,26 @@
       return transitionEndEventType;
     };
 
+    this.sanitizeHTMLStr = function(unsafeHTMLStr) {
+      var sanitizedHTMLStr = "";
+      // $.parseHTML removes script tags.
+      var nodeArray = $.parseHTML(unsafeHTMLStr);
+      for (var i = 0; i < nodeArray.length; i++) {
+        var node = nodeArray[i];
+        var nodeAttributes = node.attributes || [];
+        // Loop through node attributes and remove inline events.
+        for (var j = 0; j < nodeAttributes.length; j++) {
+          var nodeAttribute = nodeAttributes[j];
+          if (nodeAttribute.name.toLowerCase().indexOf('on') >= 0) {
+            node.removeAttribute(nodeAttribute.name);
+          }
+        }
+        // If just a text node, use textContent
+        sanitizedHTMLStr += (node.outerHTML || node.textContent);
+      }
+      return sanitizedHTMLStr;
+    };
+
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////

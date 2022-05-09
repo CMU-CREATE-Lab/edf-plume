@@ -282,6 +282,12 @@ body {
   margin-top: 1px;
 }
 
+.more-info-grapher {
+  position: absolute;
+  right: 44px;
+  margin-top: -22px;
+}
+
 .chart-btn {
   background-image: url(../img/chart.png);
   background-size: contain;

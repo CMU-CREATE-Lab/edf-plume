@@ -74,6 +74,7 @@
           <div id="back-arrow"></div>
           <span id="back-arrow-text">Exit Time Series</span>
         </div>
+        <span class='more-info more-info-grapher' title="Learn more" data-info="grapher"></span>
         <!-- <div id="plot-from-map">+ Plot another selected sensor from map</div> -->
         <div id="grapher_container" class="noselect">
           <div class="alert">
@@ -141,7 +142,7 @@
             </div>
           </div>
           <div id="infobar-pollution-section" class="infobar-component">
-            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="Learn more" data-info="side-panel-data"></span><span class='chart-btn' title="Explore time series data"></span></div>
+            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="Learn more" data-info="side-panel-data"></span><span class='chart-btn' title="Explore PM data over time"></span></div>
             <div id="infobar-pollution" class="infobar-component-value">
               <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements.</i></div>
               <div class="infobar-data"></div>
@@ -354,26 +355,31 @@
     <div id="footprint-first-click-dialog" title="Reminder!">
       <div id="explanation-content-container">
         <div id="explanation-1" class="explanation-content">
-          Clicking on the map will show you the <b>pollution source area</b> for that place at the selected time. <br><br>
-          The dark purple area is the area that the air parcels at your selected location most likely came <i>from.</i> <br><br>
-          As the color fades to white, this shows areas that are less and less likely to have contributed air parcels to the location you selected.
+          Clicking on the map will show you the <b>source area</b> for that location at the selected time. <br><br>
+          The visible area reveals the most likely origin of the air at your selected location. <br><br>
+          The air in the grey area is most likely not reaching your selected location.<br><br>
         </div>
         <div id="explanation-2" class="explanation-content">
           <h4>Wind:</h4>
-          The wind arrow points in the direction that the air is blowing. It is positioned based on real-time meteorological measurements at that site.
-          The source area uses wind data from a weather model data developed by NOAA. While those weather models are quite good, they do not always match
-          measured data exactly. Here is what to look for:
+          The wind arrow points in the direction that the air is blowing. While the weather models that Air Tracker uses are quite reliable, they are not always perfect.
+          Here is what to look for:
           <br><br>
-          <div><img src="./assets/img/edf-wind-pt1.jpg"></div>
+          <div><img src="./assets/img/edf-wind-pt1a.jpg"></div>
           <br>
-          See how the wind arrow overlaps with the source area, and they both point into the selected location (red pin)? That suggests that the model wind
-          direction agrees with the measured wind direction, and we have a lot of confidence that the source area is correct.
-          <br><br>
-          When the wind arrow and the source area don't match:
-          <br><br>
-          <div><img src="./assets/img/edf-wind-pt2.jpg"></div>
+          <div><img src="./assets/img/edf-wind-pt1b.jpg"></div>
           <br>
-          See how the arrow and the source area don't line up at all? This means we have less confidence that the source area is correct.
+          <div><img src="./assets/img/edf-wind-pt1c.jpg"></div>
+          <br>
+          In the above examples when the wind arrow overlaps with the source area, we have a lot of confidence that the source area is correct.
+          <br><br>
+          And then in this different set of examples below, when the wind arrow and source area don't match, we have less confidence that the source area is correct.
+          <br><br>
+          <div><img src="./assets/img/edf-wind-pt2a.jpg"></div>
+          <br>
+          <div><img src="./assets/img/edf-wind-pt2b.jpg"></div>
+          <br>
+          <div><img src="./assets/img/edf-wind-pt2c.jpg"></div>
+          <br>
         </div>
       </div>
       <div id="explanationstep-container" data-max-steps="2" data-current-step="1">

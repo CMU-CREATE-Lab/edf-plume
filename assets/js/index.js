@@ -564,11 +564,12 @@ async function initMap() {
       "side-panel-data" : {text: "Data displayed is from the closest available capture time, in relation to the selected playback time.", pos: {at: "top", my: 'left bottom-10'}},
       "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
       "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-airnow" : {text: "AirNow monitors provide hourly PM2.5 readings. These government sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM2.5 readings. Click on the colored squares to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM2.5 along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM2.5 readings. Click on the colored diamonds to view PM2.5 measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-airnow" : {text: "AirNow monitors provide hourly PM<sub>2.5</sub> readings. These government sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored diamonds to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last monitor you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
     };
     var selectedInfo = text[$(this).data("info")];
     setButtonTooltip(selectedInfo.text, $(this), null, selectedInfo.pos);
@@ -2203,7 +2204,7 @@ function setButtonTooltip(text, $target, duration, position) {
     my: position && position.my ? position.my : "bottom-10"
   }
   if (text) {
-    $tooltipContent.text(text);
+    $tooltipContent.html(Util.sanitizeHTMLStr(text));
     $tooltip.show();
     $tooltip.position({
       at: position.at,
