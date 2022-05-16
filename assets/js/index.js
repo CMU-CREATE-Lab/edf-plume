@@ -12,7 +12,6 @@ var CITY_DATA_ROOT_LOCAL = "./assets/data/cities/";
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
-var FACILITY_MARKERS_TOGGLE_ZOOM_THRESHOLD = 13;
 
 // Increase/decrease for more or less TRAX data to look back at
 var traxDataIntervalInMin = 60;
@@ -569,6 +568,7 @@ async function initMap() {
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored diamonds to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-facilities" :  {text: "Facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
       "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last monitor you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
     };
     var selectedInfo = text[$(this).data("info")];
@@ -946,7 +946,9 @@ async function initMap() {
   $("#legend-table td input").on("click", function(e) {
     var isChecked = $(e.target).prop("checked");
     var markerType = $(e.target).data("marker-type");
-    if (markerType == "trax") {
+    if (markerType == "facilities") {
+      toggleFacilities(isChecked);
+    } else if (markerType == "trax") {
       toggleTrax(isChecked);
     } else {
       toggleMarkersByMarkerType(markerType, isChecked);
@@ -2004,18 +2006,6 @@ async function getCityInBounds() {
   for (let [city_locode, city] of Object.entries(available_cities)) {
     if (!city_locode) continue;
     if (currentMapBounds.intersects(city.footprint_region.getBounds())) {
-
-      // Toggle facility markers depending upon zoom level
-      if (zoom >= FACILITY_MARKERS_TOGGLE_ZOOM_THRESHOLD) {
-        for (let facility_marker of available_cities[city_locode].facility_markers) {
-          facility_marker.setVisible(true);
-        }
-      } else {
-        for (let facility_marker of available_cities[city_locode].facility_markers) {
-          facility_marker.setVisible(false);
-        }
-      }
-
       if (lastSelectedCity == city_locode) {
         selectedCity = lastSelectedCity;
         return;
@@ -2049,6 +2039,12 @@ async function getCityInBounds() {
       $("#smell-report-legend-row").hide();
     }
 
+    if (available_cities[selectedCity].facility_data && available_cities[selectedCity].facility_data.has_markers) {
+      $("#facilities-legend-row").show();
+    } else {
+      $("#facilities-legend-row").hide();
+    }
+
     $cityName.text(available_cities[selectedCity].name);
 
     if ($citySelector.val() != selectedCity) {
@@ -2058,9 +2054,6 @@ async function getCityInBounds() {
     // First time city is entered
     if (!available_cities[selectedCity].sensors) {
       await loadSensorsListForCity(selectedCity);
-      if (available_cities[selectedCity].has_facility_markers) {
-        await loadFacilitiesListForCity(selectedCity);
-      }
       if (available_cities[selectedCity].has_sensor_placeholders) {
         await loadSensorPlaceholderListForCity(selectedCity);
       }
@@ -2767,7 +2760,7 @@ async function loadSensorsListForCity(city_locode) {
 }
 
 
-async function loadFacilitiesListForCity(city_locode) {
+async function createFacilityMarkersForCity(city_locode) {
   let facilities_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/facilities.json");
   for (let facility of facilities_list.facilities) {
     let facility_marker = new MarkerWithLabel({
@@ -2779,11 +2772,14 @@ async function loadFacilitiesListForCity(city_locode) {
       labelContent: facility["Name"],
       labelAnchor: new google.maps.Point(0,0),
       data: {},
-      icon: ASSETS_ROOT + 'img/facility-icon-magenta.png',
+      icon: {
+        url: ASSETS_ROOT + 'img/facility-icon-magenta.png',
+        /*scaledSize: new google.maps.Size(8, 12)*/
+      },
       labelClass: "facilityMarker",
-      visible: false
+      visible: true
     });
-    available_cities[city_locode].facility_markers.push(facility_marker);
+    available_cities[city_locode].facility_data.markers.push(facility_marker);
   }
 }
 
@@ -3056,7 +3052,7 @@ async function loadAvailableCities() {
           map.setZoom(window.innerWidth <= 450 ? this.data['zoom'] - 1 : this.data['zoom']);
         });
         available_cities[city_locode].marker = city_marker;
-        available_cities[city_locode].facility_markers = [];
+        available_cities[city_locode].facility_data.markers = [];
         available_cities[city_locode].sensor_placeholder_markers = [];
         available_cities[city_locode].smell_report_markers = [];
         city_selector_data.push({id: city_locode, text: city_title});
@@ -3323,17 +3319,21 @@ function getWindDirFromDeg(deg) {
 
 
 function hideMarkersByCity(city_locode, fromTimeChange) {
+  var currentCity = available_cities[city_locode];
   // Get sensors
-  var markers = Object.keys(available_cities[city_locode].sensors).map(function(k){return available_cities[city_locode].sensors[k]['marker'];});
+  var markers = Object.keys(currentCity.sensors).map(function(k){return currentCity.sensors[k]['marker'];});
   if (!fromTimeChange) {
     // Get facility icon markers
-    markers = markers.concat(available_cities[city_locode].facility_markers);
+    markers = markers.concat(currentCity.facility_data.markers);
     // Get placeholder markers
-    markers = markers.concat(available_cities[city_locode].sensor_placeholder_markers);
+    markers = markers.concat(currentCity.sensor_placeholder_markers);
     // Get smell report markers
-    markers = markers.concat(available_cities[city_locode].smell_report_markers[selected_day_start_epochtime_milisec]);
+    markers = markers.concat(currentCity.smell_report_markers[selected_day_start_epochtime_milisec]);
   }
   hideMarkers(markers);
+  if (currentCity.facility_data.boundaries) {
+    currentCity.facility_data.boundaries.setStyle({visible: false});
+  }
 }
 
 
@@ -3928,4 +3928,62 @@ async function handleSmellMarkerClicked(marker) {
   updateInfoBar(overlay);
   infowindow.setContent(marker.getContent());
   infowindow.open(map, mapMarker);
+}
+
+async function toggleFacilities(makeVisible) {
+  if (!selectedCity) return;
+
+  if (available_cities[selectedCity].facility_data.has_markers) {
+    var facility_markers = available_cities[selectedCity].facility_data.markers;
+    if (facility_markers.length > 0) {
+      for (let facility_marker of facility_markers) {
+        facility_marker.setVisible(makeVisible);
+      }
+    } else {
+      if (available_cities[selectedCity].facility_data.has_markers) {
+        await createFacilityMarkersForCity(selectedCity);
+      }
+    }
+  }
+
+  if (available_cities[selectedCity].facility_data.has_boundaries) {
+    if (available_cities[selectedCity].facility_data.boundaries) {
+      available_cities[selectedCity].facility_data.boundaries.setStyle({
+        visible: makeVisible,
+        strokeColor: 'red',
+        fillColor: 'red',
+        strokeWeight: 0
+      });
+    } else {
+      available_cities[selectedCity].facility_data.boundaries = new google.maps.Data();
+
+      available_cities[selectedCity].facility_data.boundaries.loadGeoJson(
+        CITY_DATA_ROOT + selectedCity + "/facilities-boundaries.geojson"
+      );
+
+      available_cities[selectedCity].facility_data.boundaries.setStyle({
+        visible: true,
+        strokeColor: 'red',
+        fillColor: 'red',
+        strokeWeight: 0
+       });
+
+      function mouseOverDataItem(mouseEvent) {
+        const titleText = mouseEvent.feature.getProperty('NAME');
+
+        if (titleText) {
+          map.getDiv().setAttribute('title', titleText);
+        }
+      }
+
+      function mouseOutOfDataItem(mouseEvent) {
+        map.getDiv().removeAttribute('title');
+      }
+
+      available_cities[selectedCity].facility_data.boundaries.addListener('mouseover', mouseOverDataItem);
+      available_cities[selectedCity].facility_data.boundaries.addListener('mouseout', mouseOutOfDataItem);
+
+      available_cities[selectedCity].facility_data.boundaries.setMap(map);
+    }
+  }
 }

@@ -424,6 +424,21 @@ body {
   -ms-interpolation-mode: nearest-neighbor;
 }
 
+#legend-table .facilities-td {
+  color: black;
+  background-repeat: no-repeat;
+  background-size: 21px 28px;
+  height: 28px;
+  image-rendering: crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -o-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+  transform: scale(0.65);
+  transform-origin: left;
+  padding: 0px;
+}
+
 .backtrace-color-map {
   border: 1px dashed black;
   padding: 10px;
@@ -566,6 +581,10 @@ body {
 
 .wind-arrow {
   background-image: url("../img/wind_arrow2.png");
+}
+
+.facilities {
+  background-image: url("../img/facility-icon-magenta.png");
 }
 
 .mobile-only-error {
