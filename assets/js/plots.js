@@ -8,7 +8,7 @@ var timeSeriesColors = [
   "#952800",
   "#607D8B",
 ];
-var usedTimSeriesColors = [];
+var usedTimeSeriesColors = [];
 var chartsInitialized = false;
 var plotManager;
 
@@ -109,7 +109,7 @@ function addPlotToLegend(markerData, forceOn, fromMapSensorClick) {
   }
   if (!markerTimeseriesPlots['plot_' + markerData.feed_id]) {
     var color = timeSeriesColors.shift();
-    usedTimSeriesColors.push(color);
+    usedTimeSeriesColors.push(color);
     $("#graph_legend_content").append('<tr data-plot-id=' + "plot_" + markerData.feed_id + ' data-channel=' + markerData.pm25_channel + '><td style="color:' + color + '">' + markerData.name + '</td><td><label class="switch2" title="Toggle plot"><input type="checkbox"' + (forceOn ? ' checked ' : '') + 'data-action-type="toggle-plot"><span class="slider round"><span class="input-state-text"></span></span></label></td><td><span class="remove_graph_plot" title="Remove plot from chart" data-action-type="remove-plot"></span></td></tr>');
     markerTimeseriesPlots['plot_' + markerData.feed_id] = {name : markerData.name, color: color};
   }
@@ -188,7 +188,7 @@ function handleTimeSeries() {
     } else if (actionType == "remove-plot") {
       plotManager.getPlotContainer("plot_container").removePlot(plotName);
       $target.parents("tr").remove();
-      var color = usedTimSeriesColors.splice(usedTimSeriesColors.indexOf(markerTimeseriesPlots[plotName].color), 1)[0];
+      var color = usedTimeSeriesColors.splice(usedTimeSeriesColors.indexOf(markerTimeseriesPlots[plotName].color), 1)[0];
       timeSeriesColors.push(color);
       delete markerTimeseriesPlots[plotName];
     }
@@ -208,8 +208,8 @@ function handleTimeSeries() {
     timeSeriesModeEnabled = false;
     plotManager.getPlotContainer("plot_container").removeAllPlots();
     markerTimeseriesPlots = {};
-    timeSeriesColors.push(usedTimSeriesColors);
-    timeSeriesColors.flat();
+    timeSeriesColors.push(usedTimeSeriesColors.splice(0));
+    timeSeriesColors = timeSeriesColors.flat();
     $("#graph_legend_content").empty();
     $("#infobar").removeClass("timeseries");
     $("#timeseries").hide();

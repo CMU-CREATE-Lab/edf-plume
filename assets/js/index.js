@@ -568,7 +568,7 @@ async function initMap() {
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored diamonds to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-facilities" :  {text: "Facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
       "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last monitor you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
     };
     var selectedInfo = text[$(this).data("info")];
@@ -3949,9 +3949,9 @@ async function toggleFacilities(makeVisible) {
     if (available_cities[selectedCity].facility_data.boundaries) {
       available_cities[selectedCity].facility_data.boundaries.setStyle({
         visible: makeVisible,
-        strokeColor: 'red',
+        strokeColor: '#ce3939',
         fillColor: 'red',
-        strokeWeight: 0
+        strokeWeight: 1
       });
     } else {
       available_cities[selectedCity].facility_data.boundaries = new google.maps.Data();
@@ -3962,9 +3962,9 @@ async function toggleFacilities(makeVisible) {
 
       available_cities[selectedCity].facility_data.boundaries.setStyle({
         visible: true,
-        strokeColor: 'red',
+        strokeColor: '#ce3939',
         fillColor: 'red',
-        strokeWeight: 0
+        strokeWeight: 1
        });
 
       function mouseOverDataItem(mouseEvent) {
