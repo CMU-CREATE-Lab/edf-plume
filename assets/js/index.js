@@ -3930,6 +3930,7 @@ async function handleSmellMarkerClicked(marker) {
   infowindow.open(map, mapMarker);
 }
 
+
 async function toggleFacilities(makeVisible) {
   if (!selectedCity) return;
 
@@ -3940,9 +3941,7 @@ async function toggleFacilities(makeVisible) {
         facility_marker.setVisible(makeVisible);
       }
     } else {
-      if (available_cities[selectedCity].facility_data.has_markers) {
-        await createFacilityMarkersForCity(selectedCity);
-      }
+      await createFacilityMarkersForCity(selectedCity);
     }
   }
 
