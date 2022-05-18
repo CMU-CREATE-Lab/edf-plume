@@ -2340,6 +2340,7 @@ function initDomElms() {
 
   $("#toggle-backtrace-likelihood").on("click", async function() {
     backtraceMode = $(this).prop("checked") ? "1" : "0";
+    backtraceMode == 1 ? $("#backtrace-legend-row, #backtrace-details-legend-row").removeClass("force-hidden") : $("#backtrace-legend-row, #backtrace-details-legend-row").addClass("force-hidden")
     worldMask.setAllVisible(false);
     await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true, true);
   });
@@ -2686,7 +2687,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     selectedLocationPin = new google.maps.Marker({
       position: new google.maps.LatLng(lat,lng),
       map,
-      title: "Selected pollution footprint location",
+      title: "Source area for selected location",
       animation: fromClick && !fromTour ? google.maps.Animation.DROP : null,
       icon: iconPath,
       /* This is required to ensure that the element always remain in the DOM tree.
