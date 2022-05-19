@@ -66,6 +66,7 @@ body {
 #back-arrow-container {
   cursor: pointer;
   width: 150px;
+  margin-top: 10px;
 }
 
 #back-arrow-text {
@@ -91,7 +92,7 @@ body {
 }
 
 #infobar-content {
-  height: calc(100% - 20px);
+  height: calc(100% - 10px);
   background-color: inherit;
 }
 
@@ -170,12 +171,13 @@ body {
 }
 
 #infobar-header {
-  font-size: 27px;
-  text-align: center;
-  margin-top: 20px;
-  margin-bottom: 20px;
-  font-weight: bold;
-  text-decoration: underline;
+  background-image: url("../img/logo.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  height: 84px;
+  margin-bottom: -20px;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 #infobar-location-header {
@@ -191,7 +193,7 @@ body {
 }
 
 #infobar-component-container {
-  height: calc(100% - 84px);
+  height: calc(100% - 124px);
   overflow-y: auto;
   display: none;
 }
@@ -1855,7 +1857,7 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar.no-controls {
-    height: 210px;
+    height: 240px;
   }
 
   #infobar-initial {
@@ -1890,7 +1892,7 @@ div.gmnoprint[role='menubar'] {
 
   #infobar {
     font-size: 14px;
-    height: 210px;
+    height: 240px;
     width: 100%;
     width: -moz-available;
     width: -webkit-fill-available;
@@ -1919,13 +1921,12 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar-header {
-    font-size: 24px;
-    margin-top: 7px;
-    margin-bottom: 5px;
+    margin: 0px;
+    height: 55px;
   }
 
   #infobar-location-header {
-    margin-top: 5px
+    margin-top: 6px
   }
 
   #infobar-close-handle {
@@ -1959,7 +1960,7 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar-content {
-    height: calc(100% - 40px);
+    height: calc(100% - 55px);
   }
 
   #infobar-plume-section {
@@ -1994,6 +1995,7 @@ div.gmnoprint[role='menubar'] {
   #infobar-plume .infobar-text {
     display: inline-block !important;
     text-align: center;
+    font-size: inherit;
   }
 
   .infobar-data {

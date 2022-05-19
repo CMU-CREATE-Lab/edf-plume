@@ -604,7 +604,7 @@ async function initMap() {
       }
       lastYPos = currentYPos;
       var dist = startYPos - currentYPos;
-      var max = 218;
+      var max = 248;
       var maxHeight = Math.min(max, (startHeight - dist));
       $infobar.height(maxHeight);
     });
@@ -612,12 +612,12 @@ async function initMap() {
       $(document).trigger("click");
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: "210px"
+          height: "240px"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
         $infobar.stop(true, false).animate({
-          height: "46px"
+          height: "51px"
         }, function() {
           $infobar.removeClass("maximized");
           $(document).trigger("click");
