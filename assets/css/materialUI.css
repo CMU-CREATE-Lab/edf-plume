@@ -160,6 +160,7 @@
 
 .materialUI:not(.mobileUI) .materialTimeline {
   overflow-x: auto;
+  overflow-y: hidden;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -238,12 +239,10 @@
   background-size: cover;
   background-position:50% 50%;
   cursor: pointer;
-  /*background-color: #6dcab8;*/
   background-color: #83d2c3;
- image-rendering: -webkit-optimize-contrast;
- -ms-interpolation-mode: nearest-neighbor;
- /*opacity: 0.85;*/
- z-index: 5;
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+  z-index: 5;
 }
 
 .materialUI .playbackButton:hover {
@@ -285,8 +284,14 @@
   border-bottom-right-radius: 0px !important;
   position: relative;
   margin: 0px;
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
   justify-content: center;
   cursor: pointer;
   z-index: 5;
@@ -312,8 +317,8 @@
   position: absolute;
   width: 56px;
   height: 75px;
- image-rendering: -webkit-optimize-contrast;
- -ms-interpolation-mode: nearest-neighbor;
+  image-rendering: -webkit-optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
 .materialUI .timestampPreview:hover {
@@ -427,7 +432,6 @@
 }
 
 .materialTimeline {
-  /* Should be GoogleSans-Regular */
   font-family: 'Open Sans';
   overflow-x: hidden;
   display: -webkit-box;
@@ -469,11 +473,11 @@
 
 .anchorHighlight {
   position: absolute;
-  /* height: calc(100% - 79px); */
   margin: 0px calc(50% - 67px);
   border-radius: 16px;
   background-color: #2979FF;
   color: transparent;
+  -webkit-box-shadow: inset 0px 0px 5px 0px #80868b;
   box-shadow: inset 0px 0px 5px 0px #80868b;
   font-size: 14px;
   padding-right: 15px;
@@ -485,8 +489,6 @@
   flex-grow: 0;
   -ms-flex-negative: 0;
   flex-shrink: 0;
-  /* padding-top: 0px; */
-  /* padding-bottom: 11px; */
   cursor: pointer;
   -ms-flex: 0 0 auto;
   flex: 0 0 auto;
@@ -494,7 +496,11 @@
   flex-shrink: 0;
   font-size: 14px;
   line-height: 14px;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
   justify-content: center;
   height: 34px;
   top: 3px;
@@ -523,7 +529,11 @@
   flex-shrink: 0;
   font-size: 14px;
   line-height: 14px;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
   justify-content: center;
   position: absolute;
   height: 5px;
@@ -554,8 +564,14 @@
   flex-shrink: 0;
   font-size:14px;
   line-height:14px;
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
   justify-content: center;
 }
 
@@ -570,10 +586,7 @@
 }
 
 .materialTimelineTickSelected {
-  /* Should be GoogleSans-Medium */
   font-family: 'Open Sans';
-  /*-radius: 16px;
-  background-color: #2979FF;*/
   color: white;
   font-size: 15px;
   padding-top: 7px;
@@ -583,8 +596,14 @@
   height: 21px;
   -ms-flex-negative: 0;
   flex-shrink: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
   justify-content: center;
 }
 
@@ -631,6 +650,7 @@
 }
 
 .mobileSelect-container .list-container {
+  -webkit-box-shadow: 0px 5px 10px 0px #888888;
   box-shadow: 0px 5px 10px 0px #888888;
 }
 
@@ -659,6 +679,7 @@
   z-index: 100000;
   word-break: break-word;
   padding: 10px;
+  -webkit-box-shadow: none;
   box-shadow: none;
   font-size: 12px;
   max-width: 168px;
@@ -676,10 +697,7 @@
   top: 48px;
   left: 82px;
   border-color: transparent #666;
-  /* border-width: 0px 10px 10px 0px; */
-  /* padding: 20px; */
   border-top: 10px solid #666;
-  /* border-top-color: inherit; */
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
 }
@@ -688,10 +706,7 @@
   top: 48px;
   left: 164px;
   border-color: transparent #666;
-  /* border-width: 0px 10px 10px 0px; */
-  /* padding: 20px; */
   border-top: 10px solid #666;
-  /* border-top-color: inherit; */
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
 }
