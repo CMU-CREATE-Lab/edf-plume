@@ -17,7 +17,7 @@
 
     <script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly" defer></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data-10-year-range.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
@@ -45,7 +45,6 @@
     <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
     <script src="https://moment.github.io/luxon/global/luxon.min.js"></script>
-
   </head>
   <body class="materialUI">
     <div id="controls" class="playbackTimelineOff" style="display: none">
@@ -69,7 +68,7 @@
     </div>
     <div id="infobar" class='infocontainer no-controls'>
       <div id="timeseries">
-        <div id="infobar-header" title="Air Tracker"></div>
+        <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
         <div id="back-arrow-container" title="Exit time series mode">
           <div id="back-arrow"></div>
           <span id="back-arrow-text">Exit Time Series</span>
@@ -112,7 +111,7 @@
         </div>
       </div>
       <div id="infobar-content">
-        <div id="infobar-header" title="Air Tracker"></div>
+        <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
         <div id="infobar-location-header"></div>
         <div id="infobar-initial" class="initial">
           <p>That air you're breathing, where's it been?</p>
