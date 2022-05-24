@@ -77,9 +77,10 @@ body {
   background-color: inherit;
 }
 
-#infobar.timeseries #infobar-content {
+#infobar.timeseries #infobar-content, #infobar.timeseries #infobar-content #infobar-header {
   height: 0px;
 }
+
 #infobar.timeseries #infobar-content > div:not(.side-controls-container):not(#infobar-close-toggle-container) {
   display: none !important;
 }
