@@ -1285,6 +1285,8 @@ function siteTourShort() {
   }).onexit(function() {
     // Turn off tour mode
     inTour = false;
+    // Remove tour CSS indicator
+    $(".materialTimelineContainerMain").removeClass("tour");
     // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
     if (this._currentStep == 0) {
       return;
@@ -1297,8 +1299,6 @@ function siteTourShort() {
     $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
     // Remove all manual tour div regions
     $("tour-overlay-region").remove();
-    // Remove tour CSS indicator
-    $(".materialTimelineContainerMain").removeClass("tour");
   }).start();
 }
 
@@ -1843,6 +1843,8 @@ function siteTour() {
   }).onexit(function() {
     // Turn off tour mode
     inTour = false;
+    // Remove tour CSS indicator
+    $(".materialTimelineContainerMain").removeClass("tour");
     // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
     if (this._currentStep == 0) {
       return;
@@ -1863,8 +1865,6 @@ function siteTour() {
     }
     // Remove all manual tour div regions
     $("tour-overlay-region").remove();
-    // Remove tour CSS indicator
-    $(".materialTimelineContainerMain").removeClass("tour");
   }).start();
 }
 
