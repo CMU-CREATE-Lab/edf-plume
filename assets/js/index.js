@@ -3958,7 +3958,7 @@ async function toggleFacilities(makeVisible) {
       available_cities[selectedCity].facility_data.boundaries = new google.maps.Data();
 
       available_cities[selectedCity].facility_data.boundaries.loadGeoJson(
-        CITY_DATA_ROOT + selectedCity + "/facilities-boundaries.geojson"
+        CITY_DATA_ROOT + selectedCity + "/facilities-boundaries-v2.geojson"
       );
 
       available_cities[selectedCity].facility_data.boundaries.setStyle({
@@ -3969,7 +3969,11 @@ async function toggleFacilities(makeVisible) {
        });
 
       function mouseOverDataItem(mouseEvent) {
-        const titleText = mouseEvent.feature.getProperty('NAME');
+        const NEI = mouseEvent.feature.getProperty('NEI');
+        const FRS = mouseEvent.feature.getProperty('FRS');
+        const NAICS_Desc = mouseEvent.feature.getProperty('NAICS_Desc');
+
+        const titleText = "NEI:  " + NEI + "\n" + "FRS:  " + FRS + "\n" + "NAICS:  " + NAICS_Desc;
 
         if (titleText) {
           map.getDiv().setAttribute('title', titleText);
