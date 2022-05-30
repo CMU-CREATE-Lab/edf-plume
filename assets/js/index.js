@@ -1,13 +1,13 @@
 "use strict";
 
 var isLocal = ["localhost", "file:", "192.168"].some(str => window.location.href.includes(str));
-var ASSETS_ROOT = isLocal ? "./assets/" : "https://edf.createlab.org/assets/";
+var ASSETS_ROOT = isLocal ? "./assets/" : "https://airtracker.createlab.org/assets/";
 
 var TRAX_COLLECTION_NAME = "trax-dev";
 //var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
 var CLOUD_STORAGE_PARENT_URL = "https://storage.googleapis.com/{BUCKET_NAME}/by-simulation-id";
-var CITY_DATA_ROOT = "https://edf.createlab.org/assets/data/cities/";
+var CITY_DATA_ROOT = "https://airtracker.createlab.org/assets/data/cities/";
 var CITY_DATA_ROOT_LOCAL = "./assets/data/cities/";
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
