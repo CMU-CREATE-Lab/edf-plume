@@ -2,6 +2,8 @@
 
 var isLocal = ["localhost", "file:", "192.168"].some(str => window.location.href.includes(str));
 var ASSETS_ROOT = isLocal ? "./assets/" : "https://airtracker.createlab.org/assets/";
+var ASSETS_ROOT_URL_OBJ = isLocal ? null : new URL(ASSETS_ROOT);
+var WORKER_ASSETS_ROOT_PATH = isLocal ? ASSETS_ROOT : ASSETS_ROOT.replace(ASSETS_ROOT_URL_OBJ.hostname, window.location.hostname);
 
 var TRAX_COLLECTION_NAME = "trax-dev";
 //var STILT_COLLECTION_NAME = "stilt-prod";
@@ -2260,7 +2262,7 @@ function selectedLocationPinVisible() {
 
 function createDataPullWebWorker() {
   // Create the worker.
-  dataFormatWorker = new Worker(ASSETS_ROOT + "js/formatAndMergeSensorDataWorker.js");
+  dataFormatWorker = new Worker(WORKER_ASSETS_ROOT_PATH + "js/formatAndMergeSensorDataWorker.js");
   // Hook up to the onMessage event, so you can receive messages from the worker.
   dataFormatWorker.onmessage = receivedWorkerMessage;
 }
