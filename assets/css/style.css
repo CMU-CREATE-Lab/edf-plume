@@ -1089,6 +1089,25 @@ div.pac-container {
   color: #007de1;
 }
 
+.tosModal .content {
+  overflow-y: auto;
+  font-size: 14px;
+  text-align: justify;
+  padding: 10px;
+}
+
+.tosModal .content a {
+  color: #2196f3;
+}
+
+.tosModal .footer {
+  padding-top: 20px;
+}
+
+.tosModal .footer label, .tosModal .footer input[type=checkbox] {
+  cursor: pointer;
+}
+
 .shareViewModal.ui-dialog-content, .reachOutModal.ui-dialog-content, .methodologyModal.ui-dialog-content {
   -webkit-touch-callout: none;
   -webkit-user-select: none;

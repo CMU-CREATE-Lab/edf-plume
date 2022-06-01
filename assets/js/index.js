@@ -840,6 +840,26 @@ async function initMap() {
     }
   });
 
+  $(".tosModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    dialogClass: "customDialog",
+    modal: true,
+    width: isMobileView() ? window.innerWidth - 50 : "450",
+    maxWidth: window.innerWidth,
+    maxHeight: window.innerHeight,
+    open: function() {
+      document.activeElement.blur();
+      $(".content").css("height", window.innerHeight - 200);
+      $(".tosModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+    }
+  });
+
+  $("#tos-agree").on("click", function() {
+    localStorage.showTOS = "true";
+    $(".tosModal").dialog('close');
+  });
+
   $(".searchModal").dialog({
     resizable: false,
     autoOpen: false,
@@ -1023,6 +1043,12 @@ async function initMap() {
   (new DummyOverlay()).setMap(map);
 
   worldMask = new MaskClass(map);
+
+
+  if (!localStorage.showTOS !== "true") {
+    $(".tosModal").dialog('open');
+  }
+
 
   // !!DO LAST!!
 
