@@ -1044,8 +1044,7 @@ async function initMap() {
 
   worldMask = new MaskClass(map);
 
-
-  if (!localStorage.showTOS !== "true") {
+  if (localStorage.showTOS !== "true") {
     $(".tosModal").dialog('open');
   }
 
