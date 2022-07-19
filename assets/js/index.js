@@ -3709,10 +3709,6 @@ function Deferred() {
 
 
 async function handleFootprintUncertainty(lookupStr) {
-  if (selectedCity !== 'US-SLC') {
-    return;
-  }
-
   var docRefString = lookupStr;
   const snapshot = await db.collection("hrrr-uncertainty-kriged").doc(docRefString).get();
   var data = snapshot.data();
