@@ -73,6 +73,7 @@ var isTouchMoving = false;
 var touchStartTargetElement;
 var currentTouchCount = 0;
 var drewMarkersAtLeastOnce = false;
+var ignoreMapIdleCallback = false;
 
 var isPlaybackTimelineToggling = false;
 var inTour = false;
@@ -544,7 +545,7 @@ async function initMap() {
     await loadAvailableCities();
 
     showHideMarkersByZoomLevel();
-    getCityInBounds();
+    getCityInBounds(true);
 
     google.maps.event.addListener(map, 'zoom_changed', function() {
       showHideMarkersByZoomLevel();
@@ -552,9 +553,14 @@ async function initMap() {
     });
 
     google.maps.event.addListener(map, 'idle', function(e) {
-      // Note that this is also called when the map resizes, since
-      // the bounds of the map changes
+      // Note that this event is also called when the map resizes,
+      // since the bounds of the map changes.
+
       changeBrowserUrlState();
+      if (ignoreMapIdleCallback) {
+        ignoreMapIdleCallback = false;
+        return;
+      }
       getCityInBounds();
     });
 
@@ -2002,7 +2008,7 @@ function toggleOffAllNonForcedSensors() {
 }
 
 
-async function getCityInBounds() {
+async function getCityInBounds(mapFirstLoad) {
   var lastSelectedCity = selectedCity;
   selectedCity = "";
   var zoom = map.getZoom();
@@ -2014,15 +2020,7 @@ async function getCityInBounds() {
     return;
   }
   var cityInBoundsCallback = function() {
-    // Note that this will trigger a map resize, which in turn triggers a map 'idle',
-    // which will trigger getCityInBounds() again.
-    $controls.show();
-    if ($map.hasClass("no-controls")) {
-      $("#map, #infobar, #legend").removeClass("no-controls");
-      if (timeline) {
-        $(".selected-block")[0].scrollIntoView(false);
-      }
-    }
+    handleControlsUI("enable", mapFirstLoad);
     showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
     if (selectedCity && available_cities[selectedCity].has_smell_reports) {
       handleSmellReports(playbackTimeline.getPlaybackTimeInMs());
@@ -2156,6 +2154,60 @@ async function getCityInBounds() {
     }
   }
   zoomChangedSinceLastIdle = false;
+}
+
+
+function offsetCenter(latlng, offsetx, offsety) {
+  // latlng is the apparent centre-point
+  // offsetx is the distance you want that point to move to the right, in pixels
+  // offsety is the distance you want that point to move upwards, in pixels
+  // offset can be negative
+  // offsetx and offsety are both optional
+
+  var scale = Math.pow(2, map.getZoom());
+
+  var worldCoordinateCenter = map.getProjection().fromLatLngToPoint(latlng);
+  var pixelOffset = new google.maps.Point((offsetx / scale) || 0, (offsety / scale) || 0);
+
+  var worldCoordinateNewCenter = new google.maps.Point(
+      worldCoordinateCenter.x - pixelOffset.x,
+      worldCoordinateCenter.y + pixelOffset.y
+  );
+
+  var newCenter = map.getProjection().fromPointToLatLng(worldCoordinateNewCenter);
+
+  return newCenter;
+}
+
+
+function handleControlsUI(state, doIgnore) {
+  // Note that showing/hiding the controls will trigger a map resize, which in turn triggers a map 'idle',
+  // which will trigger getCityInBounds() again. We use a global flag to prevent that from happening.
+
+  ignoreMapIdleCallback = true;
+  var currentCenter = map.getCenter();
+
+  // The height of the controls is 76px. I would assume we need to offset by that much, but apparently no, roughly have is all that's needed...
+  var yOffset = doIgnore ? 0 : 38;
+  if (state == "disable") {
+    currentCenter = offsetCenter(currentCenter, 0, yOffset);
+  } else if (state == "enable") {
+    currentCenter = offsetCenter(currentCenter, 0, yOffset * -1);
+  }
+
+  if (state == "enable") {
+    $controls.show();
+    if ($map.hasClass("no-controls")) {
+      $("#map, #infobar, #legend").removeClass("no-controls");
+      if (timeline) {
+        $(".selected-block")[0].scrollIntoView(false);
+      }
+    }
+  } else if (state == "disable") {
+    $controls.hide();
+    $("#map, #infobar").addClass("no-controls");
+  }
+  map.setCenter(currentCenter);
 }
 
 
@@ -3429,8 +3481,7 @@ function resetMapToCitiesOverview(city_locode) {
   available_cities[city_locode].marker.setVisible(true);
   available_cities[city_locode].footprint_region.setVisible(false);
   $citySelector.val("");
-  $controls.hide();
-  $("#map, #infobar").addClass("no-controls");
+  handleControlsUI("disable");
   toggleOffAllNonForcedSensors();
   if (selectedLocationPinVisible()) {
     google.maps.event.trigger(selectedLocationPin, "click");
