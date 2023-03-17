@@ -1,13 +1,9 @@
-var markerTimeseriesPlots = {};
+
+var AVAILABLE_COLORS = "#000000,#911eb4,#4363d8,#952800,#607D8B";
+var markerTimeSeriesPlots = {};
 var ESDR_API_ROOT_URL = 'https://esdr.cmucreatelab.org/api/v1';
-var timeSeriesModeEnabled;
-var timeSeriesColors = [
-  "#000000",
-  "#911eb4",
-  "#4363d8",
-  "#952800",
-  "#607D8B",
-];
+var timeSeriesModeEnabled = false;
+var timeSeriesColors = AVAILABLE_COLORS.split(",");
 var usedTimeSeriesColors = [];
 var chartsInitialized = false;
 var plotManager;
@@ -15,7 +11,7 @@ var plotManager;
 
 window.grapherLoad = function() {
   plotManager = new org.bodytrack.grapher.PlotManager("date_axis");
-}
+};
 
 
 async function loadNewDay(epochtime_millisec) {
@@ -29,11 +25,12 @@ function initPlots() {
   addPlot(selectedSensorMarker.getData());
 }
 
+
 function addPlot(markerData) {
   var feedIdOrApiKey = markerData.feed_id;
   var channelName = markerData.pm25_channel;
   var plotName = "plot_" + feedIdOrApiKey;
-  var color = markerData.color ? markerData.color : timeSeriesColors[Object.keys(markerTimeseriesPlots).length];
+  var color = markerData.color ? markerData.color : timeSeriesColors[Object.keys(markerTimeSeriesPlots).length];
 
   plotManager.addDataSeriesPlot(plotName, createDatasource(feedIdOrApiKey, channelName), "plot_container", "y_axis", null, null, {
     "styles" : [
@@ -63,25 +60,39 @@ function addPlot(markerData) {
     if (event && event.type == "mousedown") {
       var newSelectedTimeInMs = dataPoint.x * 1000;
       var m = moment.tz(newSelectedTimeInMs, selected_city_tmz);
-      var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor")
-      var closestTimeInMs = closestM.valueOf();
-      var startOfDayForNewSelectedTime = m.clone().startOf("day");
-      if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
-        playbackTimeline.setPlaybackTimeInMs(closestTimeInMs);
-        await loadNewDay(startOfDayForNewSelectedTime);
-      }
-      if (playbackTimeline && !playbackTimeline.isActive()) {
-        handleTimelineToggling();
+
+      if (heatmapModeEnabled) {
+        var startOfHour = m.startOf('hour');
+        var heatmapVals = $("#heatmap-dates").val();
+        // We display the date-times in RFC 3339, which is a profile of ISO8601 (Extended format)
+        // This allows us to use a space, rather than a 'T' separating the date and time. 
+        // When we submit the list of dates to the API backend though, we replace the space with a 'T'
+        // to be ISO8601 compliant.
+        var clickedVal = startOfHour.format("YYYY-MM-DD HH:mm");
+        if (!heatmapVals.includes(clickedVal)) {
+          if (heatmapVals.length > 0) {
+            heatmapVals += ",\n";
+          }
+          heatmapVals += clickedVal;
+        }
+        $("#heatmap-dates").val(heatmapVals);
       } else {
-        playbackTimeline.handleTimelineDateDisabling();
+        var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor");
+        var closestTimeInMs = closestM.valueOf();
+        var startOfDayForNewSelectedTime = m.clone().startOf("day");
+        if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
+          playbackTimeline.setPlaybackTimeInMs(closestTimeInMs);
+          await loadNewDay(startOfDayForNewSelectedTime);
+        }
+        if (playbackTimeline && !playbackTimeline.isActive()) {
+          handleTimelineToggling();
+        } else {
+          playbackTimeline.handleTimelineDateDisabling();
+        }
+        var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
+        var frame = $(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").data("frame");
+        playbackTimeline.seekTo(frame);
       }
-      var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
-      //$(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").trigger("click");
-      var frame = $(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").data("frame");
-      playbackTimeline.seekTo(frame);
-      //if (selectedLocationPinVisible()) {
-      //  await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), false);
-      //}
     }
   });
 
@@ -107,12 +118,35 @@ function addPlotToLegend(markerData, forceOn, fromMapSensorClick) {
     $('.alert').fadeIn(1000).delay(5000).fadeOut(1000);
     return;
   }
-  if (!markerTimeseriesPlots['plot_' + markerData.feed_id]) {
+  if (!markerTimeSeriesPlots['plot_' + markerData.feed_id]) {
+    // Ensure only one plot is up at a time when in heatmap mode
+    if (heatmapModeEnabled && Object.keys(markerTimeSeriesPlots).length > 0) {
+      clearTimeSeries();
+      addPlot(markerData);
+      return;
+    }
+
     var color = timeSeriesColors.shift();
     usedTimeSeriesColors.push(color);
+
     $("#graph_legend_content").append('<tr data-plot-id=' + "plot_" + markerData.feed_id + ' data-channel=' + markerData.pm25_channel + '><td style="color:' + color + '">' + markerData.name + '</td><td><label class="switch2" title="Toggle plot"><input type="checkbox"' + (forceOn ? ' checked ' : '') + 'data-action-type="toggle-plot"><span class="slider round"><span class="input-state-text"></span></span></label></td><td><span class="remove_graph_plot" title="Remove plot from chart" data-action-type="remove-plot"></span></td></tr>');
-    markerTimeseriesPlots['plot_' + markerData.feed_id] = {name : markerData.name, color: color};
+    markerTimeSeriesPlots['plot_' + markerData.feed_id] = {name : markerData.name, color: color};
   }
+}
+
+
+function hideTimeSeriesUI() {
+  clearTimeSeries();
+  $("#timeseries").hide();
+  timeSeriesModeEnabled = false;
+}
+
+
+function clearTimeSeries() {
+  plotManager.getPlotContainer("plot_container").removeAllPlots();
+  markerTimeSeriesPlots = {};
+  timeSeriesColors = AVAILABLE_COLORS.split(",");
+  $("#graph_legend_content").empty();
 }
 
 
@@ -125,6 +159,13 @@ function handleTimeSeries() {
   initPlots();
 
   plotManager.getDateAxis().constrainRangeTo({ min : Date.parse(available_cities[selectedCity].timeline_start_date) / 1000, max : Date.now() / 1000 });
+
+  // TODO: Do we want custom more-info button for heatmaps?
+  if (heatmapModeEnabled) {
+    $(".more-info-grapher").hide();
+  } else {
+    $(".more-info-grapher").show();
+  }
 
   if (chartsInitialized) {
     setChartBackgroundColors();
@@ -141,9 +182,7 @@ function handleTimeSeries() {
   });
 
   //plotManager.getDateAxis().setCursorEnabled(false);
-
   //plotManager.getDateAxis().setCursorColor("#000000");
-
   plotManager.setCursorDraggable(false);
 
   var positionLabels = function() {
@@ -156,6 +195,11 @@ function handleTimeSeries() {
       var yAxisLabelElement = $("#" + labelElementId);
       yAxisLabelElement.width(yAxisElement.height()); // set the width == height since we're rotating
       var yAxisLabelHeight = yAxisLabelElement.height();
+
+      // Ensure a value is used if the element is hidden when we are initially it
+      if (yAxisLabelHeight == 0) {
+        yAxisLabelHeight = 16.5;
+      }
 
       // compute the position of the y-axis label
       var yAxisLabelLeft = Math.round(yAxisWidth + yAxisLabelHeight / 2 - yAxisHeight / 2 + 4);
@@ -181,16 +225,16 @@ function handleTimeSeries() {
 
     if (actionType == "toggle-plot") {
       if ($target.prop("checked")) {
-        addPlot({feed_id: plotId, pm25_channel: channelName, color: markerTimeseriesPlots[plotName].color});
+        addPlot({feed_id: plotId, pm25_channel: channelName, color: markerTimeSeriesPlots[plotName].color});
       } else {
         plotManager.getPlotContainer("plot_container").removePlot(plotName);
       }
     } else if (actionType == "remove-plot") {
       plotManager.getPlotContainer("plot_container").removePlot(plotName);
       $target.parents("tr").remove();
-      var color = usedTimeSeriesColors.splice(usedTimeSeriesColors.indexOf(markerTimeseriesPlots[plotName].color), 1)[0];
+      var color = usedTimeSeriesColors.splice(usedTimeSeriesColors.indexOf(markerTimeSeriesPlots[plotName].color), 1)[0];
       timeSeriesColors.push(color);
-      delete markerTimeseriesPlots[plotName];
+      delete markerTimeSeriesPlots[plotName];
     }
   });
 
@@ -202,17 +246,6 @@ function handleTimeSeries() {
 
   $("#zoomGrapherOut").on("click", function() {
     zoomGrapher(1.3);
-  });
-
-  $("#back-arrow-container").on("click", function() {
-    timeSeriesModeEnabled = false;
-    plotManager.getPlotContainer("plot_container").removeAllPlots();
-    markerTimeseriesPlots = {};
-    timeSeriesColors.push(usedTimeSeriesColors.splice(0));
-    timeSeriesColors = timeSeriesColors.flat();
-    $("#graph_legend_content").empty();
-    $("#infobar").removeClass("timeseries");
-    $("#timeseries").hide();
   });
 
   var fixedCursorPosition = playbackTimeline.getPlaybackTimeInMs() / 1000;
@@ -315,6 +348,7 @@ function sizeBoxen(boxen, plotArea, extra) {
      });
   }
 }
+
 
 function zoomGrapher(scale) {
   var dateAxis = plotManager.getDateAxis();

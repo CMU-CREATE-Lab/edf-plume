@@ -14,12 +14,13 @@
     <link rel="stylesheet" type="text/css" href="./assets/css/materialUI.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/bootstrap-fullscreen-select.min.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/introjs.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
 
     <script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly" defer></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.37/moment-timezone-with-data-10-year-range.min.js"></script>
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.41/moment-timezone-with-data-10-year-range.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -30,6 +31,7 @@
     <script type="text/javascript" src="./assets/js/customTimeline2.js"></script>
     <script type="text/javascript" src="./assets/js/index.js"></script>
     <script type="text/javascript" src="./assets/js/plots.js"></script>
+    <script type="text/javascript" src="./assets/js/heatmaps.js"></script>
     <script type="text/javascript" src="./assets/js/timeline.js"></script>
     <script type="text/javascript" src="./assets/js/purpleAirTourHelpers.js"></script>
     <script type="text/javascript" src="./assets/lib/gmaps-utils/map_marker/CustomMapMarker.js"></script>
@@ -44,9 +46,14 @@
     <script type="text/javascript" src="./assets/lib/grapher/grapher.min.js"></script>
     <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.0.4/luxon.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.2.1/luxon.min.js"></script>
+    
+    <script type="text/javascript" src="./assets/lib/rrule/rrule.min.js"></script>
+    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
   </head>
   <body class="materialUI">
+    <div id="heatmap-loading-mask"><div class="loader"></div></div>
     <div id="controls" class="playbackTimelineOff" style="display: none">
       <div id="playback-timeline-container" class="noselect materialUI">
         <div class="materialTimelineContainerMain">
@@ -67,47 +74,180 @@
       </button>
     </div>
     <div id="infobar" class='infocontainer no-controls'>
-      <div id="timeseries">
+      <div id="infobar-tools">
         <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
-        <div id="back-arrow-container" title="Exit time series mode">
+        <div id="infobar-back-arrow-container" title="Exit mode">
           <div id="back-arrow"></div>
-          <span id="back-arrow-text">Exit Time Series</span>
+          <span id="back-arrow-text">Exit Mode</span>
         </div>
         <span class='more-info more-info-grapher' title="Learn more" data-info="grapher"></span>
-        <!-- <div id="plot-from-map">+ Plot another selected sensor from map</div> -->
-        <div id="grapher_container" class="noselect">
-          <div class="alert">
-            Only up to 5 sensors can be graphed. Remove one before adding another.
+        <div id="infobar-tools-wrapper">
+          <div id="heatmap">
+            <!-- <p class="heading">Source Area Over Time</p> -->
+            <p class="description">Generate a heatmap of cumulative source area likelihoods for the clicked location. Choose "Guided Date Picker" to quickly produce a list of date-times, or choose "Manual Entry" to enter in your own list of date-times. If you clicked a sensor on the map when in manual entry mode, you can also obtain date-times from the Time Series chart feature.</p>
+            <div class="left-align-content add-top-margin">
+              <div class="custom-radio custom-radio-left">
+                <input type="radio" name="date-picker-selector" value="gui" id="gui-collection-radio" checked>
+                <label for="gui-collection-radio" class="noselect">Guided Date Picker</label>
+              </div>
+              <div class="custom-radio custom-radio-right">
+                <input type="radio" name="date-picker-selector" value="manual" id="manual-collection-radio">
+                <label for="manual-collection-radio" class="noselect">Manual Entry</label>
+              </div>
+            </div>
+            <div id="heatmap-manual-date-entry-container" data-radio="manual-collection-radio">
+              <p class="description">Enter a list of dates, comma delimited, to create a heatmap of cumulative source area likelihoods for the clicked location, across that set of times. If you clicked a sensor on the map, you can also obtain date-times from the Time Series chart feature found below by clicking data points in the chart. <br><br> Note that dates entered are assumed to be in local time.</p>
+              <div class="heatmap-dates-wrapper">
+                <p class="description">(e.g. 2022-07-02 15:00, 2022-07-02 16:00)</p>
+                <textarea id="heatmap-dates" rows="10" cols="34"></textarea>
+              </div>
+            </div>
+            <div id="heatmap-gui-datepicker-entry-container" data-radio="gui-collection-radio">
+              <p class="description">Fill out the form below to generate a series of date-times that will be used to create a heatmap of cumulative source area likelihoods for the clicked location.</p>
+              <table id="heatmap-date-picker">
+                <tr>
+                  <td width="20">
+                    <div>From: </div>
+                  </td>
+                  <td>
+                    <div class="input-block">
+                      <input id="datetimepicker-start" type="text" placeholder="Start Date Time" autocomplete="off">
+                      <i class="fa fa-calendar-alt"></i>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    Every:
+                  </td>
+                  <td>
+                    <input type="number" id="interval" name="interval" min="1" value="1">
+                    <select name="frequency" id="frequency">
+                      <option value="RRule.HOURLY">Hour(s)</option>
+                      <option value="RRule.DAILY">Day(s)</option>
+                      <option value="RRule.WEEKLY">Week(s)</option>
+                      <option value="RRule.MONTHLY">Month(s)</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr id="hour-row">
+                  <td colspan="2">
+                    At: (<a href="javascript:void(0)" class="select-all">select all</a>)
+                    <div id="hour" class="checkbox-group">
+                      <label><input name="byhour" type="checkbox" value="0" checked>12 AM</label>
+                      <label><input name="byhour" type="checkbox" value="1" checked>01 AM</label>
+                      <label><input name="byhour" type="checkbox" value="2" checked>02 AM</label>
+                      <label><input name="byhour" type="checkbox" value="3" checked>03 AM</label>
+                      <label><input name="byhour" type="checkbox" value="4" checked>04 AM</label>
+                      <label><input name="byhour" type="checkbox" value="5" checked>05 AM</label>
+                      <label><input name="byhour" type="checkbox" value="6" checked>06 AM</label>
+                      <label><input name="byhour" type="checkbox" value="7" checked>07 AM</label>
+                      <label><input name="byhour" type="checkbox" value="8" checked>08 AM</label>
+                      <label><input name="byhour" type="checkbox" value="9" checked>09 AM</label>
+                      <label><input name="byhour" type="checkbox" value="10" checked>10 AM</label>
+                      <label><input name="byhour" type="checkbox" value="11" checked>11 AM</label>
+                      <label><input name="byhour" type="checkbox" value="12" checked>12 PM</label>
+                      <label><input name="byhour" type="checkbox" value="13" checked>01 PM</label>
+                      <label><input name="byhour" type="checkbox" value="14" checked>02 PM</label>
+                      <label><input name="byhour" type="checkbox" value="15" checked>03 PM</label>
+                      <label><input name="byhour" type="checkbox" value="16" checked>04 PM</label>
+                      <label><input name="byhour" type="checkbox" value="17" checked>05 PM</label>
+                      <label><input name="byhour" type="checkbox" value="18" checked>06 PM</label>
+                      <label><input name="byhour" type="checkbox" value="19" checked>07 PM</label>
+                      <label><input name="byhour" type="checkbox" value="20" checked>08 PM</label>
+                      <label><input name="byhour" type="checkbox" value="21" checked>09 PM</label>
+                      <label><input name="byhour" type="checkbox" value="22" checked>10 PM</label>
+                      <label><input name="byhour" type="checkbox" value="23" checked>11 PM</label>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    On: (<a href="javascript:void(0)" class="select-all">select all</a>)
+                    <div id="dayofweek" class="checkbox-group">
+                    <label><input type="checkbox" name="byweekday" value="RRule.MO" checked>Mon</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.TU" checked>Tue</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.WE" checked>Wed</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.TH" checked>Thu</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.FR" checked>Fri</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.SA" checked>Sat</label>
+                    <label><input type="checkbox" name="byweekday" value="RRule.SU" checked>Sun</label>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    Of Every: (<a href="javascript:void(0)" class="select-all">select all</a>)
+                    <div id="month" class="checkbox-group">
+                      <label><input name="bymonth" type="checkbox" value="1" checked>Jan</label>
+                      <label><input name="bymonth" type="checkbox" value="2" checked>Feb</label>
+                      <label><input name="bymonth" type="checkbox" value="3" checked>Mar</label>
+                      <label><input name="bymonth" type="checkbox" value="4" checked>Apr</label>
+                      <label><input name="bymonth" type="checkbox" value="5" checked>May</label>
+                      <label><input name="bymonth" type="checkbox" value="6" checked>Jun</label>
+                      <label><input name="bymonth" type="checkbox" value="7" checked>Jul</label>
+                      <label><input name="bymonth" type="checkbox" value="8" checked>Aug</label>
+                      <label><input name="bymonth" type="checkbox" value="9" checked>Sep</label>
+                      <label><input name="bymonth" type="checkbox" value="10" checked>Oct</label>
+                      <label><input name="bymonth" type="checkbox" value="11" checked>Nov</label>
+                      <label><input name="bymonth" type="checkbox" value="12" checked>Dec</label>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div>Until: </div>
+                  </td>
+                  <td>
+                    <div class="input-block">
+                      <input id="datetimepicker-end" type="text" placeholder="End Date Time" autocomplete="off">
+                      <i class="fa fa-calendar-alt"></i>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <input type="hidden" id="rrule-str">
+              <p id="result"></p>
+            </div>
           </div>
-          <table id="grapher" border="0" cellpadding="0" cellspacing="0">
-             <tr>
-                <td>
-                   <div id="date_axis" class="date_axis" style="width:400px;"></div>
-                </td>
-                <td>
-                  <div id="zoomGrapherIn" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom in the graphs">
-                    <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-plus-white"></span>
-                  </div>
-                  <div id="zoomGrapherOut" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom out the graphs">
-                    <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-minus-white"></span>
-                  </div>
-                </td>
-             </tr>
-             <tr>
-               <td>
-                 <div id="plot_container" class="plot_container" style="width:400px;height:300px;"></div>
-                </td>
-                <td>
-                  <div id="y_axis" class="y_axis" style="height:300px">
-                    <div id="y_axis_label" class="rotate_90 y_axis_label">(ug/m<sup>3</sup>)</div>
-                  </div>
-                </td>
-             </tr>
-             <tr><td id="hover_sample_value_and_time"></td></tr>
-          </table>
-          <div id='grapher_legend'>
-            <table id="graph_legend_content"></table>
+          <div id="timeseries">
+            <div id="grapher_container" class="noselect">
+              <div class="alert">
+                Only up to 5 sensors can be graphed. Remove one before adding another.
+              </div>
+              <table id="grapher" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td>
+                      <div id="date_axis" class="date_axis"></div>
+                    </td>
+                    <td>
+                      <div id="zoomGrapherIn" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom in the graphs">
+                        <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-plus-white"></span>
+                      </div>
+                      <div id="zoomGrapherOut" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom out the graphs">
+                        <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-minus-white"></span>
+                      </div>
+                    </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div id="plot_container" class="plot_container"></div>
+                    </td>
+                    <td>
+                      <div id="y_axis" class="y_axis">
+                        <div id="y_axis_label" class="rotate_90 y_axis_label">(ug/m<sup>3</sup>)</div>
+                      </div>
+                    </td>
+                </tr>
+                <tr><td id="hover_sample_value_and_time"></td></tr>
+              </table>
+              <div id='grapher_legend'>
+                <table id="graph_legend_content"></table>
+              </div>
+            </div>
           </div>
+          <br>
+          <div id="get-heatmap-button-container"><div id='get-heatmap'><span class="button-text">Generate Heatmap</span></div></div>   
         </div>
       </div>
       <div id="infobar-content">
@@ -139,6 +279,7 @@
               <div class="infobar-unit"></div>
               <div class="infobar-time"></div>
             </div>
+            <div class="heatmap-modal-button-container"><button id="heatmap-btn">Generate heatmap of cumulative source area likelihoods over time</button></div>
           </div>
           <div id="infobar-pollution-section" class="infobar-component">
             <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="Learn more" data-info="side-panel-data"></span><span class='chart-btn' title="Explore PM data over time"></span></div>
@@ -167,25 +308,21 @@
           <div class="infobar-close-toggle-icon"></div>
         </div>
         <div class='side-controls-container'>
-          <button id="city-picker">
-            Explore a city
-          </button>
-          <button id="share-picker">
-            Share
-          </button>
-          <button id="help-tour">
-            Take a Tour
-          </button>
-          <button id="reach-out">
-            Reach out
-          </button>
-          <button id="methodology">
-            Methodology
-          </button>
-          <div class="searchBoxContainer">
-            <input class="searchBox" placeholder="Search for a point of interest..." autocomplete="off">
-            <span class="searchBoxIcon" title="Toggle search"></span>
-            <span class="searchBoxClearIcon" title="Clear search"></span>
+          <div class="side-controls-container-column">
+            <button id="city-picker" class="control-button">Explore a city</button>
+            <button id="share-picker" class="control-button">Share</button>
+            <button id="help-tour" class="control-button">Take a Tour</button>
+            <button id="reach-out" class="control-button">Reach out</button>
+            <button id="methodology" class="control-button">Methodology</button>
+          </div>
+          <div class="side-controls-container-column">
+            <div class="searchBoxContainer">
+              <input class="searchBox" placeholder="Search for a point of interest..." autocomplete="off">
+              <span class="searchBoxIcon" title="Toggle search"></span>
+              <span class="searchBoxClearIcon" title="Clear search"></span>
+            </div>
+            <button id="add-placemarker" class="control-button">Add placemarker. Once added, it is draggable on the map.</button>
+            <button id="remove-placemarkers" class="control-button">Clear user added placemarkers</button>
           </div>
         </div>
       </div>

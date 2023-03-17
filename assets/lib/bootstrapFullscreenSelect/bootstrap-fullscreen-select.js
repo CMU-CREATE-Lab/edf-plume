@@ -435,7 +435,6 @@ if (typeof jQuery === 'undefined') {
             this.$triggerElement.remove();
             this.$c.remove();
             this.$e.show();
-            console.log('done ');
         },
         refresh: function () {
 

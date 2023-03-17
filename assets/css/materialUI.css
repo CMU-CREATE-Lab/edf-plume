@@ -63,7 +63,13 @@
   margin-top: -12px
 }
 
-.materialUI #city-picker, .materialUI #help-tour, .materialUI #reach-out, .materialUI #methodology {
+.materialUI #city-picker,
+.materialUI #share-picker,
+.materialUI #help-tour,
+.materialUI #reach-out,
+.materialUI #methodology,
+.materialUI #add-placemarker,
+.materialUI #remove-placemarkers {
   background: #f1f1f1;
   width: 0px;
   height: 40px;
@@ -85,12 +91,24 @@
   display: none;
 }
 
-.materialUI #city-picker, .materialUI #help-tour, .materialUI #reach-out, .materialUI #methodology {
+.materialUI #city-picker,
+.materialUI #share-picker,
+.materialUI #help-tour,
+.materialUI #reach-out,
+.materialUI #methodology,
+.materialUI #add-placemarker,
+.materialUI #remove-placemarkers {
   left: auto;
   right: auto;
 }
 
-.materialUI #city-picker .ui-button, .materialUI #help-tour .ui-button, .materialUI #reach-out .ui-button, .materialUI #methodology .ui-button {
+.materialUI #city-picker .ui-button,
+.materialUI #share-picker .ui-button,
+.materialUI #help-tour .ui-button,
+.materialUI #reach-out .ui-button,
+.materialUI #methodology .ui-button,
+.materialUI #add-placemarker .ui-button,
+.materialUI #remove-placemarkers .ui-button {
   margin-top: 0px;
   display: block;
   width: 40px;
@@ -103,7 +121,12 @@
   border-radius: 0px;
 }
 
-.materialUI #city-picker.ui-state-hover, .materialUI #help-tour.ui-state-hover, .materialUI #reach-out.ui-state-hover, .materialUI #methodology.ui-state-hover {
+.materialUI #city-picker.ui-state-hover,
+.materialUI #help-tour.ui-state-hover,
+.materialUI #reach-out.ui-state-hover,
+.materialUI #methodology.ui-state-hover,
+.materialUI #add-placemarker.ui-state-hover,
+.materialUI #remove-placemarkers.ui-state-hover {
   border: 1px solid #d3d3d3;
 }
 
@@ -154,7 +177,37 @@
   background-repeat: no-repeat;
 }
 
-.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black, .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black, .materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black, .materialUI #reach-out:not(.ui-button-disabled):hover .ui-icon-custom-reach-out-black, .materialUI #methodology:not(.ui-button-disabled):hover .ui-icon-custom-methodology-black {
+.materialUI #add-placemarker .ui-icon-add-placemarker {
+  background: url('../img/add-pin.png');
+  width: 20px;
+  height: 30px;
+  opacity: 0.7;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -7px;
+  margin-top: -15px;
+  background-repeat: no-repeat;
+}
+
+.materialUI #remove-placemarkers .ui-icon-remove-placemarkers {
+  background: url('../img/remove-user-markers.png');
+  width: 18px;
+  height: 28px;
+  opacity: 0.65;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -9px;
+  margin-top: -13px;
+  background-repeat: no-repeat;
+}
+
+.materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black,
+.materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black,
+.materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black,
+.materialUI #reach-out:not(.ui-button-disabled):hover .ui-icon-custom-reach-out-black,
+.materialUI #methodology:not(.ui-button-disabled):hover .ui-icon-custom-methodology-black,
+.materialUI #add-placemarker:not(.ui-button-disabled):hover .ui-icon-add-placemarker,
+.materialUI #remove-placemarkers:not(.ui-button-disabled):hover .ui-icon-remove-placemarkers {
   opacity: 0.9;
 }
 
@@ -354,7 +407,8 @@
   opacity: 0.7;
 }
 
-.materialUI .leftSeekControl:hover .leftSeekControlIcon, .materialUI .rightSeekControl:hover .rightSeekControlIcon {
+.materialUI .leftSeekControl:hover .leftSeekControlIcon,
+.materialUI .rightSeekControl:hover .rightSeekControlIcon {
   opacity: 0.9;
 }
 
@@ -629,11 +683,6 @@
 
 .cursorPointer {
   cursor: pointer;
-}
-
-.materialUI .searchBoxContainer {
-  top: auto;
-  left: 58px;
 }
 
 .materialUI div.ui-dialog.ui-widget {

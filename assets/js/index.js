@@ -54,8 +54,10 @@ var zoomChangedSinceLastIdle = false;
 var currentZoom = -1;
 var selectedLocationPin;
 var selectedSensorMarker;
+var userPlacemarkes = [];
 var overlay;
 var db;
+var RRule;
 //var mostRecentUpdateEpochTimeForLocationInMs;
 //var startOfLatestAvailableDay;
 
@@ -128,9 +130,6 @@ var $tooltip;
 var $tooltipContent;
 
 
-//var showHrrrWindDirectionError;
-//var showHrrrWindSpeedError;
-//var hrrrWindErrorPointLocations = {};
 var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
 var startingView = Object.assign({}, defaultHomeView);
 
@@ -179,7 +178,7 @@ function setTraxOpacityAndColor(currentPlaybackTimeInMs) {
       }
       var color = pm25ColorLookup(dataWithinPlaybackInterval.pm25);
       var timeDiff = Math.abs(currentPlaybackTimeInMs - markerEpochTimeInMs);
-      opacity = Math.min(1, Math.max(0, (1 - (timeDiff / timeIntervalInMs)) + .05));
+      opacity = Math.min(1, Math.max(0, (1 - (timeDiff / timeIntervalInMs)) + 0.05));
       options.fillColor = color;
       options.strokeColor = color;
       options.fillOpacity = opacity;
@@ -288,13 +287,6 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
 
 async function initMap() {
   var urlVars = Util.parseVars(window.location.href);
-
-  //showHrrrWindSpeedError = urlVars.showHrrrWindError == "speed";
-  //showHrrrWindDirectionError = urlVars.showHrrrWindError == "direction";
-  /*infowindow = new google.maps.InfoWindow({
-    visible: true,
-    content: ''
-  });*/
 
   var shareView = urlVars.v;
 
@@ -577,7 +569,7 @@ async function initMap() {
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored diamonds to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
-      "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last monitor you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
+      "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last location you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
     };
     var selectedInfo = text[$(this).data("info")];
     setButtonTooltip(selectedInfo.text, $(this), null, selectedInfo.pos);
@@ -634,6 +626,25 @@ async function initMap() {
       $infobar.removeClass("disableScroll");
       $(document).off(".infocontainer");
     });
+  });
+
+  $("#infobar-back-arrow-container").on("click", function() {
+    if (heatmapModeEnabled) {
+      hideHeatmapUI();
+      // Remove footprint pin if visible
+      if (selectedLocationPinVisible()) {
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
+      }
+      handleControlsUI("enable");
+      showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+    }
+
+    if (timeSeriesModeEnabled) {
+      hideTimeSeriesUI();
+    }
+
+    $("#infobar").removeClass("altmode");
+    $("#infobar-tools").hide();
   });
 
   verticalTouchScroll($infobar);
@@ -805,6 +816,72 @@ async function initMap() {
 
   createDataPullWebWorker();
 
+  $("input[name='date-picker-selector']").on("click", function() {
+    $("#heatmap div[data-radio$='-collection-radio']").hide();
+    $("#heatmap div[data-radio='" + $(this).prop('id') + "']").show();
+  });
+
+  $('#heatmap-date-picker').on('click', '.select-all', function () {
+    var $checkboxes = $(this).parent().find("input[type='checkbox']");
+    $checkboxes.prop('checked', true);
+    $checkboxes.first().trigger("change");
+  });
+
+
+  $.datetimepicker.setDateFormatter('moment');
+
+  $('#datetimepicker-start').datetimepicker({
+    step: 3600,
+    formatTime: 'h A',
+    formatDate: 'MM/DD/YYYY',
+    format: 'MM/DD/YYYY h A',
+    todayButton: false,
+    yearStart: 2020,
+    onShow:function( ct ){
+      this.setOptions({
+        maxDate: $('#datetimepicker-end').val() ? $('#datetimepicker-end').val() : moment(Date.now()).tz(selected_city_tmz).format("MM/DD/YYYY 12 A")
+      });
+    }
+  });
+
+  $('#datetimepicker-end').datetimepicker({
+    step: 3600,
+    formatTime: 'h A',
+    formatDate: 'MM/DD/YYYY',
+    format: 'MM/DD/YYYY h A',
+    todayButton: false,
+    yearStart: 2020,
+    onShow:function( ct ){
+      this.setOptions({
+        minDate: $('#datetimepicker-start').val() ? $('#datetimepicker-start').val() : false,
+        maxDate: moment(Date.now()).tz(selected_city_tmz).format("MM/DD/YYYY 12 A")
+      });
+    }
+  });
+
+  $("#frequency, #interval, #datetimepicker-start, #datetimepicker-end, input[name='bymonth'], input[name='byweekday'], input[name='byhour']").on("change", function() {
+    var val = "";
+    if ($(this).prop('type') == "checkbox") {
+      val = $(this).is(':checked');
+    } else {
+      val = $(this).val();
+    }
+    if ($(this).data("last-val") == val) return;
+    $(this).data('last-val', val);
+
+    if ($(this).prop("id") == "frequency") {
+      if ($(this).val() == "RRule.HOURLY") {
+        $("#hour-row").hide();
+      } else {
+        $("#hour-row").show();
+      }
+    }
+
+    if ($("#frequency").val() && $("#interval").val() && $("#datetimepicker-start").val() && $("#datetimepicker-end").val()) {
+      $("#result").html(computeRRule());
+    }
+  });
+
   $(".shareViewModal").dialog({
     resizable: false,
     autoOpen: false,
@@ -890,15 +967,34 @@ async function initMap() {
     }
   });
 
-
-  // $("#plot-from-map").on("click", function() {});
-
   $(".chart-btn").on("click", function() {
     if ($(this).hasClass("disabled")) return;
     timeSeriesModeEnabled = true;
-    $("#infobar").addClass("timeseries");
-    $("#timeseries").show();
+    if (!heatmapModeEnabled) {
+      $("#back-arrow-text").html("Exit Time Series");
+    }
+    $("#infobar").addClass("altmode");
+    if (heatmapModeEnabled) {
+      $("#get-heatmap").show();
+    } else {
+      $("#get-heatmap").hide();
+    }
+    if (heatmapModeEnabled && $("input[name='date-picker-selector']:checked").prop("id") == "gui-collection-radio") {
+      $("#timeseries").hide();
+    } else {
+      $("#infobar-tools, #timeseries").show();
+    }
+
     handleTimeSeries();
+  });
+
+  $("#heatmap-btn").on("click", function() {
+    if ($(this).hasClass("disabled")) return;
+    heatmapModeEnabled = true;
+    $("#back-arrow-text").html("Exit Heatmap Mode");
+    $("#infobar").addClass("altmode");
+    $("#infobar-tools, #heatmap").show();
+    handleHeatmapMode();
   });
 
   $(".close-modal").on("click", function() {
@@ -929,6 +1025,71 @@ async function initMap() {
     document.execCommand('copy');
     setButtonTooltip("Copied", $this, 1000);
     window.getSelection().removeAllRanges();
+  });
+
+  $("#heatmap-dates").on("input", function(e) {
+    if (e.originalEvent.inputType == "insertFromPaste") {
+      // Ensure each date is on a single line, comma delimited
+      $(this).val($(this).val().replace(/\s*,\s*|(?<!,)\n/g,",\n"));
+    }
+  });
+
+  $("#get-heatmap").on("click", function() {
+    if ($(this).hasClass("button-loading")) return;
+    if (!selectedLocationPinVisible()) {
+      alert("You need to click a location on the map.");
+      return;
+    }
+    var $that = $(this);
+
+    var payload = {};
+
+    if ($("input[name='date-picker-selector']:checked").prop("id") == "manual-collection-radio") {
+      //var dates = $("#heatmap-dates").val().replace(/\s+/g, '');
+      var dates = $("#heatmap-dates").val().replace(/\n/g, '').replace(/(?!\b\s\b)\s+/g,'');
+      //if (!/^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2},*)+$/.test(dates)) {
+      if (!/^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2},*)+$/.test(dates)) {
+        alert("Invalid formatted date list.");
+        return;
+      }
+      // Date is displayed in RFC 3339, (by use of a space separating date and time)
+      // We replace the space with a 'T' to be ISO8601 compliant.
+      payload.times = dates.replace(/\s/g,'T');
+      payload.tz = selected_city_tmz;
+    } else {
+      rrule = $("#rrule-str").val();
+      if (!rrule) {
+        alert("Missing start/end dates.");
+        return;
+      }
+      payload.rrule = rrule;
+    }
+
+    payload.view = selectedLocationPin.getPosition().lat() + "," + selectedLocationPin.getPosition().lng() + "," + map.getZoom();
+    payload.forOverlay = true;
+
+    //$(this).addClass("button-loading");
+    $("#heatmap-loading-mask").addClass("visible");
+    $.ajax({
+      url: "https://api.airtracker.createlab.org/get_heatmap",
+      data: payload,
+      dataType: "json"
+      // xhrFields: {
+      //   responseType: 'blob'
+      // }
+    }).done(async function(data) {
+      //download(data, "heatmap", "image/png");
+      await drawFootprint(selectedLocationPin.getPosition().lat(), selectedLocationPin.getPosition().lng(), true, false, data);
+    }).fail(function(e) {
+      if (e && e.responseJSON && e.responseJSON.error) {
+        alert(e.responseJSON.error);
+      } else {
+        alert("None of the provided times matched available data. Please try again with a different list of times.");
+      }
+    }).always(function() {
+      //$that.removeClass("button-loading");
+      $("#heatmap-loading-mask").removeClass("visible");
+    });
   });
 
   $("#get-screenshot").on("click", async function() {
@@ -994,7 +1155,7 @@ async function initMap() {
 
   $("#search-mobile").on("click", function() {
     $(".searchModal").dialog('open');
-  })
+  });
 
   $searchBoxIcon.on("mouseover mouseout", function() {
     $searchBox.toggleClass("hover");
@@ -1054,8 +1215,9 @@ async function initMap() {
     $(".tosModal").dialog('open');
   }
 
+  RRule = rrule.RRule;
 
-  // !!DO LAST!!
+  // !!DO TRAX LAST!!
 
   // Draw TRAX locations on the map
   traxLocations = await getTraxLocations();
@@ -1096,19 +1258,19 @@ function siteTourShort() {
   var step_0 = {
     title: defaultTourStepTitle,
     intro: step_0_text
-  }
+  };
 
   var step_1 = {
     title: defaultTourStepTitle,
     intro: "Air Tracker is interactive and works within the dotted bounds around each featured city. <br><br> You can click anywhere within those bounds to find a source area influencing that point of interest."
-  }
+  };
 
   var step_2 = {
     title: defaultTourStepTitle,
     element: null,
     highlightPaddings:  {top: -150, left: -50, width: 500, height: 200},
     intro: "A source area, which is depicted as a non-masked out region, shows where pollution is most likely originating."
-  }
+  };
 
   var step_3 = {
     title: defaultTourStepTitle,
@@ -1116,7 +1278,7 @@ function siteTourShort() {
     intro: "These colored circles represent regulatory air quality monitors. The colors within the circle represent real-time air pollution readings.",
     position: "right",
     highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
-  }
+  };
 
   var step_4 = {
     title: defaultTourStepTitle,
@@ -1124,14 +1286,14 @@ function siteTourShort() {
     intro: "The blue arrow points in the direction that wind is moving. You can click on these monitors to show real-time wind and pollution readings on the side bar.",
     position: "right",
     highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
-  }
+  };
 
   var step_5 = {
     title: defaultTourStepTitle,
     element: null,
     intro: "Once you've click on a monitor, you can also click the chart emblem on the side bar to see pollution concentrations over time at that monitor.",
     position: "right",
-  }
+  };
 
   var step_6 = {
     title: defaultTourStepTitle,
@@ -1139,49 +1301,49 @@ function siteTourShort() {
     intro: "'PurpleAir' and 'Clarity' sensor data can be added to the map using the toggle button in the legend.",
     highlightPaddings:  {height: 38},
     position: "left",
-  }
+  };
 
   var step_7 = {
     title: defaultTourStepTitle,
     element: document.querySelector("#legend"),
     intro: "Additional air quality data sources vary by city. <br><br> In Salt Lake City, three trains from the light rail system 'TRAX' feature real-time air pollution monitors that map readings when those trains are running. <br><br> In Pittsburgh, real-time smell reports highlight areas where citizens have reported nuisance smells.",
     position: "left"
-  }
+  };
 
   var step_8 = {
     title: defaultTourStepTitle,
     element: document.querySelector('#timeline-container'),
     intro: "The default map of Air Tracker shows current, real-time data. <br><br> You can also look up source areas in the past. Scroll through the dates at the bottom of the page. When you click on a new date, the map will update, showing the data from the selected day.",
     position: "top-middle-aligned"
-  }
+  };
 
   var step_9 = {
     title: defaultTourStepTitle,
     element: document.querySelector('.timestampPreview'),
     intro: "To select a new time within a day, click on the clock in the lower left-hand corner of the screen.",
     position: "top-left-aligned",
-  }
+  };
 
   var step_10 = {
     title: defaultTourStepTitle,
     element: null,
     intro: "Once you clicked the clock, you can change the time of day in 3 ways: <br><br> <ol><li>Use the scroll bar on the timeline.</li><li>Click the left/right arrows on your keyboard.</li><li>Hold down the left or right arrow buttons on the timeline and a pop-up will allow you to select a time to jump to.</li>",
     position: "top-left-aligned",
-  }
+  };
 
   var step_11 = {
     title: defaultTourStepTitle,
     element: document.querySelector('.playbackButton'),
     intro: "To animate source areas on a specific date, click the play button next to the calendar. This will play through measured air pollution and source area data.",
     position: "top-left-aligned",
-  }
+  };
 
   var step_12 = {
     title: defaultTourStepTitle,
     element: document.querySelector("#share-picker"),
     intro: "You can share a snapshot of the map view you were looking at by clicking this button. A pop-up will appear with various options.",
     position: "right",
-  }
+  };
 
   tourObj = introJs().setOptions({
     autoPosition: false,
@@ -1211,15 +1373,19 @@ function siteTourShort() {
       // Add tour css indicator to any elements that we want to handle css transitions differently when in tour mode
       $(".materialTimelineContainerMain").addClass("tour");
 
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
 
     } else if (this._currentStep == 1) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
+
+      // Close side panel
+      $("#infobar-back-arrow-container").trigger("click");
 
       // Turn off any sensors that can be toggled
       toggleOffAllNonForcedSensors();
@@ -1266,9 +1432,9 @@ function siteTourShort() {
       }, 500);
 
     } else if (this._currentStep == 3) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
 
       var marker = available_cities["US-HOU"].sensors["Houston Westhollow C410 AirNow"].marker.getGoogleMapMarker();
@@ -1300,9 +1466,9 @@ function siteTourShort() {
         that.refresh();
       }, 250);
     } else if (this._currentStep == 6) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
     } else if (this._currentStep == 9) {
       // If we are starting the tour with the playback timeline up, close it.
@@ -1324,9 +1490,9 @@ function siteTourShort() {
     if (this._currentStep == 0) {
       return;
     }
-    // Remove pin
+    // Remove footprint pin if visible
     if (selectedLocationPinVisible()) {
-      google.maps.event.trigger(selectedLocationPin, "click");
+      google.maps.event.trigger(selectedLocationPin, "dblclick");
     }
     // Go to most recent available day
     $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
@@ -1349,15 +1515,14 @@ function siteTour() {
   var step_1 = {
     title: defaultTourStepTitle,
     intro: step_1_text
-  }
+  };
 
   var step_2 = {
     title: defaultTourStepTitle,
     element: null,
     intro: "Cities featured by Air Tracker are marked with a blue icon on the map. You can click these icons to have the system zoom you in or you can manually zoom in yourself.",
     highlightPaddings: {width: 86, height: 40, left: -57, top: -50}
-
-  }
+  };
 
   var step_3_text = "You can also select a city by clicking on the city building icon in the upper left corner.";
   var step_3_element = document.querySelector('#city-picker');
@@ -1372,19 +1537,19 @@ function siteTour() {
     element: step_3_element,
     intro: step_3_text,
     position: step_3_position
-  }
+  };
 
   var step_4 = {
     title: defaultTourStepTitle,
     intro: "Air Tracker is interactive and works within the dotted lines around each featured city. Click on any location within the box to create a 'back trace' from that point of interest."
-  }
+  };
 
   var step_5 = {
     title: defaultTourStepTitle,
     element: null,
     intro: "A back trace shows the area where a pollution source is most likely to be found. The darker purple indicates the area with the strongest contribution to the back trace. <br> <br> Watch <a target='_blank' href='https://drive.google.com/file/d/1uVzPw4l0GT2S8FcYwGHT430MkIejNXHg/preview'>this video</a> for the basics on what a back trace is.",
     highlightPaddings:  {top: -50, left: -50, width: 150, height: 400}
-  }
+  };
 
   tourObj = introJs().setOptions({
     autoPosition: false,
@@ -1582,8 +1747,9 @@ function siteTour() {
       // Add tour css indicator to any elements that we want to handle css transitions differently when in tour mode
       $(".materialTimelineContainerMain").addClass("tour");
 
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
 
     } else if (this._currentStep == 1) {
@@ -1618,9 +1784,9 @@ function siteTour() {
     } else if (this._currentStep == 2) {
       goToDefaultHomeView();
     } else if (this._currentStep == 3) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
       // Bring SLC bounds into view
       google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
@@ -1677,9 +1843,9 @@ function siteTour() {
         this.refresh();
       }, 500);
     } else if (this._currentStep == 6) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
       // Go back to most recent day
       $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
@@ -1707,9 +1873,9 @@ function siteTour() {
       this._introItems[this._currentStep].position = "left";
       this.refresh();
     } else if (this._currentStep == 10) {
-      // Remove pin
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
 
       if (playbackTimeline && playbackTimeline.isActive()) {
@@ -1762,8 +1928,9 @@ function siteTour() {
         google.maps.event.trigger(marker, "click");
       }
     } else if (this._currentStep == 13) {
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
       $purpleAirToggle.prop("checked", false).trigger("change");
       toggleMarkersByMarkerType("purple_air", false);
@@ -1800,8 +1967,9 @@ function siteTour() {
       }
       $purpleAirToggle.prop("checked", false).trigger("change");
     } else if (this._currentStep == 16) {
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
       map.setZoom(13);
       var latLng = new google.maps.LatLng(40.731316223740315, -111.92356154003906);
@@ -1832,8 +2000,9 @@ function siteTour() {
         handleTimelineToggling();
       }
     } else if (this._currentStep == 18) {
+      // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "click");
+        google.maps.event.trigger(selectedLocationPin, "dblclick");
       }
       setTimeout(() => {
         this.refresh();
@@ -1843,7 +2012,7 @@ function siteTour() {
         handleTimelineToggling();
       }
       await setAsyncTimeout(() => {
-        this.refresh()
+        this.refresh();
       }, 75);
     } else if (this._currentStep == 21) {
       if (playbackTimeline && !playbackTimeline.isActive()) {
@@ -1859,7 +2028,7 @@ function siteTour() {
           this._introItems[this._currentStep].position = "top-left-aligned";
           this.refresh();
         }
-      }, 30)
+      }, 30);
     } else if (this._currentStep == 28) {
       $(".close-modal").trigger("click");
       if (playbackTimeline && playbackTimeline.isActive()) {
@@ -2025,7 +2194,7 @@ async function getCityInBounds(mapFirstLoad) {
     if (selectedCity && available_cities[selectedCity].has_smell_reports) {
       handleSmellReports(playbackTimeline.getPlaybackTimeInMs());
     }
-  }
+  };
 
   let currentMapBounds = map.getBounds();
   for (let [city_locode, city] of Object.entries(available_cities)) {
@@ -2138,7 +2307,7 @@ async function getCityInBounds(mapFirstLoad) {
               clearInterval(checkIfPinOnLoadIsReadyInterval);
               determineSensorAndUpdateInfoBar();
             }
-          }
+          };
           clearInterval(checkIfPinOnLoadIsReadyInterval);
           checkIfPinOnLoadIsReadyInterval = setInterval(function() {
             waitForReady();
@@ -2150,7 +2319,7 @@ async function getCityInBounds(mapFirstLoad) {
   } else {
     // If we previously had a city up and we've panned awway, hide its markers.
     if (lastSelectedCity) {
-      resetMapToCitiesOverview(lastSelectedCity)
+      resetMapToCitiesOverview(lastSelectedCity);
     }
   }
   zoomChangedSinceLastIdle = false;
@@ -2187,7 +2356,7 @@ function handleControlsUI(state, doIgnore) {
   ignoreMapIdleCallback = true;
   var currentCenter = map.getCenter();
 
-  // The height of the controls is 76px. I would assume we need to offset by that much, but apparently no, roughly have is all that's needed...
+  // The height of the controls is 76px. I would assume we need to offset by that much, but apparently no, roughly half is all that's needed...
   var yOffset = doIgnore ? 0 : 38;
   if (state == "disable") {
     currentCenter = offsetCenter(currentCenter, 0, yOffset);
@@ -2197,6 +2366,7 @@ function handleControlsUI(state, doIgnore) {
 
   if (state == "enable") {
     $controls.show();
+    //$("#add-placemarker, #remove-placemarkers").removeClass("disabled");
     if ($map.hasClass("no-controls")) {
       $("#map, #infobar, #legend").removeClass("no-controls");
       if (timeline) {
@@ -2205,6 +2375,7 @@ function handleControlsUI(state, doIgnore) {
     }
   } else if (state == "disable") {
     $controls.hide();
+    //$("#add-placemarker, #remove-placemarkers").addClass("disabled");
     $("#map, #infobar").addClass("no-controls");
   }
   map.setCenter(currentCenter);
@@ -2274,7 +2445,7 @@ function setButtonTooltip(text, $target, duration, position) {
   position = {
     at: position && position.at ? position.at : "top",
     my: position && position.my ? position.my : "bottom-10"
-  }
+  };
   if (text) {
     $tooltipContent.html(Util.sanitizeHTMLStr(text));
     $tooltip.show();
@@ -2412,6 +2583,45 @@ function initDomElms() {
     $(".methodologyModal").dialog('open');
   });
 
+  $("#add-placemarker").show().button({
+    icons: {
+      primary: "ui-icon-add-placemarker"
+    },
+    text: false
+  }).on("click", function() {
+      var marker = new google.maps.Marker({
+        map: map,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+        position: map.getCenter(),
+        icon: {
+          url: "assets/img/pointer.png",
+          scaledSize: new google.maps.Size(16,35),
+          size: new google.maps.Size(16,35),
+          origin: new google.maps.Point(0, 0)
+        },
+        title: "Placemarker"
+      });
+      google.maps.event.addListener(marker, "dblclick", function (e) {
+        this.setMap(null);
+      });
+      userPlacemarkes.push(marker);
+  });
+  $("#add-placemarker-mobile").on("click", function() {
+
+  });
+
+  $("#remove-placemarkers").show().button({
+    icons: {
+      primary: "ui-icon-remove-placemarkers"
+    },
+    text: false
+  }).on("click", function() {
+    clearUserAddedMarkers();
+  });
+  $("#remove-placemarkers-mobile").on("click", function() {
+
+  });
 
   $(".plume-expand-icon").on("click", function() {
     $(".backtraceSettingsModal").dialog('open');
@@ -2419,7 +2629,7 @@ function initDomElms() {
 
   $("#toggle-backtrace-likelihood").on("click", async function() {
     backtraceMode = $(this).prop("checked") ? "1" : "0";
-    backtraceMode == 1 ? $("#backtrace-legend-row, #backtrace-details-legend-row").removeClass("force-hidden") : $("#backtrace-legend-row, #backtrace-details-legend-row").addClass("force-hidden")
+    backtraceMode == 1 ? $("#backtrace-legend-row, #backtrace-details-legend-row").removeClass("force-hidden") : $("#backtrace-legend-row, #backtrace-details-legend-row").addClass("force-hidden");
     worldMask.setAllVisible(false);
     await drawFootprint(selectedLocationPin.position.lat(), selectedLocationPin.position.lng(), true, true);
   });
@@ -2434,11 +2644,13 @@ function initDomElms() {
     }
   });
 
+  initHeatmapListeners();
+
   $infobarPollution = $("#infobar-pollution");
   $infobarWind = $("#infobar-wind");
   $infobarPlume = $("#infobar-plume");
   $infobarHeader = $("#infobar-location-header");
-  $playbackTimelineContainer = $("#playback-timeline-container")
+  $playbackTimelineContainer = $("#playback-timeline-container");
   $controls = $("#controls");
   $calendarChosenDayIndicator = $(".calendar-specific-day");
   $calendarBtn = $("#calendar-btn");
@@ -2458,7 +2670,7 @@ function initDomElms() {
   if (isMobileView()) {
     $searchBox = $(".searchBoxMobile");
   } else {
-    $searchBox = $(".searchBox")
+    $searchBox = $(".searchBox");
   }
   $searchBoxIcon = $(".searchBoxIcon");
   $tooltip = $(".button-tooltip");
@@ -2501,7 +2713,7 @@ function setupGoogleMapsSearchPlaceChangedHandlers() {
       // mobile menu below the modal.
       setTimeout(function () {
         $(".searchModal").dialog('close');
-      }, 100)
+      }, 100);
     }
     var place = autocomplete.getPlace();
     if (place && place.geometry) {
@@ -2582,15 +2794,12 @@ async function handleDraw(timeInEpoch) {
   if (sensorsEnabledState['trax']) {
     await getTraxInfoByPlaybackTime(timeInEpoch);
   }
-  // TODO: Handle HRRR Wind Error visual
-  //if (showHrrrWindDirectionError || showHrrrWindSpeedError) {
-  //  handleHrrrWindErrorPointsByEpochTime(timeInEpoch);
-  //}
+
   await showSensorMarkersByTime(timeInEpoch);
 
   await handleSmellReports(timeInEpoch);
 
-  await waitForSensorsLoaded()
+  await waitForSensorsLoaded();
 
   if (selectedLocationPinVisible()) {
     determineSensorAndUpdateInfoBar();
@@ -2602,7 +2811,7 @@ async function handleDraw(timeInEpoch) {
 }
 
 
-async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
+async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData) {
   if (!fromClick && !selectedLocationPinVisible()) {
     return;
   }
@@ -2618,7 +2827,8 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
   var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
   if (fromClick) {
-    map.panTo({lat: lat, lng: lng});
+    // TODO: Stop re-centering map to where a user clicked. Has this been annoying to users?
+    //map.panTo({lat: lat, lng: lng});
     if (overlay) {
       overlay.setMap(null);
       overlay.setData({});
@@ -2666,18 +2876,15 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     'epochtimeInMs' : closestDateEpoch
   };
 
-  var data;
+  var data = footprintData;
   var iconPath;
   var loc = latTrunc + "," + lngTrunc;
 
-  var tmp = m_closestDate.tz("UTC").format("YYYYMMDDHHmm") + "Z";
-  var formatted_tmp = tmp + "_" + lngTrunc + "_" + latTrunc + "_1";
-  var uncertaintyData = await handleFootprintUncertainty(formatted_tmp);
-
-  overlayData.uncertainty = uncertaintyData;
 
   var parsedIsoString = isoString.replace(/:/g,"-").split(".")[0];
-  if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
+  if (heatmapModeEnabled) {
+    // Pass through
+  } else if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
     try {
@@ -2688,7 +2895,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       data = {
         image: result.mediaLink,
         metadata: result.metadata
-      }
+      };
     } catch(e) {
       // Either there is a permission error (not public) or the file does not exist
     }
@@ -2698,15 +2905,21 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     }
   }
 
+  var tmp = m_closestDate.tz("UTC").format("YYYYMMDDHHmm") + "Z";
+  var formatted_tmp = tmp + "_" + lngTrunc + "_" + latTrunc + "_1";
+  var uncertaintyData = await handleFootprintUncertainty(formatted_tmp);
+
+  overlayData.uncertainty = uncertaintyData;
+
   if (data) {
     overlayData['hasData'] = true;
     iconPath = ASSETS_ROOT + 'img/black-pin.png';
 
-    plume_backtraces[loc][closestDateEpoch] = data;
+    ////plume_backtraces[loc][closestDateEpoch] = data;
 
     var url = data.image;
 
-    if (backtraceMode == "0") {
+    if (!heatmapModeEnabled && backtraceMode == "0") {
       url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
       url = await alterOverlayImage(url);
     }
@@ -2720,13 +2933,21 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     overlay.set('bounds', bounds);
     overlay.setMap(map);
     overlay.show();
-    if (backtraceMode == "0") {
+    if (heatmapModeEnabled) {
+      worldMask.setAllVisible(false);
+    } else if (backtraceMode == "0") {
       worldMask.setMaskCut(overlay.bounds.getSouthWest(), overlay.bounds.getNorthEast());
     }
   } else {
     overlayData['hasData'] = false;
-    iconPath = ASSETS_ROOT + 'img/white-pin2.png';
-    if (backtraceMode == "0") {
+    var imagePath = 'img/white-pin2.png';
+    if (heatmapModeEnabled) {
+      imagePath = 'img/black-pin.png';
+    }
+    iconPath = ASSETS_ROOT + imagePath;
+    if (heatmapModeEnabled) {
+      worldMask.setAllVisible(false);
+    } else if (!heatmapModeEnabled && backtraceMode == "0") {
       worldMask.setMaskFull();
     }
     // Hide prior backtrace if no new one is available for the selected time
@@ -2757,8 +2978,8 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       if (!fromTour) {
         // In order to do the 'drop' animation again, we need to first dissociate the pin from the map.
         // Is this worse than just recreating the pin each time? I don't know...
-        selectedLocationPin.setMap(null)
-        selectedLocationPin.setMap(map)
+        selectedLocationPin.setMap(null);
+        selectedLocationPin.setMap(map);
         selectedLocationPin.setAnimation(google.maps.Animation.DROP);
       }
     }
@@ -2766,7 +2987,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
     selectedLocationPin = new google.maps.Marker({
       position: new google.maps.LatLng(lat,lng),
       map,
-      title: "Source area for selected location",
+      title: "Source area location placemarker",
       animation: fromClick && !fromTour ? google.maps.Animation.DROP : null,
       icon: iconPath,
       /* This is required to ensure that the element always remain in the DOM tree.
@@ -2775,7 +2996,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
       optimized: false,
       zIndex: 99999999
     });
-    google.maps.event.addListener(selectedLocationPin, "click", function (e) {
+    google.maps.event.addListener(selectedLocationPin, "dblclick", function (e) {
       if (selectedLocationPin) {
         selectedLocationPin.setVisible(false);
       }
@@ -2791,6 +3012,9 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick) {
 
   // Enable/Disable chart button based on whether a sensor was clicked and whether it has pm25 readings.
   selectedSensorMarker && typeof(selectedSensorMarker.getData().pm25_channel) == "string" ? $(".chart-btn").removeClass("disabled") : $(".chart-btn").addClass("disabled");
+
+  // Enable/Disable 'generate source area heatmap' button whether we have clicked inside or outside a valid city bounds
+  available_cities[selectedCity].footprint_region.getBounds().contains(selectedLocationPin.getPosition()) ? $("#heatmap-modal-button").removeClass("disabled") : $("#heatmap-modal-button").addClass("disabled");
 
   // Ensure that the clicked location pin is above the masked layer and that all markers are below the mask layer
   setTimeout(function() {
@@ -2834,7 +3058,7 @@ async function loadSensorsListForCity(city_locode) {
     // Load json file corresponding to the sensor type
     let markersList = await loadJsonData(CITY_DATA_ROOT + city_locode + "/" + sensor_type + ".json");
     for (let marker of markersList.markers) {
-      available_cities[city_locode].sensors[marker['name']] = {"info" : marker}
+      available_cities[city_locode].sensors[marker['name']] = {"info" : marker};
     }
   }
 }
@@ -2899,7 +3123,7 @@ async function handlePurpleAirTourData() {
       available_cities["US-SLC"].sensors[marker_info['name']].marker.getGoogleMapMarker().setVisible(true);
       doCreate = false;
     } else {
-      available_cities["US-SLC"].sensors[marker_info['name']] = {"info" : marker_info}
+      available_cities["US-SLC"].sensors[marker_info['name']] = {"info" : marker_info};
     }
   }
   if (doCreate) {
@@ -2977,7 +3201,7 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     } else {
       return null;
     }
-  }
+  };
 
   // TODO: Move to json file?
   var getMarkerIconSize = function(marker_type) {
@@ -2988,7 +3212,7 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     } else {
       return null;
     }
-  }
+  };
 
   return new CustomMapMarker({
     "type": getSensorType(info),
@@ -3004,6 +3228,9 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "complete": function (marker) {
       var sensorName = info['name'];
       available_cities[selectedCity].sensors[sensorName].marker = marker;
+      if (heatmapModeEnabled) {
+        marker.updateMarker("disable");
+      }
       showMarkers([marker], true);
       if (i == num_sensors - 1) {
         setSensorDataLoaded(info['marker_type']);
@@ -3277,6 +3504,7 @@ function updateInfoBar(marker) {
         infoStr = "Snapshot from model at " + tm;
         setInfobarSubheadings($infobarPlume,infoStr,"","","");
       }
+      //$infobarPlume.children(".infobar-unit").show();
     } else {
       var pollution_time = playbackTimeline.getPlaybackTimeInMs();
       if (selectedSensorMarker) {
@@ -3285,7 +3513,7 @@ function updateInfoBar(marker) {
       infoStr = "No pollution backtrace available at " + moment.tz(pollution_time, selected_city_tmz).format("h:mm A (zz)");
       setInfobarUnavailableSubheadings($infobarPlume,infoStr);
       $infobarPlume.children(".infobar-text").removeClass('display-unset');
-      $infobarPlume.children(".infobar-unit").hide();
+      //$infobarPlume.children(".infobar-unit").hide();
       $infobarPlume.children(".infobar-table").hide();
     }
   }
@@ -3310,16 +3538,16 @@ function createUncertaintyTable($element, data) {
   tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td id='kriged-wd'>"+data.kriged_wd+"</td></tr>";
   tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
   tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Model Confidence</td></tr>";
-  $element.children(".infobar-text")[0].innerHTML = tableString
-  $element.children(".infobar-text").children("table").addClass("infobar-table")
+  $element.children(".infobar-text")[0].innerHTML = tableString;
+  $element.children(".infobar-text").children("table").addClass("infobar-table");
 
   if (data.hrrr_u){
     $("#hrrr-wd").on("click", function() {
-      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null)
+      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null);
     });
 
     $("#kriged-wd").on("click", function() {
-      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "top"})
+      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "top"});
     });
   }
 }
@@ -3353,7 +3581,11 @@ async function handleSensorMarkerClicked(marker) {
 
   // TODO: Add message to say only PM25 sensors can be graphed?
   if (timeSeriesModeEnabled && marker.getData() && typeof(marker.getData().pm25_channel) == "string") {
-    addPlotToLegend(selectedSensorMarker.getData(), null, true)
+    addPlotToLegend(selectedSensorMarker.getData(), null, true);
+  }
+
+  if (heatmapModeEnabled && !timeSeriesModeEnabled) {
+    $(".chart-btn").trigger("click");
   }
 
 }
@@ -3384,7 +3616,11 @@ async function handleMapClicked(mapsMouseEvent) {
   selectedSensorMarker = null;
 
   await drawFootprint(mapsMouseEvent.latLng.lat(),mapsMouseEvent.latLng.lng(), fromClick, wasVirtualClick);
-  updateInfoBar(overlay)
+  updateInfoBar(overlay);
+
+  if (heatmapModeEnabled && timeSeriesModeEnabled) {
+    hideTimeSeriesUI();
+  }
 }
 
 
@@ -3392,7 +3628,7 @@ function getWindDirFromDeg(deg) {
   // NOTE:
   // Wind information is reported in the direction _from_ which the wind is coming.
   // We say _from_ in the info window but our wind icon is showing _to_
-  var val = Math.round((deg/22.5)+.5);
+  var val = Math.round((deg / 22.5) + 0.5);
   var arr = ["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   return arr[(val % 16)];
 }
@@ -3468,7 +3704,7 @@ function setupTimeline(startTime, initCallback) {
         initCallback();
       }
     }
-  }
+  };
   // global function in timeline.js
   initTimeline(options);
 }
@@ -3476,19 +3712,28 @@ function setupTimeline(startTime, initCallback) {
 
 function resetMapToCitiesOverview(city_locode) {
   resetAllTrax();
-  //resetAllHrrrWindErrorPoints();
   hideMarkersByCity(city_locode);
   available_cities[city_locode].marker.setVisible(true);
   available_cities[city_locode].footprint_region.setVisible(false);
   $citySelector.val("");
   handleControlsUI("disable");
   toggleOffAllNonForcedSensors();
-  if (selectedLocationPinVisible()) {
-    google.maps.event.trigger(selectedLocationPin, "click");
-  }
+  clearUserAddedMarkers();
   selectedCity = "";
   $legend.hide();
-  $("#back-arrow-container").trigger("click");
+  $("#infobar-back-arrow-container").trigger("click");
+}
+
+
+function clearUserAddedMarkers() {
+  for (var i = 0; i < userPlacemarkes.length; i++) {
+    userPlacemarkes[i].setMap(null);
+  }
+  userPlacemarkes = [];
+  // Remove footprint pin if visible
+  if (selectedLocationPinVisible()) {
+    google.maps.event.trigger(selectedLocationPin, "dblclick");
+  }
 }
 
 
@@ -3517,7 +3762,7 @@ function showHideMarkersByZoomLevel() {
 function updateSensorsByEpochTime(playbackTimeInMs, animating) {
   if (!selectedCity) return;
 
-  var activeSensorToggles = $("#legend-table input:checked").map(function() { return $(this).data("marker-type")}).toArray();
+  var activeSensorToggles = $("#legend-table input:checked").map(function() { return $(this).data("marker-type");}).toArray();
   activeSensorToggles.push("air_now");
 
   var markers_with_data_for_chosen_epochtime = {markers_to_show: [], marker_types_to_load: []};
@@ -3527,7 +3772,7 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
       var sensor_marker_type = sensor.info.marker_type;
       if (!activeSensorToggles.includes(sensor_marker_type)) continue;
       if (markers_with_data_for_chosen_epochtime.marker_types_to_load.indexOf(sensor_marker_type) == -1) {
-        markers_with_data_for_chosen_epochtime.marker_types_to_load.push(sensor_marker_type)
+        markers_with_data_for_chosen_epochtime.marker_types_to_load.push(sensor_marker_type);
       }
       continue;
     }
@@ -3536,11 +3781,15 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
 
     var sensorTimes = fullDataForDay.map(entry => entry.time * 1000);
     var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
+    var forceType = "";
+    if (heatmapModeEnabled) {
+      forceType = "disabled";
+    }
     if (indexOfAvailableTime >= 0 && sensor.marker) {
       sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], animating, sensor.info));
-      sensor.marker.updateMarker();
       markers_with_data_for_chosen_epochtime.markers_to_show.push(sensor.marker);
     }
+    sensor.marker.updateMarker(forceType);
   }
   return markers_with_data_for_chosen_epochtime;
 }
@@ -3568,7 +3817,7 @@ async function showSensorMarkersByTime(epochtime_milisec) {
   if (markers_with_data_at_or_near_chosen_epochtime.marker_types_to_load.length > 0) {
     var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];});
     markers = markers.filter(x => markers_with_data_at_or_near_chosen_epochtime.markers_to_show.indexOf(x) === -1);
-    hideMarkers(markers)
+    hideMarkers(markers);
 
     // The worker may already be processing so terminate it and create a new one.
     // There is overhead to this but significantly less than having it finish
@@ -3647,7 +3896,7 @@ function initFootprintDialog() {
 
   $(".ui-dialog-titlebar-close").on("click",function(){
     $footprint_dialog.hide();
-  })
+  });
 
   $("#footprint-first-click-dialog input[type='checkbox']").on("click", function(){
     if ($(this).prop("checked")){
@@ -3732,6 +3981,7 @@ function convertFrom12To24Format(time12) {
   return sHours + ":" + sMinutes;
 }
 
+
 const setAsyncTimeout = (cb, ms = 0) => new Promise(resolve => {
   setTimeout(() => {
       cb();
@@ -3755,7 +4005,7 @@ function Deferred() {
   this.promise = new Promise(function(resolve, reject) {
     self.reject = reject;
     self.resolve = resolve;
-  })
+  });
 }
 
 
@@ -3769,14 +4019,14 @@ async function handleFootprintUncertainty(lookupStr) {
   var label;
   if (data.wind_direction_err < 30) {
     if (data.wind_speed_err < 1) {
-      label = "High"
+      label = "High";
     } else {
-      label = "Medium"
+      label = "Medium";
     }
   } else if (data.wind_speed_err < 1) {
-    label = "Medium"
+    label = "Medium";
   } else {
-    label = "Low"
+    label = "Low";
   }
   data.label = label;
   return data;
@@ -3785,12 +4035,12 @@ async function handleFootprintUncertainty(lookupStr) {
 
 async function loadImage(src) {
   return await new Promise((resolve, reject) => {
-    let img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
+    let img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
     img.crossOrigin = "Anonymous";
     img.src = src;
-  })
+  });
 }
 
 
@@ -3895,7 +4145,7 @@ function MaskClass(map) {
   this.setAllVisible = function(visibility) {
     this.setMaskCutVisible(visibility);
     this.setMaskFullVisible(visibility);
-  }
+  };
 
   // Show/hide the cut mask
   this.setMaskCutVisible = function(visibility) {
@@ -3903,7 +4153,7 @@ function MaskClass(map) {
     this.rectangle2.setVisible(visibility);
     this.rectangle3.setVisible(visibility);
     this.rectangle4.setVisible(visibility);
-  }
+  };
 
   // Show/hide the full mask
   this.setMaskFullVisible = function(visibility) {
@@ -3927,7 +4177,7 @@ async function handleSmellReports(epochtime_milisec) {
     await loadAndCreateSmellMarkers(epochtime_milisec, epochtime_sec);
   } else {
     var smell_report_markers_to_hide = [];
-    var smell_report_markers_to_show = []
+    var smell_report_markers_to_show = [];
     smell_report_markers.forEach((s) => (s.getData().observed_at <= epochtime_sec ? smell_report_markers_to_show : smell_report_markers_to_hide).push(s));
     hideMarkers(smell_report_markers_to_hide);
     showMarkers(smell_report_markers_to_show);
@@ -3987,14 +4237,14 @@ async function handleSmellMarkerClicked(marker) {
 
   var smellReportTimeInMs = marker.getData().observed_at * 1000;
   var m = moment.tz(smellReportTimeInMs, selected_city_tmz);
-  var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "ceil")
+  var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "ceil");
   var startOfDayForNewSelectedTime = m.clone().startOf("day");
   var timeLapsedInMin = closestM.diff(startOfDayForNewSelectedTime, 'minutes');
   var frame = $(".materialTimelineTick[data-minutes-lapsed='" + timeLapsedInMin + "']").data("frame");
   playbackTimeline.seekTo(frame);
 
   // Remove highlight of popup close button
-  // Apparently need a slight delay to allow for the button to initially be focused
+  // Apparently we need a slight delay to allow for the button to initially be focused
   setTimeout(function() {
     document.activeElement.blur();
   }, 50);
