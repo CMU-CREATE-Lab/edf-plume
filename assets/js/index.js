@@ -2369,7 +2369,7 @@ function handleControlsUI(state, doIgnore) {
 
   if (state == "enable") {
     $controls.show();
-    //$("#add-placemarker, #remove-placemarkers").removeClass("disabled");
+    $("#add-placemarker, #remove-placemarkers").removeClass("disabled");
     if ($map.hasClass("no-controls")) {
       $("#map, #infobar, #legend").removeClass("no-controls");
       if (timeline) {
@@ -2378,7 +2378,6 @@ function handleControlsUI(state, doIgnore) {
     }
   } else if (state == "disable") {
     $controls.hide();
-    //$("#add-placemarker, #remove-placemarkers").addClass("disabled");
     $("#map, #infobar").addClass("no-controls");
   }
   map.setCenter(currentCenter);
@@ -3725,6 +3724,7 @@ function resetMapToCitiesOverview(city_locode) {
   selectedCity = "";
   $legend.hide();
   $("#infobar-back-arrow-container").trigger("click");
+  $("#add-placemarker, #remove-placemarkers").addClass("disabled");
 }
 
 
