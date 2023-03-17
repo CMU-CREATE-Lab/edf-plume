@@ -984,8 +984,9 @@ async function initMap() {
     } else {
       $("#infobar-tools, #timeseries").show();
     }
-
     handleTimeSeries();
+    // TODO: Reposition map to ensure side panel isn't covering the location pin?
+    map.panTo({lat: selectedLocationPin.getPosition().lat(), lng: selectedLocationPin.getPosition().lng()});
   });
 
   $("#heatmap-btn").on("click", function() {
@@ -995,6 +996,8 @@ async function initMap() {
     $("#infobar").addClass("altmode");
     $("#infobar-tools, #heatmap").show();
     handleHeatmapMode();
+    // TODO: Reposition map to ensure side panel isn't covering the location pin?
+    map.panTo({lat: selectedLocationPin.getPosition().lat(), lng: selectedLocationPin.getPosition().lng()});
   });
 
   $(".close-modal").on("click", function() {
