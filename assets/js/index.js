@@ -2597,7 +2597,7 @@ function initDomElms() {
         animation: google.maps.Animation.DROP,
         position: map.getCenter(),
         icon: {
-          url: "assets/img/pointer.png",
+          url: ASSETS_ROOT + "img/pointer.png",
           scaledSize: new google.maps.Size(16,35),
           size: new google.maps.Size(16,35),
           origin: new google.maps.Point(0, 0)
