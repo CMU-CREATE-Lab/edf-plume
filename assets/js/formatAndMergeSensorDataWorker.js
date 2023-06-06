@@ -154,8 +154,8 @@ function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerC
 function aggregateSensorData(data, info) {
   var sensor_type = getSensorType(info);
 
-  // TODO
-  if ((info['marker_type'] != "purple_air" && info['marker_type'] != "clarity") && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
+  // Note: Only aggregate data that is sub time intervals of the threshold set below. Otherwise, the times associated with data will be mismatched after aggregation.
+  if (info['marker_type'] != "purple_air" && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
     return data;
   }
   if (data.length <= 1) {
@@ -167,7 +167,6 @@ function aggregateSensorData(data, info) {
   }
 
   var new_data = [];
-  //var threshold = 1800; // average previous 30 minutes of data
   var threshold = 900; // average previous 15 minutes of data
   var current_time = round(moment(data[0][0] * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
   var current_sum = 0;
