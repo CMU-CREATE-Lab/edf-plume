@@ -273,7 +273,13 @@ function loadTimelineData(start_time, end_time, callback) {
   $.ajax({
     "url": generateURLForAQI(),
     "success": function (data) {
-      loadTimelineDataToday(data, callback);
+      // If the city is marked as active, also pull in data from today, otherwise
+      // only show data that was last cached in the city's corresponding aqi_dict.json.
+      if (available_cities[selectedCity].is_active) {
+        loadTimelineDataToday(data, callback);
+      } else {
+        callback(data);
+      }
     },
     "error": function (response) {
       console.log("server error:", response);

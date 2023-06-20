@@ -3346,6 +3346,7 @@ async function loadAvailableCities() {
         let city_title = city['name'] + ", " + city['state_code'];
         let city_data = city;
         city_data['city_locode'] = city_locode;
+        let city_icon_path = city['is_active'] ? 'img/city_icon.png' : 'img/city_icon_inactive.png';
         let city_marker = new MarkerWithLabel({
           position: new google.maps.LatLng(city['lat'], city['lon']),
           draggable: false,
@@ -3356,7 +3357,7 @@ async function loadAvailableCities() {
           labelAnchor: new google.maps.Point(0,-8),
           labelClass: "cityMapMarker",
           data: city_data,
-          icon: ASSETS_ROOT + 'img/city_icon.png#' + city_locode,
+          icon: ASSETS_ROOT + city_icon_path + '#' + city_locode,
         });
         google.maps.event.addListener(city_marker, "click", function (e) {
           map.setCenter({lat: this.data['lat'], lng: this.data['lon']});
