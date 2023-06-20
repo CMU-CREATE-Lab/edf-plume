@@ -1,5 +1,5 @@
 
-var AVAILABLE_COLORS = "#000000,#911eb4,#4363d8,#952800,#607D8B";
+var AVAILABLE_COLORS = "#000000,#952800,#911eb4,#00ced9,#607D8B";
 var markerTimeSeriesPlots = {};
 var ESDR_API_ROOT_URL = 'https://esdr.cmucreatelab.org/api/v1';
 var timeSeriesModeEnabled = false;
@@ -77,7 +77,7 @@ function addPlot(markerData) {
         }
         $("#heatmap-dates").val(heatmapVals);
       } else {
-        var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "floor");
+        var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "ceil");
         var closestTimeInMs = closestM.valueOf();
         var startOfDayForNewSelectedTime = m.clone().startOf("day");
         if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
@@ -132,6 +132,7 @@ function addPlotToLegend(markerData, forceOn, fromMapSensorClick) {
     $("#graph_legend_content").append('<tr data-plot-id=' + "plot_" + markerData.feed_id + ' data-channel=' + markerData.pm25_channel + '><td style="color:' + color + '">' + markerData.name + '</td><td><label class="switch2" title="Toggle plot"><input type="checkbox"' + (forceOn ? ' checked ' : '') + 'data-action-type="toggle-plot"><span class="slider round"><span class="input-state-text"></span></span></label></td><td><span class="remove_graph_plot" title="Remove plot from chart" data-action-type="remove-plot"></span></td></tr>');
     markerTimeSeriesPlots['plot_' + markerData.feed_id] = {name : markerData.name, color: color};
   }
+  setChartBackgroundColors();
 }
 
 
@@ -182,7 +183,7 @@ function handleTimeSeries() {
   });
 
   //plotManager.getDateAxis().setCursorEnabled(false);
-  //plotManager.getDateAxis().setCursorColor("#000000");
+  plotManager.setCursorColor("#2979FF");
   plotManager.setCursorDraggable(false);
 
   var positionLabels = function() {
@@ -358,4 +359,27 @@ function zoomGrapher(scale) {
   var mean_time = (max_time + min_time) / 2;
   var range_half_scaled = scale * (max_time - min_time) / 2;
   dateAxis.setRange(mean_time-range_half_scaled,mean_time+range_half_scaled);
+}
+
+
+function translateGrapher(newTime) {
+  var dateAxis = plotManager.getDateAxis();
+  var range = dateAxis.getRange();
+  var wrappedAxis = dateAxis.getWrappedAxis();
+  var new_min = range.min;
+  var new_max = range.max;
+  var range_diff = range.max - range.min;
+  // 50 pixels is defined as the timeMajorPixels size in the grapher codebase.
+  // This will give us the padding to the previous/next major time tick.
+  var padding_in_secs = wrappedAxis.computeTimeTickSize(50);
+  if (newTime <= range.min) {
+    var diff = Math.min((range.min - newTime) + padding_in_secs, range_diff);
+    new_min = newTime - padding_in_secs;
+    new_max = range.max - diff;
+  } else if (newTime >= range.max) {
+    var diff = Math.min((newTime - range.max) + padding_in_secs, range_diff);
+    new_min = range.min + diff;
+    new_max = newTime + padding_in_secs;
+  }
+  dateAxis.setRange(new_min, new_max);
 }

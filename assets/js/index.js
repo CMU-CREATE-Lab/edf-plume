@@ -916,6 +916,8 @@ async function initMap() {
     modal: true,
     width: "350px",
     open: function() {
+      // Ensure toggle matches internal state
+      $("#toggle-backtrace-likelihood").prop("checked", backtraceMode == "1");
       if (isMobileView()) {
         $(".backtraceSettingsModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
         $('.ui-widget-overlay').css({ opacity: '1', background: "#878787" });

@@ -243,14 +243,19 @@ var create = {};
     function updateTimelineSlider(frameNum, timeTick, fromSync, fromRefocus, fromTickOnClickEvent, skipDraw) {
       var numMins = $(timeTick).data("frame") * parseInt($(timeTick).data("increment"));
       var newPlaybackTimeInMs = moment.tz(timeline.selectedDayInMs, selected_city_tmz).add(numMins, 'minutes').valueOf();
+      var newPlaybackTimeInSec = newPlaybackTimeInMs / 1000;
       if (newPlaybackTimeInMs == playbackTimeInMs && fromTickOnClickEvent) {
+        plotManager.getDateAxis().setCursorPosition(newPlaybackTimeInSec);
         return;
       }
 
       if (!fromRefocus) {
         currentFrameNumber = parseInt($(timeTick).data("frame"));
         setPlaybackTimeInMs(newPlaybackTimeInMs);
-        plotManager.getDateAxis().setCursorPosition(newPlaybackTimeInMs / 1000);
+        plotManager.getDateAxis().setCursorPosition(newPlaybackTimeInSec);
+        // Keep the cursor in view.
+        // TODO: Move this to the grapher codebase?
+        translateGrapher(newPlaybackTimeInSec);
 
         if (!skipDraw) {
           handleDraw(playbackTimeInMs);
