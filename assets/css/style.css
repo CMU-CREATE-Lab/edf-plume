@@ -1548,6 +1548,10 @@ div.pac-container {
   transform: translateX(-50%);
 }
 
+.cityMapMarker-inactive {
+  color: #898989;
+}
+
 .facilityMarker {
   color: #515151;
   font-family: 'Open Sans', Helvetica, Arial, sans-serif;

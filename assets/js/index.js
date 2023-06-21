@@ -3347,6 +3347,7 @@ async function loadAvailableCities() {
         let city_data = city;
         city_data['city_locode'] = city_locode;
         let city_icon_path = city['is_active'] ? 'img/city_icon.png' : 'img/city_icon_inactive.png';
+        let label_class = city['is_active'] ? 'cityMapMarker' : 'cityMapMarker cityMapMarker-inactive';
         let city_marker = new MarkerWithLabel({
           position: new google.maps.LatLng(city['lat'], city['lon']),
           draggable: false,
@@ -3355,7 +3356,7 @@ async function loadAvailableCities() {
           title: city_title,
           labelContent: city_title,
           labelAnchor: new google.maps.Point(0,-8),
-          labelClass: "cityMapMarker",
+          labelClass: label_class,
           data: city_data,
           icon: ASSETS_ROOT + city_icon_path + '#' + city_locode,
         });
