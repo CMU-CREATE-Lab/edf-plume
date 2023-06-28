@@ -16,6 +16,12 @@
     <link rel="stylesheet" type="text/css" href="./assets/css/introjs.min.css" />
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
 
+    <script>
+      var IS_LOCAL = ["localhost", "file:", "192.168"].some(str => window.location.href.includes(str));
+      <!-- NOTE: Edit this to define location of /assets/  Ensure trailing slash. -->
+      var ASSETS_ROOT = IS_LOCAL ? "./assets/" : "https://airtracker.createlab.org/assets/";
+    </script>
+
     <script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly" defer></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
