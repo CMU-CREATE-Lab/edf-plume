@@ -203,10 +203,11 @@
           data_str += "data-" + column_names[j] + "='" + pt[j] + "' ";
         }
         // Create block
+        var hover_text = pt[0] + ", " + pt[column_names.length - 1];
         var style_str = "style='" + color_str + height_str + "' ";
         var $block = $("<div class='block' " + style_str + "></div>");
         var $block_click_region = $("<div class='block-click-region' " + data_str + "></div>");
-        var $block_container = $("<td></td>");
+        var $block_container = $("<td title='" + hover_text + "'></td>");
         $block_container.append($block);
         $block_container.append($block_click_region);
         if (no_event_when_color_value_zero && color_val == 0) {

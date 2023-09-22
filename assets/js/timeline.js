@@ -90,7 +90,7 @@ function createTimeline(data, options) {
     colorBin: [50, 101, 151, 201, 301],
     //colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
     //colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
-    columnNames: ["label", "value", "epochtime_milisec"],
+    columnNames: ["label", "value", "epochtime_milisec", "year"],
     dataIndexForLabels: 0,
     dataIndexForValues: 1,
   };
@@ -396,7 +396,8 @@ function formatDataForTimeline(data, pad_to_date_obj) {
     var m = moment.tz(day_obj, selected_city_tmz);
     var label = m.format("MMM DD");
     var day_obj_time = m.valueOf();
-    batch_2d.push([label, count, day_obj_time]);
+    var year = m.year();
+    batch_2d.push([label, count, day_obj_time, year]);
     // Check if we need to pad missing days of the future
     var next_day_obj;
     if (i < sorted_day_strs.length - 1) {
