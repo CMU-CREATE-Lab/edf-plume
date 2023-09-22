@@ -3575,7 +3575,7 @@ function setInfobarSubheadings($element, text, data, unit, time) {
 
 
 function setInfobarUnavailableSubheadings($element, text) {
-  setInfobarSubheadings($element,text,"-","No Data","—");
+  setInfobarSubheadings($element,text,"-","No Data","-");
   $element.children(".infobar-data").hide();
   $element.children(".infobar-data-intro").hide();
   $element.children(".infobar-unit").addClass('mobile-only-error');
