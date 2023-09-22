@@ -1047,10 +1047,11 @@ async function initMap() {
     var payload = {};
 
     if ($("input[name='date-picker-selector']:checked").prop("id") == "manual-collection-radio") {
-      //var dates = $("#heatmap-dates").val().replace(/\s+/g, '');
       var dates = $("#heatmap-dates").val().replace(/\n/g, '').replace(/(?!\b\s\b)\s+/g,'');
-      //if (!/^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2},*)+$/.test(dates)) {
-      if (!/^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2},*)+$/.test(dates)) {
+      var regexDatePattern = "\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}";
+      var re = new RegExp(`^(${regexDatePattern})(,${regexDatePattern})+,?$`);
+
+      if (!re.test(dates)) {
         alert("Invalid formatted date list.");
         return;
       }
@@ -1083,10 +1084,14 @@ async function initMap() {
       //download(data, "heatmap", "image/png");
       await drawFootprint(selectedLocationPin.getPosition().lat(), selectedLocationPin.getPosition().lng(), true, false, data);
     }).fail(function(e) {
-      if (e && e.responseJSON && e.responseJSON.error) {
+      if (e && e.status == 414) {
+        alert("Too many DateTimes to process. Please try again with a shorter list.");
+      } else if (e && e.status == 503) {
+        alert("Heatmap service is temporarily unavailable. Please try again later.")
+      } else if (e && e.responseJSON && e.responseJSON.error) {
         alert(e.responseJSON.error);
       } else {
-        alert("None of the provided times matched available data. Please try again with a different list of times.");
+        alert("An error occurred processing your request. Please check your input data.");
       }
     }).always(function() {
       //$that.removeClass("button-loading");
@@ -2817,12 +2822,10 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
     return;
   }
 
-  //var backtraceMode = Util.parseVars(window.location.href).backtraceMode;
-
   var fromTour = isInTour();
   if (!fromTour && !wasVirtualClick && typeof(drawFootprint.firstTime) == 'undefined' && localStorage.dontShowFootprintPopup != "true") {
     $footprint_dialog.dialog("open");
-    drawFootprint.firstTime = false; //do the initialisation
+    drawFootprint.firstTime = false; //do the initialization
   }
 
   var previousFootprintData = overlay.getData();
@@ -2888,9 +2891,10 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
   } else if (plume_backtraces[loc] && plume_backtraces[loc][closestDateEpoch]) {
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
+    var lookup = STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png";
     try {
       var result = await $.ajax({
-        url: STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png",
+        url: lookup,
         dataType : 'json',
       });
       data = {
@@ -2916,12 +2920,14 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
     overlayData['hasData'] = true;
     iconPath = ASSETS_ROOT + 'img/black-pin.png';
 
-    ////plume_backtraces[loc][closestDateEpoch] = data;
+    // Cache footprint data for current session
+    if (!heatmapModeEnabled) {
+      plume_backtraces[loc][closestDateEpoch] = data;
+    }
 
     var url = data.image;
 
     if (!heatmapModeEnabled && backtraceMode == "0") {
-      url = CLOUD_STORAGE_PARENT_URL + "/" + parsedIsoString + "/" + lngTrunc + "/" + latTrunc + "/" + "1" + "/" + "footprint.png";
       url = await alterOverlayImage(url);
     }
 
@@ -3590,7 +3596,6 @@ async function handleSensorMarkerClicked(marker) {
   if (heatmapModeEnabled && !timeSeriesModeEnabled) {
     $(".chart-btn").trigger("click");
   }
-
 }
 
 
