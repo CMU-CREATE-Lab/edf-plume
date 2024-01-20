@@ -112,7 +112,6 @@ var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
 var $purpleAirToggle;
-var $clarityToggle;
 var $traxToggle;
 var $citySelector;
 var $cityName;
@@ -129,7 +128,9 @@ var $tooltipContent;
 
 var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
 var startingView = Object.assign({}, defaultHomeView);
-
+// If true, do not pull footprints from GCS, but compute them in realtime
+var runRealTime = false;
+var runRealTimeOverride = false;
 
 function isMobileView() {
   return $(window).width() <= 450;
@@ -286,6 +287,9 @@ async function initMap() {
   var urlVars = Util.parseVars(window.location.href);
 
   var shareView = urlVars.v;
+
+  runRealTimeOverride = urlVars.runRealTime == 'true';
+  backtraceMode = typeof(urlVars.backtraceMode) != "undefined" ? urlVars.backtraceMode : backtraceMode;
 
   if (shareView) {
     var tmp = shareView.split(",");
@@ -557,13 +561,14 @@ async function initMap() {
 
   $(".more-info").on("click", function() {
     var text = {
-      "side-panel-data" : {text: "Data displayed is from the closest available capture time, in relation to the selected playback time.", pos: {at: "top", my: 'left bottom-10'}},
+      "side-panel-data" : {text: "Data comes in at different rates depending upon the type of monitor. If the data rate is sub " + playbackTimeline.getIncrementAmt() + " minute intervals, the value displayed below is the average of all points collected between the selected playback time and prior " + playbackTimeline.getIncrementAmt() + " minute window.", pos: {at: "top", my: 'left bottom-10'}},
       "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
       "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-airnow" : {text: "AirNow monitors provide hourly PM<sub>2.5</sub> readings. These government sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored diamonds to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-quant-aq" : {text: "QuantAQ low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
       "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last location you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
@@ -2161,12 +2166,13 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
       sensorLoadingDeferrers[marker_type].isProcessing = true;
       sensorLoadingDeferrers[marker_type].isQueued = false;
 
-      dataFormatWorker.postMessage(
-      { epochtime_milisec: timeline.selectedDayInMs,
+      dataFormatWorker.postMessage({
+        epochtime_milisec: timeline.selectedDayInMs,
         sensors_list: marker_info_list,
         marker_type: marker_type,
-        is_current_day : is_current_day}
-      );
+        is_current_day : is_current_day,
+        playback_timeline_increment_amt : playbackTimeline.getIncrementAmt()
+      });
       break;
     }
   }
@@ -2330,6 +2336,11 @@ async function getCityInBounds(mapFirstLoad) {
     }
   }
   zoomChangedSinceLastIdle = false;
+  if (runRealTimeOverride) {
+    runRealTime = true;
+  } else {
+    runRealTime = !!(selectedCity && available_cities[selectedCity].real_time_footprints);
+  }
 }
 
 
@@ -2664,7 +2675,6 @@ function initDomElms() {
   $infobarComponentContainer = $("#infobar-component-container");
   $infobarInitial = $("#infobar-initial");
   $purpleAirToggle = $("#toggle-purple-air");
-  $clarityToggle = $("#toggle-clarity");
   $traxToggle = $("#toggle-trax");
   $citySelector = $("#city-selector");
   $cityName = $("#city_name");
@@ -2892,17 +2902,33 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
     data = plume_backtraces[loc][closestDateEpoch];
   } else {
     var lookup = STILT_GCLOUD_BUCKET + "%2F" + parsedIsoString + "%2F" + lngTrunc + "%2F" + latTrunc + "%2F" + "1" + "%2F" + "footprint.png";
+    if (runRealTime) {
+      var time = parsedIsoString.replace(/-|T/g,"").substring(0,10);
+      var region = available_cities[selectedCity].name.toLowerCase().replaceAll(" ","_");
+      lookup = "https://api2.airtracker.createlab.org/get_footprint?" + "lat=" + latTrunc + "&" + "lon=" + lngTrunc + "&" + "time=" + time + "&" +  "region=" + region
+      $("#heatmap-loading-mask").addClass("visible");
+    }
+
     try {
       var result = await $.ajax({
         url: lookup,
         dataType : 'json',
       });
+      if (runRealTime) {
+        $("#heatmap-loading-mask").removeClass("visible");
+        result = result.data;
+      }
+
       data = {
         image: result.mediaLink,
         metadata: result.metadata
       };
     } catch(e) {
       // Either there is a permission error (not public) or the file does not exist
+
+      if (runRealTime) {
+        $("#heatmap-loading-mask").removeClass("visible");
+      }
     }
 
     if (!plume_backtraces[loc]) {
@@ -2950,6 +2976,9 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
     var imagePath = 'img/white-pin2.png';
     if (heatmapModeEnabled) {
       imagePath = 'img/black-pin.png';
+    }
+    if (runRealTime) {
+      $("#heatmap-loading-mask").removeClass("visible");
     }
     iconPath = ASSETS_ROOT + imagePath;
     if (heatmapModeEnabled) {
@@ -3201,21 +3230,15 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
   var getMarkerIcon = function(marker_type) {
     if (marker_type == "air_now") {
       return "circle";
-    } else if (marker_type == "purple_air") {
-      return "square";
-    } else if (marker_type == "clarity") {
-      return "diamond";
     } else {
-      return null;
+      return "square";
     }
   };
 
   // TODO: Move to json file?
   var getMarkerIconSize = function(marker_type) {
-    if (marker_type == "purple_air") {
+    if (marker_type != "air_now") {
       return 12;
-    } else if (marker_type == "clarity") {
-      return 20;
     } else {
       return null;
     }
@@ -3853,13 +3876,13 @@ async function showSensorMarkersByTime(epochtime_milisec) {
       }
       previous_marker_type = marker_type;
 
-      dataFormatWorker.postMessage(
-      { epochtime_milisec: timeline.selectedDayInMs,
-        sensors_list: marker_info_list,
-        marker_type: marker_type,
-        is_current_day : is_current_day }
-      );
-
+      dataFormatWorker.postMessage({
+          epochtime_milisec: timeline.selectedDayInMs,
+          sensors_list: marker_info_list,
+          marker_type: marker_type,
+          is_current_day : is_current_day,
+          playback_timeline_increment_amt : playbackTimeline.getIncrementAmt()
+      });
     }
   }
 }

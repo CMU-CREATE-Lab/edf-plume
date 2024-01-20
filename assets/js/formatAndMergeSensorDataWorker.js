@@ -1,5 +1,5 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data-10-year-range.min.js');
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js');
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.44/moment-timezone-with-data-10-year-range.min.js');
 
 var esdr_sensors = {};
 var numSensorsPerChunk = 50;
@@ -11,17 +11,18 @@ onmessage = async function(event) {
   var info = event.data.sensors_list;
   var is_current_day = event.data.is_current_day;
   var marker_type = event.data.marker_type;
+  var playback_timeline_increment_amt_sec = event.data.playback_timeline_increment_amt * 60;
 
   esdr_sensors = {};
 
-  var result = await loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day);
+  var result = await loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, playback_timeline_increment_amt_sec);
   // Send back the results.
   postMessage({epochtime_milisec: epochtime_milisec, info: info, is_current_day: is_current_day, result: result, marker_type: marker_type});
 };
 
 
-async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day) {
-  var [multiUrls, resultsMappings] = generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk);
+async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, playback_timeline_increment_amt_sec) {
+  var [multiUrls, resultsMappings] = generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk, playback_timeline_increment_amt_sec);
   var data = await loadMultiSensorDataAsChunks(multiUrls);
   var sensorCount = 0;
   for (var a = 0; a < data.length; a++) {
@@ -42,7 +43,7 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
       }
       lastIdx = resultsMappings[a][i];
 
-      dataSegment['data'] = aggregateSensorData(d, info[sensorCount]);
+      dataSegment['data'] = aggregateSensorData(d, info[sensorCount], playback_timeline_increment_amt_sec);
       var tmp = formatAndMergeSensorData(dataSegment, info[sensorCount]);
       // Roll the sensor data to fill in some missing values
       tmp = rollSensorData(tmp, info[i]);
@@ -67,17 +68,10 @@ async function loadMultiSensorDataAsChunks(urls) {
 }
 
 
-/*async function loadMultiSensorData(url) {
-  const response = await fetch(url);
-  const data = await response.json();
-  return data;
-}*/
-
-
-function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk) {
+function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk, playback_timeline_increment_amt_sec) {
   var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
   var epochtime = parseInt(epochtime_milisec / 1000);
-  var time_range_url_part = "?format=json&from=" + epochtime + "&to=" + (epochtime + 86399);
+  var time_range_url_part = "?format=json&from=" + (epochtime - playback_timeline_increment_amt_sec) + "&to=" + (epochtime + 86399);
 
   var urls = [];
   var mappings = [];
@@ -117,47 +111,8 @@ function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerC
 }
 
 
-/*function generateSensorDataMultiFeedUrl(epochtime_milisec, info) {
-  var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
-  var epochtime = parseInt(epochtime_milisec / 1000);
-  var time_range_url_part = "?format=json&from=" + epochtime + "&to=" + (epochtime + 86399);
-
-  // Parse sensor info into several urls (data may come from different feeds and channels)
-  var feeds_to_channels = [];
-  var sensors_to_feeds_end_index = [];
-  var count = 0;
-  for (var sensorIdx = 0; sensorIdx < info.length; sensorIdx++) {
-    var sensors = info[sensorIdx]["sensors"];
-    var sensorNames = Object.keys(sensors);
-    for (var k = 0; k < sensorNames.length; k++) {
-      var sensor = sensorNames[k];
-      var sources = safeGet(sensors[sensor]["sources"], []);
-      for (var i = 0; i < sources.length; i++) {
-        var s = sources[i];
-        var feed = s["feed"];
-        var channel = s["channel"];
-        feeds_to_channels.push(feed + "." + channel);
-        count++;
-      }
-    }
-    sensors_to_feeds_end_index.push(count);
-  }
-
-  // Remove any duplicates
-  //feeds_to_channels = feeds_to_channels.filter(function(item, index, inputArray) {
-  //  return inputArray.indexOf(item) == index;
-  //});
-  return [esdr_root_url + "feeds/export/" + feeds_to_channels.toString() + time_range_url_part, sensors_to_feeds_end_index];
-}*/
-
-
-function aggregateSensorData(data, info) {
-  var sensor_type = getSensorType(info);
-
-  // Note: Only aggregate data that is sub time intervals of the threshold set below. Otherwise, the times associated with data will be mismatched after aggregation.
-  if (info['marker_type'] != "purple_air" && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
-    return data;
-  }
+function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
+  // If there is 1 or less data points, no need to aggregate.
   if (data.length <= 1) {
     return data;
   }
@@ -167,19 +122,39 @@ function aggregateSensorData(data, info) {
   }
 
   var new_data = [];
-  var threshold = 900; // average previous 15 minutes of data
-  var current_time = round(moment(data[0][0] * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
+  var threshold = playback_timeline_increment_amt_sec;
+
+  // Note: Only aggregate data that is sub time intervals of the threshold set above. Otherwise, the times associated with data will be mismatched after aggregation.
+  var last_tmp_time;
+  var average_time_interval = 0;
+  var num_rows_to_check = Math.min(data.length, 10);
+  for (var row = 0; row < num_rows_to_check; row++) {
+    if (last_tmp_time) {
+      average_time_interval += (data[row][0] - last_tmp_time);
+    }
+    last_tmp_time = data[row][0];
+  }
+  average_time_interval = Math.floor(average_time_interval / (num_rows_to_check - 1));
+
+  if (average_time_interval >= threshold) {
+    return data;
+  }
+
+  var current_time = round(moment((data[0][0] + threshold) * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
   var current_sum = 0;
   var count = 0;
+  var addedData = false;
   for (var col = 1; col < data[0].length; col++) {
     for (var row = 0; row < data.length; row++) {
       var time = data[row][0];
+      addedData = false;
       if (data[row][col] == null)
         continue;
-      if (time - current_time <= threshold) {
+      if (time <= current_time) {
         current_sum +=  data[row][col];
         count++;
       } else {
+        addedData = true;
         new_data.push([current_time, current_sum / Math.max(1, count)]);
         current_sum = data[row][col];
         count = 1;
@@ -187,6 +162,11 @@ function aggregateSensorData(data, info) {
       }
     }
   }
+
+  if (!addedData && count > 0) {
+    new_data.push([current_time, current_sum / Math.max(1, count)]);
+  }
+
   return new_data;
 }
 

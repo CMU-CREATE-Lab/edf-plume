@@ -24,9 +24,9 @@
 
     <script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly" defer></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.43/moment-timezone-with-data-10-year-range.min.js"></script>
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.44/moment-timezone-with-data-10-year-range.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -414,11 +414,11 @@
             <td colspan="2">
               <table>
                 <tr>
-                  <td class="smell-color-td PM25-color-1c"></td>
-                  <td class="smell-color-td PM25-color-2c"></td>
-                  <td class="smell-color-td PM25-color-3c"></td>
-                  <td class="smell-color-td PM25-color-4c"></td>
-                  <td class="smell-color-td PM25-color-5c"></td>
+                  <td class="smell-color-td PM25-color-1b"></td>
+                  <td class="smell-color-td PM25-color-2b"></td>
+                  <td class="smell-color-td PM25-color-3b"></td>
+                  <td class="smell-color-td PM25-color-4b"></td>
+                  <td class="smell-color-td PM25-color-5b"></td>
                 </tr>
                 <tr>
                   <td class="legend-label">0+</td>
@@ -432,6 +432,38 @@
             <td>
               <label class="switch" title="Toggle Clarity sensors">
                 <input type="checkbox" id="toggle-clarity" data-marker-type="clarity">
+                <span class="slider round">
+                  <span class="input-state-text"></span>
+                </span>
+              </label>
+            </td>
+          </tr>
+          <tr id="quant-aq-legend-row" class="legend-row">
+            <td class="entry-title two-rows">
+              QuantAQ PM<sub>2.5</sub>:
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-quant-aq"></span>
+            </td>
+            <td colspan="2">
+              <table>
+                <tr>
+                  <td class="smell-color-td PM25-color-1b"></td>
+                  <td class="smell-color-td PM25-color-2b"></td>
+                  <td class="smell-color-td PM25-color-3b"></td>
+                  <td class="smell-color-td PM25-color-4b"></td>
+                  <td class="smell-color-td PM25-color-5b"></td>
+                </tr>
+                <tr>
+                  <td class="legend-label">0+</td>
+                  <td class="legend-label">12+</td>
+                  <td class="legend-label">35+</td>
+                  <td class="legend-label">55+</td>
+                  <td class="legend-label">150+</td>
+                </tr>
+              </table>
+            </td>
+            <td>
+              <label class="switch" title="Toggle QuantAQ sensors">
+                <input type="checkbox" id="toggle-quant-aq" data-marker-type="quant_aq">
                 <span class="slider round">
                   <span class="input-state-text"></span>
                 </span>
