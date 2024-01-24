@@ -15,6 +15,7 @@ var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
 // Increase/decrease for more or less TRAX data to look back at
 var traxDataIntervalInMin = 60;
 var traxDataIntervalInMs = traxDataIntervalInMin * 60000; // 60000 ms = 1 minute
+var monitorGapThresholdInMs = 3600000; // 1 hour; show no available data after a time gap longer than this.
 
 var pm25ColorLookup = function(pm25) {
   var color;
@@ -3189,6 +3190,9 @@ async function receivedWorkerMessage(event) {
     var sensorTimes = result[sensor_names[i]].data[epochtime_milisec].data.map(entry => entry.time * 1000);
     var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
     var newData = result[sensor_names[i]].data[epochtime_milisec].data[indexOfAvailableTime];
+    if (newData && (playbackTimeInMs < sensorTimes[indexOfAvailableTime]) || (Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs)) {
+      newData = {};
+    }
 
     if (sensor && sensor.data) {
       // UPDATE DATA FOR MARKER
@@ -3818,7 +3822,11 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
       forceType = "disabled";
     }
     if (indexOfAvailableTime >= 0 && sensor.marker) {
-      sensor.marker.setData(parseSensorMarkerDataForPlayback(fullDataForDay[indexOfAvailableTime], animating, sensor.info));
+      var dataToShow = fullDataForDay[indexOfAvailableTime];
+      if (dataToShow && (playbackTimeInMs < sensorTimes[indexOfAvailableTime]) || (Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs)) {
+        dataToShow = {};
+      }
+      sensor.marker.setData(parseSensorMarkerDataForPlayback(dataToShow, animating, sensor.info));
       markers_with_data_for_chosen_epochtime.markers_to_show.push(sensor.marker);
     }
     sensor.marker.updateMarker(forceType);

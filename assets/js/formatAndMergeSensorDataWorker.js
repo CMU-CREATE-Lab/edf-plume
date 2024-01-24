@@ -22,7 +22,7 @@ onmessage = async function(event) {
 
 
 async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_day, playback_timeline_increment_amt_sec) {
-  var [multiUrls, resultsMappings] = generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk, playback_timeline_increment_amt_sec);
+  var [multiUrls, resultsMappings] = generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk);
   var data = await loadMultiSensorDataAsChunks(multiUrls);
   var sensorCount = 0;
   for (var a = 0; a < data.length; a++) {
@@ -68,10 +68,11 @@ async function loadMultiSensorDataAsChunks(urls) {
 }
 
 
-function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk, playback_timeline_increment_amt_sec) {
+function generateSensorDataMultiFeedUrls(epochtime_milisec, info, numSensorsPerChunk) {
   var esdr_root_url = "https://esdr.cmucreatelab.org/api/v1/";
   var epochtime = parseInt(epochtime_milisec / 1000);
-  var time_range_url_part = "?format=json&from=" + (epochtime - playback_timeline_increment_amt_sec) + "&to=" + (epochtime + 86399);
+  var lookbackAmountInSec = 3600;
+  var time_range_url_part = "?format=json&from=" + (epochtime - lookbackAmountInSec) + "&to=" + (epochtime + 86399);
 
   var urls = [];
   var mappings = [];
@@ -148,16 +149,24 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
     for (var row = 0; row < data.length; row++) {
       var time = data[row][0];
       addedData = false;
-      if (data[row][col] == null)
-        continue;
       if (time <= current_time) {
-        current_sum +=  data[row][col];
+        if (data[row][col] == null) {
+          continue;
+        }
+        current_sum += data[row][col];
         count++;
       } else {
-        addedData = true;
-        new_data.push([current_time, current_sum / Math.max(1, count)]);
-        current_sum = data[row][col];
-        count = 1;
+        if (current_sum > 0) {
+          new_data.push([current_time, current_sum / Math.max(1, count)]);
+          addedData = true;
+        }
+        if (data[row][col] != null) {
+          current_sum = data[row][col];
+          count = 1;
+        } else {
+          current_sum = 0;
+          count = 0;
+        }
         current_time += threshold;
       }
     }
