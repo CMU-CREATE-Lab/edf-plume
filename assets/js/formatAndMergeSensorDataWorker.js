@@ -46,7 +46,8 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
       dataSegment['data'] = aggregateSensorData(d, info[sensorCount], playback_timeline_increment_amt_sec);
       var tmp = formatAndMergeSensorData(dataSegment, info[sensorCount]);
       // Roll the sensor data to fill in some missing values
-      tmp = rollSensorData(tmp, info[i]);
+      // Skip filling in missing values with prior value
+      //tmp = rollSensorData(tmp, info[i]);
       if (!esdr_sensors[info[sensorCount]["name"]]) {
         esdr_sensors[info[sensorCount]["name"]] = {"data" : {}};
       }
@@ -291,9 +292,7 @@ function rollSensorData(data, info) {
         // We need to back fill data according to the threshold
         if (typeof cache[name] !== "undefined") {
           if (d["time"] - cache[name]["time"] <= threshold) {
-            d[name] = {};
-            d[name]["time"] = cache[name]["time"];
-            d[name]["value"] = cache[name]["value"];
+            d[name] = cache[name]["value"];
           }
         }
       } else {
