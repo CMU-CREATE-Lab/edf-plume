@@ -15,7 +15,7 @@ var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
 // Increase/decrease for more or less TRAX data to look back at
 var traxDataIntervalInMin = 60;
 var traxDataIntervalInMs = traxDataIntervalInMin * 60000; // 60000 ms = 1 minute
-var monitorGapThresholdInMs = 3600000; // 1 hour; show no available data after a time gap longer than this.
+var monitorGapThresholdInMs = 3600000 * 2; // 2 hour(s); show no available data after a time gap longer than this.
 
 var pm25ColorLookup = function(pm25) {
   var color;
