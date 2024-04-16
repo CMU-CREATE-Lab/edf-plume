@@ -74,7 +74,7 @@ function aggregateSensorData(data, info) {
   var sensor_type = getSensorType(info);
 
   // TODO
-  if ((info['marker_type'] != "purple_air" && info['marker_type'] != "clarity") && (sensor_type == "PM25" || sensor_type == "WIND_ONLY")) {
+  if ((info['marker_type'] != "purple_air" && info['marker_type'] != "clarity") && (sensor_type == "PM25" || sensor_type.startsWith("WIND_ONLY"))) {
     return data;
   }
   if (data.length <= 1) {

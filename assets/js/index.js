@@ -2778,7 +2778,7 @@ async function determineSensorAndUpdateInfoBar() {
     for (var marker of markers) {
       if (selectedLocationPinVisible() && !selectedSensorMarker && isSensorMarkerVisible(marker) &&
           (typeof(marker.getBounds) === "function" && marker.getGoogleMapMarker().getBounds().contains(selectedLocationPin.position)) ||
-          selectedLocationPinVisible() && marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
+          selectedLocationPinVisible() && marker.getGoogleMapMarker().clickable && marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
         primaryInfoPopulator = marker;
         selectedSensorMarker = primaryInfoPopulator;
         found = true;
@@ -3277,7 +3277,7 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
 function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
   var sensor_type = getSensorType(info);
   if (typeof sensor_type === "undefined") return undefined;
-  var marker_sources = sensor_type == "WIND_ONLY" ? info["sensors"]["wind_direction"]["sources"] : info["sensors"][sensor_type]["sources"];
+  var marker_sources = sensor_type.startsWith("WIND_ONLY") ? info["sensors"]["wind_direction"]["sources"] : info["sensors"][sensor_type]["sources"];
   var most_recent_data_source = marker_sources[marker_sources.length - 1];
   var marker_data = {
     "is_current_day": typeof(is_current_day) === "undefined" ? true : is_current_day,
@@ -3287,11 +3287,11 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
     // NOTE: This only gets the most recent feed id. There may be an older one, that is no longer used but has past data.
     "feed_id": most_recent_data_source["feed"],
     // "feed_channels": Object.keys(info["sensors"])
-    "pm25_channel" : sensor_type != "WIND_ONLY" ? most_recent_data_source["channel"] : []
+    "pm25_channel" : !sensor_type.startsWith("WIND_ONLY") ? most_recent_data_source["channel"] : []
   };
   if (typeof data === "undefined") return marker_data;
   // For PM25 or VOC (these two types cannot both show up in info)
-  if (typeof data[sensor_type] !== "undefined" && sensor_type != "WIND_ONLY") {
+  if (typeof data[sensor_type] !== "undefined" && !sensor_type.startsWith("WIND_ONLY")) {
     if (typeof data[sensor_type] === "object") {
       marker_data["sensor_value"] = roundTo(data[sensor_type]["value"], 2);
       marker_data["sensor_data_time"] = data[sensor_type]["time"] * 1000;
@@ -3325,7 +3325,11 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
 function getSensorType(info) {
   var sensor_type;
   if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
-    sensor_type = "WIND_ONLY";
+    if (typeof(info["clickable"]) != "undefined" && !info["clickable"]) {
+      sensor_type = "WIND_ONLY2";
+    } else {
+      sensor_type = "WIND_ONLY";
+    }
   } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1) {
     sensor_type = "PM25";
   } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
@@ -3473,6 +3477,15 @@ function updateInfoBar(marker) {
   if (!markerData) {
     if (overlay) {
       markerData = overlay.getData();
+    }
+  }
+
+  // Handle the case where multiple markers are stacked (e.g. pm25 for non-AirNow + wind)
+  if (markerData.feed_id) {
+    var multi_sensor_marker = Object.entries(available_cities[selectedCity].sensors).filter(([k,v]) => v.info.name.startsWith(markerData.name)).map(([k,v]) => v.marker.getData());
+
+    if (multi_sensor_marker.length > 1) {
+      markerData = Object.assign({}, ...multi_sensor_marker);
     }
   }
 

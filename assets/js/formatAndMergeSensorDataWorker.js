@@ -143,38 +143,53 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
   }
 
   var current_time = round(moment((data[0][0] + threshold) * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
-  var current_sum = 0;
-  var count = 0;
   var addedData = false;
+  var current_sums = [];
+  var data_segment;
   for (var col = 1; col < data[0].length; col++) {
-    for (var row = 0; row < data.length; row++) {
-      var time = data[row][0];
-      addedData = false;
-      if (time <= current_time) {
+    current_sums.push([0,0]);
+  }
+
+  for (var row = 0; row < data.length; row++) {
+    var time = data[row][0];
+    addedData = false;
+    if (time <= current_time) {
+      for (var col = 1; col < data[0].length; col++) {
         if (data[row][col] == null) {
           continue;
-        }
-        current_sum += data[row][col];
-        count++;
-      } else {
-        if (current_sum > 0) {
-          new_data.push([current_time, current_sum / Math.max(1, count)]);
-          addedData = true;
-        }
-        if (data[row][col] != null) {
-          current_sum = data[row][col];
-          count = 1;
         } else {
-          current_sum = 0;
-          count = 0;
+          current_sums[col-1][0] += data[row][col];
+          current_sums[col-1][1] += 1;
         }
-        current_time += threshold;
       }
+    } else {
+      if (current_sums.every(entry => entry.every(value => value > 0))) {
+        data_segment = [current_time]
+        for (var col = 1; col < data[0].length; col++) {
+          data_segment.push(current_sums[col-1][0] / Math.max(1, current_sums[col-1][1]));
+        }
+        new_data.push(data_segment);
+        addedData = true;
+      }
+      for (var col = 1; col < data[0].length; col++) {
+        if (data[row][col] == null) {
+          current_sums[col-1][0] = 0;
+          current_sums[col-1][1] = 0;
+        } else {
+          current_sums[col-1][0] = data[row][col];
+          current_sums[col-1][1] = 1;
+        }
+      }
+      current_time += threshold;
     }
   }
 
-  if (!addedData && count > 0) {
-    new_data.push([current_time, current_sum / Math.max(1, count)]);
+  if (!addedData && current_sums.every(entry => entry.every(value => value > 0))) {
+    data_segment = [current_time]
+    for (var col = 1; col < data[0].length; col++) {
+      data_segment.push(current_sums[col-1][0] / Math.max(1, current_sums[col-1][1]));
+    }
+    new_data.push(data_segment);
   }
 
   return new_data;
@@ -318,7 +333,11 @@ function safeGet(v, default_val) {
 function getSensorType(info) {
   var sensor_type;
   if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
-    sensor_type = "WIND_ONLY";
+    if (!info["clickable"]) {
+      sensor_type = "WIND_ONLY2";
+    } else {
+      sensor_type = "WIND_ONLY";
+    }
   } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1) {
     sensor_type = "PM25";
   } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
