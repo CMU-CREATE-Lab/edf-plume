@@ -132,6 +132,7 @@ var startingView = Object.assign({}, defaultHomeView);
 // If true, do not pull footprints from GCS, but compute them in realtime
 var runRealTime = false;
 var runRealTimeOverride = false;
+var useGFSMetOverride = false
 
 function isMobileView() {
   return $(window).width() <= 450;
@@ -290,6 +291,7 @@ async function initMap() {
   var shareView = urlVars.v;
 
   runRealTimeOverride = urlVars.runRealTime == 'true';
+  useGFSMetOverride = urlVars.useGFSMet == 'true';
   backtraceMode = typeof(urlVars.backtraceMode) != "undefined" ? urlVars.backtraceMode : backtraceMode;
 
   if (shareView) {
@@ -565,7 +567,7 @@ async function initMap() {
       "side-panel-data" : {text: "Data comes in at different rates depending upon the type of monitor. If the data rate is sub " + playbackTimeline.getIncrementAmt() + " minute intervals, the value displayed below is the average of all points collected between the selected playback time and prior " + playbackTimeline.getIncrementAmt() + " minute window.", pos: {at: "top", my: 'left bottom-10'}},
       "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
       "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-airnow" : {text: "AirNow monitors provide hourly PM<sub>2.5</sub> readings. These government sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-airnow" : {text: "Government monitors providing hourly PM<sub>2.5</sub> readings. These sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
@@ -2474,7 +2476,7 @@ function setButtonTooltip(text, $target, duration, position) {
       collision: "flip fit",
       using: function (obj,info) {
         $(this).removeClass("left right top bottom");
-        var horizontalShiftAmt = 28;
+        var horizontalShiftAmt = 36;
         if (info.vertical == "top") {
           $(this).addClass("top");
         } else if (info.vertical == "bottom") {
@@ -2906,6 +2908,9 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
     if (runRealTime) {
       var time = parsedIsoString.replace(/-|T/g,"").substring(0,10);
       var region = available_cities[selectedCity].name.toLowerCase().replaceAll(" ","_");
+      if (useGFSMetOverride) {
+        region += "_gfs";
+      }
       lookup = "https://api2.airtracker.createlab.org/get_footprint?" + "lat=" + latTrunc + "&" + "lon=" + lngTrunc + "&" + "time=" + time + "&" +  "region=" + region
       $("#heatmap-loading-mask").addClass("visible");
     }
@@ -3494,7 +3499,7 @@ function updateInfoBar(marker) {
   var markerDataTimeInMs = markerData.sensorType ==  "trax" || markerData.sensorType  == "backtrace" ? markerData['epochtimeInMs'] : markerData['sensor_data_time'] || markerData['wind_data_time'];
   var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, selected_city_tmz).format("h:mm A (zz)");
 
-  // Set infobar header to sensor name (if TRAX or AirNow) or clicked lat/lon coords otherwise
+  // Set infobar header to sensor name (if TRAX, PurpleAir, etc) or clicked lat/lon coords otherwise
   $infobarHeader.show();
   var infobarHeader = $infobarHeader[0];
   var markerName = markerData.sensorType ==  "trax" ? "TRAX "+ formatTRAXLineName(marker.traxId) + " Line" : markerData.name;

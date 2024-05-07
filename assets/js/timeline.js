@@ -288,6 +288,10 @@ function loadTimelineData(start_time, end_time, callback) {
 }
 
 function loadTimelineDataToday(fullData, callback){
+  if (!available_cities[selectedCity].airnow_hourly_aqi) {
+    callback(fullData);
+    return;
+  }
   $.ajax({
     "url": generateURLForHourlyAQI(),
     "dataType": "json",

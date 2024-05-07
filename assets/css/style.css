@@ -445,9 +445,9 @@ body {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
   display: inline-flex;
-  position: absolute;
-  margin-left: 2px;
-  margin-top: 1px;
+  position: relative;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .more-info-grapher, .more-info-heatmap {
@@ -596,6 +596,7 @@ body {
   image-rendering: -o-crisp-edges;
   image-rendering: -webkit-optimize-contrast;
   -ms-interpolation-mode: nearest-neighbor;
+  min-width: 48px;
 }
 
 #legend-table .facilities-td {
@@ -1336,7 +1337,7 @@ body {
 }
 
 .button-tooltip p {
-  max-width: 174px;
+  max-width: 250px;
   margin-top: 0px;
   margin-bottom: -11px;
   margin-left: 0px;

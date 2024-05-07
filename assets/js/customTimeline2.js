@@ -291,7 +291,11 @@ var create = {};
     };
 
     var setTimezoneText = function() {
-      $("#playback-timeline-container .anchorTZ").text("(" + moment.tz(playbackTimeInMs, selected_city_tmz).zoneAbbr() + ")");
+      var zoneAbbr = moment.tz(playbackTimeInMs, selected_city_tmz).zoneAbbr();
+      if (/^\+|-/i.test(zoneAbbr)) {
+        zoneAbbr = "UTC" + zoneAbbr;
+      }
+      $("#playback-timeline-container .anchorTZ").text("(" + zoneAbbr + ")");
     }
     this.setTimezoneText = setTimezoneText;
 
