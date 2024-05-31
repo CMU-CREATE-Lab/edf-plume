@@ -127,6 +127,7 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
   var threshold = playback_timeline_increment_amt_sec;
 
   // Note: Only aggregate data that is sub time intervals of the threshold set above. Otherwise, the times associated with data will be mismatched after aggregation.
+  // TODO: If there are large gaps in data for some of the sensors, it throws this logic off.
   var last_tmp_time;
   var average_time_interval = 0;
   var num_rows_to_check = Math.min(data.length, 10);

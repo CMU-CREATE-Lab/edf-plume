@@ -572,6 +572,7 @@ async function initMap() {
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-quant-aq" : {text: "QuantAQ low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-aq-sync" : {text: "AQSync low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
       "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last location you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
@@ -2776,11 +2777,11 @@ async function determineSensorAndUpdateInfoBar() {
     }
   }
   if (!found) {
-    var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];}).filter(marker => marker);
+    var markers = Object.keys(available_cities[selectedCity].sensors).map(function(k){return available_cities[selectedCity].sensors[k]['marker'];}).filter(marker => marker && marker.getGoogleMapMarker().clickable);
     for (var marker of markers) {
       if (selectedLocationPinVisible() && !selectedSensorMarker && isSensorMarkerVisible(marker) &&
           (typeof(marker.getBounds) === "function" && marker.getGoogleMapMarker().getBounds().contains(selectedLocationPin.position)) ||
-          selectedLocationPinVisible() && marker.getGoogleMapMarker().clickable && marker.getGoogleMapMarker().position.lat() == selectedLocationPin.position.lat() && marker.getGoogleMapMarker().position.lng() == selectedLocationPin.position.lng()) {
+          selectedLocationPinVisible() && marker.getGoogleMapMarker().position.lat().toFixed(4) == selectedLocationPin.position.lat().toFixed(4) && marker.getGoogleMapMarker().position.lng().toFixed(4) == selectedLocationPin.position.lng().toFixed(4)) {
         primaryInfoPopulator = marker;
         selectedSensorMarker = primaryInfoPopulator;
         found = true;
@@ -3317,11 +3318,24 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
   }
   // For wind speed
   if (typeof data["wind_speed"] !== "undefined") {
+    var wind_val;
     if (typeof data["wind_speed"] === "object") {
-      marker_data["wind_speed"] = roundTo(data["wind_speed"]["value"], 2);
+      wind_val = data["wind_speed"]["value"];
     } else {
-      marker_data["wind_speed"] = roundTo(data["wind_speed"], 2);
+      wind_val = data["wind_speed"];
     }
+    var channelName = info.sensors.wind_speed.sources[0].channel.toLowerCase();
+    if (channelName.endsWith("rws")) {
+      // knots to mph
+      // AirNow sometimes has RWS (rather than WS) for wind speed, which is in knots (as opposed to m/s).
+      wind_val = wind_val * 1.15078;
+    } else if (!channelName.endsWith("mph")) {
+      // m/s to mph
+      // In general, wind data in ESDR appears to be in m/s. However, sometimes the person who wrote the relevant scraper
+      // was kind enough to include units in the channel name, so we can check on that to see if the data is actually mph.
+      wind_val = wind_val * 2.23694;
+    }
+    marker_data["wind_speed"] = roundTo(wind_val, 2);
   }
   return marker_data;
 }
@@ -3491,6 +3505,7 @@ function updateInfoBar(marker) {
 
     if (multi_sensor_marker.length > 1) {
       markerData = Object.assign({}, ...multi_sensor_marker);
+      markerData.name = markerData.name.replace(" Met", "");
     }
   }
 
