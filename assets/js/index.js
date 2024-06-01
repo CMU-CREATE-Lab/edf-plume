@@ -112,8 +112,6 @@ var $calendarBtn;
 var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
-var $purpleAirToggle;
-var $traxToggle;
 var $citySelector;
 var $cityName;
 var $map;
@@ -562,17 +560,17 @@ async function initMap() {
 
   });
 
-  $(".more-info").on("click", function() {
+  $("#legend-table").on("click", ".more-info", function() {
     var text = {
       "side-panel-data" : {text: "Data comes in at different rates depending upon the type of monitor. If the data rate is sub " + playbackTimeline.getIncrementAmt() + " minute intervals, the value displayed below is the average of all points collected between the selected playback time and prior " + playbackTimeline.getIncrementAmt() + " minute window.", pos: {at: "top", my: 'left bottom-10'}},
       "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
       "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-airnow" : {text: "Government monitors providing hourly PM<sub>2.5</sub> readings. These sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-purpleair" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-air_now" : {text: "Government monitors providing hourly PM<sub>2.5</sub> readings. These sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-purple_air" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-quant-aq" : {text: "QuantAQ low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-aq-sync" : {text: "AQSync low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-quant_aq" : {text: "QuantAQ low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
+      "legend-aq_sync" : {text: "AQSync low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
       "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
       "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last location you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
@@ -1148,7 +1146,7 @@ async function initMap() {
     $(this).removeClass("waiting").text("Capture Screenshot");
   });
 
-  $("#legend-table td input").on("click", function(e) {
+  $("#legend-table").on("click", "td input", function(e) {
     var isChecked = $(e.target).prop("checked");
     var markerType = $(e.target).data("marker-type");
     if (markerType == "facilities") {
@@ -1306,14 +1304,14 @@ function siteTourShort() {
 
   var step_5 = {
     title: defaultTourStepTitle,
-    element: null,
+    element: document.querySelector(".chart-btn"),
     intro: "Once you've click on a monitor, you can also click the chart emblem on the side bar to see pollution concentrations over time at that monitor.",
     position: "right",
   };
 
   var step_6 = {
     title: defaultTourStepTitle,
-    element: document.querySelector("#purple-air-legend-row"),
+    element: document.querySelector("#purple_air-legend-row"),
     intro: "'PurpleAir' and 'Clarity' sensor data can be added to the map using the toggle button in the legend.",
     highlightPaddings:  {height: 38},
     position: "left",
@@ -1480,7 +1478,7 @@ function siteTourShort() {
         that._introItems[that._currentStep].element = document.querySelector(".chart-btn");
         that._introItems[that._currentStep].position = "right";
         that.refresh();
-      }, 250);
+      }, 300);
     } else if (this._currentStep == 6) {
       // Remove footprint pin if visible
       if (selectedLocationPinVisible()) {
@@ -1512,575 +1510,6 @@ function siteTourShort() {
     }
     // Go to most recent available day
     $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
-    // Remove all manual tour div regions
-    $("tour-overlay-region").remove();
-  }).start();
-}
-
-
-function siteTour() {
-  var defaultTourStepTitle = "Air Tracker Tour";
-
-  // TODO: Make tour views/text fit better for mobile
-  var steps = [];
-
-  var step_1_text = "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'.";
-  if (!isMobileView()) {
-    step_1_text += "<br><br> You can also use the forward/backward arrow keys on your keyboard.";
-  }
-  var step_1 = {
-    title: defaultTourStepTitle,
-    intro: step_1_text
-  };
-
-  var step_2 = {
-    title: defaultTourStepTitle,
-    element: null,
-    intro: "Cities featured by Air Tracker are marked with a blue icon on the map. You can click these icons to have the system zoom you in or you can manually zoom in yourself.",
-    highlightPaddings: {width: 86, height: 40, left: -57, top: -50}
-  };
-
-  var step_3_text = "You can also select a city by clicking on the city building icon in the upper left corner.";
-  var step_3_element = document.querySelector('#city-picker');
-  var step_3_position = "right";
-  if (isMobileView()) {
-    step_3_text = "You can also select a city by clicking on this menu and choosing 'City Picker'.";
-    step_3_element = document.querySelector('.mobile-menu-toggle.menu-btn');
-    step_3_position = "left";
-  }
-  var step_3 = {
-    title: defaultTourStepTitle,
-    element: step_3_element,
-    intro: step_3_text,
-    position: step_3_position
-  };
-
-  var step_4 = {
-    title: defaultTourStepTitle,
-    intro: "Air Tracker is interactive and works within the dotted lines around each featured city. Click on any location within the box to create a 'back trace' from that point of interest."
-  };
-
-  var step_5 = {
-    title: defaultTourStepTitle,
-    element: null,
-    intro: "A back trace shows the area where a pollution source is most likely to be found. The darker purple indicates the area with the strongest contribution to the back trace. <br> <br> Watch <a target='_blank' href='https://drive.google.com/file/d/1uVzPw4l0GT2S8FcYwGHT430MkIejNXHg/preview'>this video</a> for the basics on what a back trace is.",
-    highlightPaddings:  {top: -50, left: -50, width: 150, height: 400}
-  };
-
-  tourObj = introJs().setOptions({
-    autoPosition: false,
-    exitOnOverlayClick: false,
-    showProgress: true,
-    showBullets: false,
-    steps: [
-      step_1,
-      step_2,
-      step_3,
-      step_4,
-      step_5,
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Some locations at a particular time may not have a back trace available. In those cases, you'll see a gray pin icon at the location you clicked at.",
-      highlightPaddings: {top: -50, left: -50, width: 70, height: 40}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector(".gm-bundled-control-on-bottom"),
-      intro: "You can zoom in or out with your mouse/touchscreen or the '+' and '-' in the bottom right corner. The functionality of the map remains the same.",
-      position: "left",
-      highlightPaddings: {width: 40, height: 81},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      selector: "div.gmnoprint[role='menubar']",
-      intro: "You can change the style of the base map to either be satellite view or default roadmap view.",
-      position: "left",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Regulatory air quality monitors (supported by U.S. EPA's AirNow Network) are represented by colored circles. The colors within the circle represent air pollution readings as indicated by the legend in the upper right. <br><br> Air Tracker currently includes measurements of fine particulate matter (PM<sub>2.5</sub>), but it can be used to track any primary pollutant. Read more about this [HERE].",
-      position: "left",
-      highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Wind direction is also mapped at most regulatory air quality monitors using the wind arrow as shown in the legend. <br><br>The arrow points in the direction that wind is moving.",
-      position: "left",
-      highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Where wind measurements are available, the wind arrow can be used to evaluate how well Air Tracker is working by comparing the direction of the wind to the general direction of the back traces.",
-      position: "left",
-      highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "When they overlap, that means the model that Air Tracker uses is doing well!",
-      position: "right",
-      highlightPaddings: {left: -350, top: -150, width: 350, height: 150},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "And if they don't overlap, then the model did not perform to expectations. <br><br> In depth weather model performance for Air Tracker is available [HERE].",
-      position: "left",
-      highlightPaddings: {left: -50, top: -140, width: 180, height: 190},
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#purple-air-legend-row"),
-      intro: "'PurpleAir' (low cost sensor) data can be added to the map using the toggle button in the legend. They are represented by small squares.",
-      position: "left",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "Similar to the regulatory sensors, the colors within the squares represent air pollution readings as indicated by the legend.",
-      position: "left",
-      highlightPaddings: {width: 90, height: 90, left: -55, top: -60}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#trax-legend-row"),
-      intro: "Additional air quality data sources vary by city. In Salt Lake City, three trains from the light rail system 'TRAX' have devices that measure air pollution. Like with 'Purple Air', these can be toggled on from the legend.",
-      position: "left",
-
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "When those trains are running, the real-time data is mapped to Air Tracker. The latest reading from TRAX is outlined in black, and historical measurements stay on the map for the last hour from the current timestamp. Older readings become more faded in color. <br><br> These sensors track fine particulate matter (PM<sub>2.5</sub>) and their colors follow the same scale as the other sensors.",
-      position: "left",
-      highlightPaddings: {width: 400, height: 735, left: -150, top: -380}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('#infobar-content'),
-      intro: "If you click on the icons of any of the previously mentioned sensors, the numerical concentration measurement of PM<sub>2.5</sub>, along with wind speed and direction (if applicable), at that location pops up on the sidebar.",
-      position: "right",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('#infobar-close-toggle-container'),
-      intro: "At any time, you can hide the side panel by clicking this button. The panel will automatically be brought back up again when you click anywhere on the map.",
-      position: "right",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('#timeline-container'),
-      intro: "While the default map of Air Tracker shows 'real-time' data, you can look back in time to see back traces up to 12 months. <br><br>To do that, scroll through the dates at the bottom of the tool. The colored boxes above the date represent the highest air pollution data (AQI) measured on that day. <br><br> When you click on a new date, the map will update to the data on that day, defaulting to the same time of day. The currently mapped date is also shown in the legend.",
-      position: "top-middle-aligned",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('.timestampPreview'),
-      intro: "To select a new time during the day, click on the clock in the lower left hand corner of the screen.",
-      position: "top-left-aligned",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "After pressing the clock in the lower left hand corner, you can scroll through the time of day in three ways:",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('.materialTimeline'),
-      intro: "1. Use the scroll bar.",
-      position: "top",
-      highlightPaddings: {height: -55, top: 55}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "2. Press the left/right arrows on your keyboard.<br><br><div style='text-align: center'><img src='" + ASSETS_ROOT + "img/keyboard-left-right.jpg' /></div>",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('.leftSeekControl'),
-      intro: "3. Click either the left/right step arrow buttons to step forward or backwards in time. <br><br>If you hold down either for two seconds, a pop-up will appear to allow you to select a time that you can jump to.",
-      position: "top-left-aligned",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector('.playbackButton'),
-      intro: "You can also animate and loop through time by pressing the play button in the lower left hand corner next to the calendar. <br><br> This will automatically step through time, visualizing on the map the corresponding measured air pollution and back trace data.",
-      position: "top-left-aligned",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: null,
-      intro: "AirNow data is updated every hour on the half hour, purple air every 15 minutes, and back traces are updated every hour on the hour. Meteorological data is updated every 15 to an hour depending on how often each site reports new measurements.",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#calendar-btn"),
-      intro: "To select a new day, simply click on the calendar icon in the bottom left corner and you can scroll between dates again.",
-      position: "top-left-aligned",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#share-picker"),
-      intro: "You can share a snapshot of the map view you were looking at by clicking this button. A pop-up will appear with various options.",
-      position: "right",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#share-link-container-main"),
-      intro: "You can either share a URL that will take other users to the exact view and time you were exploring, so that they too can explore.",
-      position: "right",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#embed-link-container-main"),
-      intro: "Or, you can export an image of the map's view that you can then use in presentations or on social media.",
-      position: "right",
-      highlightPaddings: {height: -30, top: 30}
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector(".searchBoxContainer"),
-      intro: "You can also search for specific areas of interest. <br><br> Just click the icon with the magnifying glass and you'll be presented with a search box from which to search. <br><br> You can click the icon again at any time to hide away the input box.",
-    },
-    {
-      title: defaultTourStepTitle,
-      element: document.querySelector("#reach-out"),
-      intro: "Thank you for following along. <br><br> If you have further questions about the methodologies used in this tool or would like to contact us, please click the email icon on the side panel after exiting the tour. <br><br> Happy Exploring!",
-    },
-
-  ]
-  }).onbeforechange(async function() {
-    // Steps are 0 indexed
-    if (this._currentStep == 0) {
-      inTour = true;
-
-      // Add tour css indicator to any elements that we want to handle css transitions differently when in tour mode
-      $(".materialTimelineContainerMain").addClass("tour");
-
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-
-    } else if (this._currentStep == 1) {
-
-      // Turn off any sensors that can be toggled
-      toggleOffAllNonForcedSensors();
-
-      // If we are starting the tour with the playback timeline up, close it.
-      if (playbackTimeline && playbackTimeline.isActive()) {
-        handleTimelineToggling();
-      }
-
-      // If we had a city selected, go to the last availabe day
-      if (selectedCity && timeline && timeline.getSelectedBlock().data().index != 0) {
-        $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
-        await waitForSensorsLoaded();
-      }
-
-      // Zoom out to national view
-      goToDefaultHomeView();
-
-      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
-      var latLng = available_cities["US-SLC"].marker.position;
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "right";
-      this.refresh();
-    } else if (this._currentStep == 2) {
-      goToDefaultHomeView();
-    } else if (this._currentStep == 3) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-      // Bring SLC bounds into view
-      google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
-    } else if (this._currentStep == 4) {
-      // Bring up Nov 3rd 2021 @ noon
-      playbackTimeline.seekTo(48, true);
-      $(".block-click-region[data-epochtime_milisec='1635919200000']").trigger("click");
-      await waitForSensorsLoaded();
-      // A lat/lng point in SLC region
-      var latLng = new google.maps.LatLng(40.6188, -111.9929);
-      var e = { latLng: latLng, fromVirtualClick: true };
-      // TODO: Likely need to tweak for mobile
-      map.setZoom(12);
-      // Trigger a click to show a backtrace
-      google.maps.event.trigger(map, 'click', e);
-      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      if (isMobileView()) {
-        $(".custom-legend").accordion( "option", "active", false);
-        this._introItems[this._currentStep].position = "top-middle-aligned";
-      } else {
-        this._introItems[this._currentStep].position = "right";
-      }
-
-      setTimeout(() => {
-        this.refresh();
-      }, 500);
-    } else if (this._currentStep == 5) {
-      // 3:45 AM
-      playbackTimeline.seekTo(12, true);
-      $(".block-click-region[data-epochtime_milisec='1635919200000']").trigger("click");
-
-      // A lat/lng point in SLC region
-      var latLng = new google.maps.LatLng(40.6188, -111.9929);
-      var e = { latLng: latLng, fromVirtualClick: true };
-      // TODO: Likely need to tweak for mobile
-      map.setZoom(12);
-      // Trigger a click to show a backtrace
-      google.maps.event.trigger(map, 'click', e);
-      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "right";
-      setTimeout(() => {
-        this.refresh();
-      }, 500);
-    } else if (this._currentStep == 6) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-      // Go back to most recent day
-      $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
-    } else if (this._currentStep == 7) {
-      this._introItems[this._currentStep].element = document.querySelector("div.gmnoprint[role='menubar']");
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-    } else if (this._currentStep == 8) {
-      var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
-      var latLng = marker.position;
-      map.setCenter(latLng);
-      // It is unreliable/impossible to get a marker's DOM element, so we create a manual region at the location of marker
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-    } else if (this._currentStep == 9) {
-      // uses step 8 div
-      var id = "tour-manual-region-8";
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-    } else if (this._currentStep == 10) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-
-      if (playbackTimeline && playbackTimeline.isActive()) {
-        playbackTimeline.seekTo(48, true);
-        handleTimelineToggling();
-        await setAsyncTimeout(() => {
-          $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
-        }, 75);
-        await waitForSensorsLoaded()
-      }
-      // uses step 8 div
-      var id = "tour-manual-region-8";
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "right";
-      this.refresh();
-    } else if (this._currentStep == 11) {
-      if (playbackTimeline && !playbackTimeline.isActive()) {
-        // 1:45 PM
-        playbackTimeline.seekTo(55, true);
-        // Bring Nov 2nd 2021
-        $(".block-click-region[data-epochtime_milisec='1635832800000']").trigger("click");
-        await setAsyncTimeout(() => {
-          handleTimelineToggling();
-        }, 75);
-      } else {
-        playbackTimeline.seekTo(55);
-      }
-      if (!selectedLocationPinVisible()) {
-        var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
-        google.maps.event.trigger(marker, "click");
-      }
-      // uses step 8 div
-      var id = "tour-manual-region-8";
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "right";
-      await setAsyncTimeout(() => {
-        this.refresh();
-      }, 450);
-    } else if (this._currentStep == 12) {
-      // 9:30 PM
-      playbackTimeline.seekTo(86);
-      // uses step 8 div
-      var id = "tour-manual-region-8";
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-
-      if (!selectedLocationPinVisible()) {
-        var marker = available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker();
-        google.maps.event.trigger(marker, "click");
-      }
-    } else if (this._currentStep == 13) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-      $purpleAirToggle.prop("checked", false).trigger("change");
-      toggleMarkersByMarkerType("purple_air", false);
-    } else if (this._currentStep == 14) {
-      // 9:30 PM
-      playbackTimeline.seekTo(86);
-
-      // Random location in SLC to show off purple airs
-      var latLng = new google.maps.LatLng(40.678517865879655, -111.79349862416623);
-      map.setCenter(latLng);
-      map.setZoom(12);
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-
-      // Only visually show state change, don't actually turn on purple airs
-      // Turning on all the purple airs changes the state of the DOM so that we cannot highlight previous DOM markers.
-      // Google is doing something to the DOM when there are lots of markers. That said, we don't need to show them
-      // all for this tour. Plus, we are manually selecting a bounds on the screen and not messing with map DOM elements.
-      $purpleAirToggle.prop("checked", true).trigger("change");
-
-      // Turn back on if they exist, otherwise pull them
-      await handlePurpleAirTourData();
-    } else if (this._currentStep == 15) {
-      toggleMarkersByMarkerType("purple_air", false);
-
-      if (sensorsEnabledState['trax']) {
-        $traxToggle.trigger("click");
-      }
-      $purpleAirToggle.prop("checked", false).trigger("change");
-    } else if (this._currentStep == 16) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-      map.setZoom(13);
-      var latLng = new google.maps.LatLng(40.731316223740315, -111.92356154003906);
-      map.setCenter(latLng);
-      var screenPos = convertLatLngToScreenCoords(latLng);
-      var id = "tour-manual-region-" + this._currentStep;
-      if (!document.querySelector("#" + id)) {
-        $("#map").prepend("<div id='" + id +  "' class='tour-overlay-region' style='top:" + screenPos.top + "px; left:" + screenPos.left + "px;' data-lat='" + latLng.lat() + "'data-lng='" + latLng.lng() + "'></div>");
-      }
-      this._introItems[this._currentStep].element = document.querySelector("#" + id);
-      this._introItems[this._currentStep].position = "left";
-      this.refresh();
-
-      // 9:30 AM
-      playbackTimeline.seekTo(38);
-
-      if (!sensorsEnabledState['trax']) {
-        $traxToggle.trigger("click");
-      }
-    } else if (this._currentStep == 17) {
-      if (sensorsEnabledState['trax']) {
-        $traxToggle.trigger("click");
-      }
-      if (!selectedLocationPinVisible()) {
-        google.maps.event.trigger(available_cities["US-SLC"].sensors["Hawthorne AirNow"].marker.getGoogleMapMarker(), "click");
-      }
-      if (playbackTimeline && !playbackTimeline.isActive()) {
-        handleTimelineToggling();
-      }
-    } else if (this._currentStep == 18) {
-      // Remove footprint pin if visible
-      if (selectedLocationPinVisible()) {
-        google.maps.event.trigger(selectedLocationPin, "dblclick");
-      }
-      setTimeout(() => {
-        this.refresh();
-      }, 50);
-    } else if (this._currentStep == 19) {
-      if (playbackTimeline && playbackTimeline.isActive()) {
-        handleTimelineToggling();
-      }
-      await setAsyncTimeout(() => {
-        this.refresh();
-      }, 75);
-    } else if (this._currentStep == 21) {
-      if (playbackTimeline && !playbackTimeline.isActive()) {
-        handleTimelineToggling();
-      }
-      google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
-    } else if (this._currentStep == 27) {
-      google.maps.event.trigger(available_cities["US-SLC"].marker, "click");
-      setTimeout(() => {
-        if (playbackTimeline && !playbackTimeline.isActive()) {
-          handleTimelineToggling();
-          this._introItems[this._currentStep].element = document.querySelector("#calendar-btn"),
-          this._introItems[this._currentStep].position = "top-left-aligned";
-          this.refresh();
-        }
-      }, 30);
-    } else if (this._currentStep == 28) {
-      $(".close-modal").trigger("click");
-      if (playbackTimeline && playbackTimeline.isActive()) {
-        handleTimelineToggling();
-      }
-    } else if (this._currentStep == 29) {
-      $("#share-picker").trigger("click");
-    } else if (this._currentStep == 30) {
-      $("#share-picker").trigger("click");
-    } else if (this._currentStep == 31) {
-      $(".close-modal").trigger("click");
-      goToDefaultHomeView();
-    }
-  }).onexit(function() {
-    // Turn off tour mode
-    inTour = false;
-    // Remove tour CSS indicator
-    $(".materialTimelineContainerMain").removeClass("tour");
-    // If we never got beyond the intro slide of the tour, don't do any of the cleanup/resetting below.
-    if (this._currentStep == 0) {
-      return;
-    }
-    // Go to most recent available day
-    $(".block-click-region[data-epochtime_milisec='" + timeline.getLastBlockData().epochtime_milisec + "']").trigger("click");
-    // Zoom to national view
-    goToDefaultHomeView();
-    // Share modal may still be open, close it
-    $(".close-modal").trigger("click");
-    // Purple airs used in the tour may still be up, hide them
-    toggleMarkersByMarkerType("purple_air", false);
-    // Turn off purple air UI toggle
-    $purpleAirToggle.prop("checked", false).trigger("change");
-    // TRAX may still be up, hide them
-    if (sensorsEnabledState['trax']) {
-      $traxToggle.trigger("click");
-    }
     // Remove all manual tour div regions
     $("tour-overlay-region").remove();
   }).start();
@@ -2188,7 +1617,7 @@ function toggleOffAllNonForcedSensors() {
   for (let activeSensorType of activeSensors) {
     if (sensorsEnabledState[activeSensorType]) {
       // TODO: Perhaps cache (earlier on) and store the selector in the sensorsEnabledState dict
-      $("#toggle-" + activeSensorType.replace("_", "-")).trigger("click");
+      $("#toggle-" + activeSensorType).trigger("click");
     }
   }
 }
@@ -2240,14 +1669,14 @@ async function getCityInBounds(mapFirstLoad) {
     $(".custom-legend").accordion( "option", "active", 0 );
     $("#legend .legend-row").hide();
     for (let sensory_type of available_cities[selectedCity].available_sensor_types) {
-      var sensor_type_legend_name = sensory_type.replace(/_/g, "-") + "-legend-row";
+      var sensor_type_legend_name = sensory_type + "-legend-row";
       $("#" + sensor_type_legend_name).show();
     }
 
     if (available_cities[selectedCity].has_smell_reports) {
-      $("#smell-report-legend-row").show();
+      $("#smell_report-legend-row").show();
     } else {
-      $("#smell-report-legend-row").hide();
+      $("#smell_report-legend-row").hide();
     }
 
     if (available_cities[selectedCity].facility_data && available_cities[selectedCity].facility_data.has_markers) {
@@ -2310,7 +1739,7 @@ async function getCityInBounds(mapFirstLoad) {
         if (urlVars.activeSensors) {
           var sensorsToActivate = urlVars.activeSensors.split(",");
           for (var sensorType of sensorsToActivate) {
-            $("#toggle-" + sensorType.replace("_", "-")).trigger("click");
+            $("#toggle-" + sensorType).trigger("click");
           }
         }
         if (urlVars.pinnedPoint) {
@@ -2678,8 +2107,6 @@ function initDomElms() {
   $dayTimeToggle = $(".timestampPreview");
   $infobarComponentContainer = $("#infobar-component-container");
   $infobarInitial = $("#infobar-initial");
-  $purpleAirToggle = $("#toggle-purple-air");
-  $traxToggle = $("#toggle-trax");
   $citySelector = $("#city-selector");
   $cityName = $("#city_name");
   $map = $("#map");
@@ -3366,8 +2793,7 @@ async function loadAvailableCities() {
         url: CITY_DATA_ROOT + "cities.json",
         dataType : 'json',
       });
-      available_cities = result || {};
-
+      available_cities = result?.cities ? result.cities : {};
       let lineSymbol = {
         path: 'M 0,-1 0,1',
         strokeOpacity: 1,
@@ -3456,6 +2882,11 @@ async function loadAvailableCities() {
           $("#active.mobile-menu-toggle").prop("checked", false);
         }
       })
+      // Set up template for non-ref sensors
+      var tpl_source = document.getElementById("sensors-tpl").innerHTML;
+      var template = Handlebars.compile(tpl_source);
+      var data = result.sensor_mappings;
+      document.getElementById('additional-sensors').innerHTML = template(data);
   } catch (error) {
       console.error(error);
   }

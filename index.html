@@ -57,6 +57,43 @@
     <script type="text/javascript" src="./assets/lib/rrule/rrule.min.js"></script>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
+
+    <script id="sensors-tpl" type="text/template">
+      {{#each .}}
+        <tr id="{{id}}-legend-row" class="legend-row">
+          <td class="entry-title two-rows">
+            {{name}} PM<sub>2.5</sub>:
+            <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-{{id}}"></span>
+          </td>
+          <td colspan="2">
+            <table>
+              <tr>
+                <td class="smell-color-td PM25-color-1b"></td>
+                <td class="smell-color-td PM25-color-2b"></td>
+                <td class="smell-color-td PM25-color-3b"></td>
+                <td class="smell-color-td PM25-color-4b"></td>
+                <td class="smell-color-td PM25-color-5b"></td>
+              </tr>
+              <tr>
+                <td class="legend-label">0+</td>
+                <td class="legend-label">12+</td>
+                <td class="legend-label">35+</td>
+                <td class="legend-label">55+</td>
+                <td class="legend-label">150+</td>
+              </tr>
+            </table>
+          </td>
+          <td>
+            <label class="switch" title="Toggle {{name}} sensors">
+              <input type="checkbox" id="toggle-{{id}}" data-marker-type="{{id}}">
+              <span class="slider round">
+                <span class="input-state-text"></span>
+              </span>
+            </label>
+          </td>
+        </tr>
+      {{/each}}
+    </script>
   </head>
   <body class="materialUI">
     <div id="heatmap-loading-mask"><div class="loader"></div></div>
@@ -350,10 +387,10 @@
             <td class="legend-label">Less Likely</td>
             <td class="legend-label backtrace-text2">More Likely</td>
           </tr>
-          <tr id="air-now-legend-row" class="legend-row">
+          <tr id="air_now-legend-row" class="legend-row">
             <td class="entry-title two-rows">
               Reference PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-airnow"></span>
+              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-air_now"></span>
             </td>
             <td colspan="2">
               <table>
@@ -374,135 +411,8 @@
               </table>
             </td>
           </tr>
-          <tr id="purple-air-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              PurpleAir PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-purpleair"></span>
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td PM25-color-1b"></td>
-                  <td class="smell-color-td PM25-color-2b"></td>
-                  <td class="smell-color-td PM25-color-3b"></td>
-                  <td class="smell-color-td PM25-color-4b"></td>
-                  <td class="smell-color-td PM25-color-5b"></td>
-                </tr>
-                <tr>
-                  <td class="legend-label">0+</td>
-                  <td class="legend-label">12+</td>
-                  <td class="legend-label">35+</td>
-                  <td class="legend-label">55+</td>
-                  <td class="legend-label">150+</td>
-                </tr>
-              </table>
-            </td>
-            <td>
-              <label class="switch" title="Toggle PurpleAir sensors">
-                <input type="checkbox" id="toggle-purple-air" data-marker-type="purple_air">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr id="clarity-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              Clarity PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-clarity"></span>
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td PM25-color-1b"></td>
-                  <td class="smell-color-td PM25-color-2b"></td>
-                  <td class="smell-color-td PM25-color-3b"></td>
-                  <td class="smell-color-td PM25-color-4b"></td>
-                  <td class="smell-color-td PM25-color-5b"></td>
-                </tr>
-                <tr>
-                  <td class="legend-label">0+</td>
-                  <td class="legend-label">12+</td>
-                  <td class="legend-label">35+</td>
-                  <td class="legend-label">55+</td>
-                  <td class="legend-label">150+</td>
-                </tr>
-              </table>
-            </td>
-            <td>
-              <label class="switch" title="Toggle Clarity sensors">
-                <input type="checkbox" id="toggle-clarity" data-marker-type="clarity">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr id="quant-aq-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              QuantAQ PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-quant-aq"></span>
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td PM25-color-1b"></td>
-                  <td class="smell-color-td PM25-color-2b"></td>
-                  <td class="smell-color-td PM25-color-3b"></td>
-                  <td class="smell-color-td PM25-color-4b"></td>
-                  <td class="smell-color-td PM25-color-5b"></td>
-                </tr>
-                <tr>
-                  <td class="legend-label">0+</td>
-                  <td class="legend-label">12+</td>
-                  <td class="legend-label">35+</td>
-                  <td class="legend-label">55+</td>
-                  <td class="legend-label">150+</td>
-                </tr>
-              </table>
-            </td>
-            <td>
-              <label class="switch" title="Toggle QuantAQ sensors">
-                <input type="checkbox" id="toggle-quant-aq" data-marker-type="quant_aq">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr id="aq-sync-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              AQSync PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-aq-sync"></span>
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td PM25-color-1b"></td>
-                  <td class="smell-color-td PM25-color-2b"></td>
-                  <td class="smell-color-td PM25-color-3b"></td>
-                  <td class="smell-color-td PM25-color-4b"></td>
-                  <td class="smell-color-td PM25-color-5b"></td>
-                </tr>
-                <tr>
-                  <td class="legend-label">0+</td>
-                  <td class="legend-label">12+</td>
-                  <td class="legend-label">35+</td>
-                  <td class="legend-label">55+</td>
-                  <td class="legend-label">150+</td>
-                </tr>
-              </table>
-            </td>
-            <td>
-              <label class="switch" title="Toggle AQSync sensors">
-                <input type="checkbox" id="toggle-aq-sync" data-marker-type="aq_sync">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr id="smell-report-legend-row" class="legend-row">
+          <tbody id="additional-sensors"></tbody>
+          <tr id="smell_report-legend-row" class="legend-row">
             <td class="entry-title">
               Smell Reports:
             </td>
@@ -554,18 +464,20 @@
             <td class="entry-title">Wind: <span class='more-info more-info-legend' title="Learn more" data-info="legend-wind"></span></td>
             <td colspan="4" class="wind-arrow-td wind-arrow"></td>
           </tr>
-          <tr id="facilities-legend-row">
-            <td class="entry-title">Industrial <br> Facilities: <span class='more-info more-info-legend' title="Learn more" data-info="legend-facilities"></span></td>
-            <td colspan="2" class="facilities-td facilities"></td>
-            <td>
-              <label class="switch" title="Toggle facility markers and boundaries">
-                <input type="checkbox" id="toggle-facilities" data-marker-type="facilities">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
+          <tbody id="overlays">
+            <tr id="facilities-legend-row">
+              <td class="entry-title">Industrial <br> Facilities: <span class='more-info more-info-legend' title="Learn more" data-info="legend-facilities"></span></td>
+              <td colspan="2" class="facilities-td facilities"></td>
+              <td>
+                <label class="switch" title="Toggle facility markers and boundaries">
+                  <input type="checkbox" id="toggle-facilities" data-marker-type="facilities">
+                  <span class="slider round">
+                    <span class="input-state-text"></span>
+                  </span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
