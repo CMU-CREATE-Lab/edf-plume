@@ -2,6 +2,8 @@
  * element that contains the map. */
 #map {
   height: calc(100% - 76px);
+  position: relative;
+  top: -164px;
 }
 
 #map.no-controls, #infobar.no-controls {
@@ -17,6 +19,50 @@ body {
   font-family: 'Open Sans', Helvetica, Arial, sans-serif;
   overflow-x: hidden;
   overflow-y: hidden;
+}
+
+.language-picker {
+  cursor: pointer;
+  position: relative;
+  z-index: 800;
+  top: 10px;
+  left: -18px;
+}
+
+#language-picker-select {
+  cursor: pointer;
+  padding: 8px;
+  border: 1px solid #777;
+  height: 41px;
+
+  background-image: linear-gradient(45deg, transparent 50%, gray 50%), linear-gradient(135deg, gray 50%, transparent 50%), linear-gradient(to right, #ccc, #ccc);
+  background-position: calc(100% - 16px) calc(1em + 5px), calc(100% - 11px) calc(1em + 5px), calc(100% - 2.5em) 0.8em;
+  background-size: 5px 5px, 5px 5px, 1px 1.5em;
+  background-repeat: no-repeat;
+  background-color: white;
+  display: inline-block;
+  font: inherit;
+  line-height: 1.5em;
+  padding: 0.5em 3.5em 0.5em 1em;
+  margin: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-size: 12px;
+}
+
+#language-picker-select:focus {
+  outline: none;
+}
+
+.no-legend {
+  left: -6px !important;
+}
+
+.vertical-align-top {
+  vertical-align: top;
 }
 
 #heatmap-loading-mask {
@@ -508,7 +554,7 @@ body {
 
 #legend {
   display: none;
-  position: fixed;
+  position: relative;
   z-index: 10;
   right: 10px;
   top: 10px;

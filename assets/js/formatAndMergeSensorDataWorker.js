@@ -130,14 +130,26 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
   // TODO: If there are large gaps in data for some of the sensors, it throws this logic off.
   var last_tmp_time;
   var average_time_interval = 0;
+
+  // Remove rows with no data, since it messes up finding average time interval used for aggregating
+  for (var row = data.length - 1; row >= 0; row--) {
+    if (data[row].slice(1).filter(Number).length == 0) {
+      data.splice(row, 1);
+    }
+  }
+
   var num_rows_to_check = Math.min(data.length, 10);
   for (var row = 0; row < num_rows_to_check; row++) {
-    if (last_tmp_time) {
+    if (last_tmp_time && data[row]) {
       average_time_interval += (data[row][0] - last_tmp_time);
     }
     last_tmp_time = data[row][0];
   }
   average_time_interval = Math.floor(average_time_interval / (num_rows_to_check - 1));
+
+  if (num_rows_to_check == 0) {
+    return [];
+  }
 
   if (average_time_interval >= threshold) {
     return data;

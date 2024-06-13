@@ -9,7 +9,8 @@ var chartsInitialized = false;
 var plotManager;
 
 
-window.grapherLoad = function() {
+window.grapherLoad = async function() {
+  await bodyTemplateLoadedPromise.promise;
   plotManager = new org.bodytrack.grapher.PlotManager("date_axis");
 };
 

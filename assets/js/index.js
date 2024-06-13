@@ -6,8 +6,15 @@ var TRAX_COLLECTION_NAME = "trax-dev";
 //var STILT_COLLECTION_NAME = "stilt-prod";
 var STILT_GCLOUD_BUCKET = "https://storage.googleapis.com/storage/v1/b/{BUCKET_NAME}/o/by-simulation-id";
 var CLOUD_STORAGE_PARENT_URL = "https://storage.googleapis.com/{BUCKET_NAME}/by-simulation-id";
-var CITY_DATA_ROOT = "https://airtracker.createlab.org/assets/data/cities/";
-var CITY_DATA_ROOT_LOCAL = "./assets/data/cities/";
+
+var DATA_ROOT = "https://storage.googleapis.com/air-tracker-edf-website/prod/assets/data/";
+var DATA_ROOT_LOCAL = "./assets/data/";
+
+var CITY_DATA_ROOT = DATA_ROOT + "cities/";
+var LANG_DATA_ROOT = DATA_ROOT + "lang/";
+
+var HIDE_NON_PUBLIC_CITIES = window.location.href.indexOf("dev.") == -1;
+
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
 var PM25_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
@@ -56,6 +63,7 @@ var userPlacemarkes = [];
 var overlay;
 var db;
 var RRule;
+var currentLang = {};
 //var mostRecentUpdateEpochTimeForLocationInMs;
 //var startOfLatestAvailableDay;
 
@@ -83,6 +91,8 @@ var traxLocations = {};
 var traxMarkers = [];
 var sensorsEnabledState = {};
 var sensorLoadingDeferrers = {};
+
+var bodyTemplateLoadedPromise = new Deferred();
 
 var worldMask;
 // modes:
@@ -112,12 +122,14 @@ var $calendarBtn;
 var $dayTimeToggle;
 var $infobarComponentContainer;
 var $infobarInitial;
+var $traxToggle;
 var $citySelector;
 var $cityName;
 var $map;
 var $currentDateLegendText;
 var $currentClockPreviewTime;
 var $legend;
+var $langPicker;
 var $searchBoxClear;
 var $searchBox;
 var $searchBoxIcon;
@@ -125,7 +137,8 @@ var $tooltip;
 var $tooltipContent;
 
 
-var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
+//var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
+var defaultHomeView = {lat: 29.818632, lng: -52.781476, zoom: window.innerWidth <= 450 ? 3 : 3};
 var startingView = Object.assign({}, defaultHomeView);
 // If true, do not pull footprints from GCS, but compute them in realtime
 var runRealTime = false;
@@ -282,15 +295,57 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
   sensorLoadingDeferrers['trax'].resolve(null);
 }
 
+async function loadLang(lang) {
+  return await loadJsonData(LANG_DATA_ROOT + lang + ".json");
+}
+
+async function languageSelector(lang, firstTime) {
+  currentLang = await loadLang(lang);
+  if (firstTime) {
+    // Set up template for all text
+    var tpl_source = document.getElementById("body-tpl").innerHTML;
+    var template = Handlebars.compile(tpl_source);
+    document.getElementById('body-content').innerHTML = template(currentLang);
+    // Set up template for language picker
+    tpl_source = document.getElementById("language-picker-tpl").innerHTML;
+    template = Handlebars.compile(tpl_source);
+    document.getElementById('language-picker').innerHTML = template(availableLanguages);
+    $("#language-picker-select").val(lang);
+  } else {
+    var $textElms = $('[data-lang-key]');
+    $textElms.each(function() {
+      var $this = $(this);
+      var langKey = $this.data("lang-key");
+      var newString = langKey.split('.').reduce((o,i)=> o[i], currentLang);
+      if (langKey.includes("title")) {
+        $this.prop("title", newString);
+      } else if (langKey.includes("placeholder")) {
+        $this.prop("placeholder", newString);
+      } else {
+        $this.html(newString);
+      }
+    });
+    changeBrowserUrlState();
+    determineSensorAndUpdateInfoBar();
+  }
+}
 
 async function initMap() {
   var urlVars = Util.parseVars(window.location.href);
 
   var shareView = urlVars.v;
-
   runRealTimeOverride = urlVars.runRealTime == 'true';
   useGFSMetOverride = urlVars.useGFSMet == 'true';
   backtraceMode = typeof(urlVars.backtraceMode) != "undefined" ? urlVars.backtraceMode : backtraceMode;
+
+  var userLang = typeof(urlVars.lang) != "undefined" ? urlVars.lang : navigator.language || navigator.userLanguage;
+  userLang = userLang.split("-")[0];
+
+  if (!Object.keys(availableLanguages).includes(userLang)) {
+    userLang = "en";
+  }
+  await languageSelector(userLang, true);
+  bodyTemplateLoadedPromise.resolve(null);
 
   if (shareView) {
     var tmp = shareView.split(",");
@@ -318,7 +373,8 @@ async function initMap() {
     rotateControl: false,
     center: { lat: startingView.lat, lng: startingView.lng },
     zoom: startingView.zoom,
-    minZoom: isMobileView() ? 4 : 5,
+    // minZoom: isMobileView() ? 4 : 5,
+    minZoom: isMobileView() ? 3 : 3,
     streetViewControl: false,
     mapTypeControl: true,
     mapTypeControlOptions: {
@@ -560,22 +616,18 @@ async function initMap() {
 
   });
 
-  $("#legend-table").on("click", ".more-info", function() {
+  $("body").on("click", ".more-info", function() {
     var text = {
-      "side-panel-data" : {text: "Data comes in at different rates depending upon the type of monitor. If the data rate is sub " + playbackTimeline.getIncrementAmt() + " minute intervals, the value displayed below is the average of all points collected between the selected playback time and prior " + playbackTimeline.getIncrementAmt() + " minute window.", pos: {at: "top", my: 'left bottom-10'}},
-      "side-panel-backtrace" : {text: "To visualize the likely origin of a pollution hotspot, click on the map to generate a source area figure from that hotspot. A source area shows the most likely location where that pollution originated. To further help pinpoint a potential pollution source, click the 3 dots on the side to learn more details about a specific area's contribution likelihood.", pos: {at: "bottom", my: 'left top+10'}},
-      "legend-backtrace" : {text: "A source area (inside the dotted region) is the most likely origin of the air traveling to the clicked location.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-air_now" : {text: "Government monitors providing hourly PM<sub>2.5</sub> readings. These sensors can be used as the most accurate measures of PM. Click on the colored circles to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-purple_air" : {text: "PurpleAir low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-trax" : {text: "TRAX is a public transportation system in Salt Lake City. Three trains measure PM<sub>2.5</sub> along their light rail routes.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-clarity" : {text: "Clarity low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-quant_aq" : {text: "QuantAQ low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-aq_sync" : {text: "AQSync low-cost monitors provide more frequent and localized PM<sub>2.5</sub> readings. Click on the colored squares to view PM<sub>2.5</sub> measurements in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-wind" : {text: "This icon points in the direction the wind is moving. Click on the monitor to view wind speed and direction in the info panel.", pos: {at: "top", my: 'left bottom-10'}},
-      "legend-facilities" :  {text: "Industrial facility locations are marked with either a pin or the full boundaries drawn in light red.", pos: {at: "top", my: 'left bottom-10'}},
-      "grapher" : {text: "View PM<sub>2.5</sub> data over time from any monitor on Air Tracker. Click a monitor on the map. When it appears below, toggle the monitor from 'off' to 'on'. Each measurement is represented by a dot on the chart. <br><br> Click on the plus and minus signs or use your scroll wheel to explore trends over time. <br><br>You may compare trends from multiple monitors by clicking on additional monitors. <br><br>Click on a dot in the chart, and  Air Tracker will automatically show you the source area at that time for that monitor. Note that if you select multiple monitors, Air Tracker will show the source areas for the last location you clicked on the map.", pos: {at: "right", my: 'left-12 top+10'}},
+      "side-panel-data" : {text: currentLang.moreInfo.sidePanelData.content + " " + playbackTimeline.getIncrementAmt() + " " + currentLang.moreInfo.sidePanelData.content2 + " " + playbackTimeline.getIncrementAmt() + " " + currentLang.moreInfo.sidePanelData.content3, pos: {at: "top", my: 'left bottom-10'}},
+      "side-panel-backtrace" : {text: currentLang.moreInfo.sidePanelBacktrace.content, pos: {at: "bottom", my: 'left top+10'}},
+      "grapher" : {text: currentLang.moreInfo.grapher.content, pos: {at: "right", my: 'left-12 top+10'}},
+      "legend-row" : {text: "", pos: {at: "top", my: 'left bottom-10'}}
     };
     var selectedInfo = text[$(this).data("info")];
+    if (!selectedInfo) {
+      selectedInfo = text['legend-row'];
+      selectedInfo.text = ("moreInfo." + $(this).data("info") + ".content").split('.').reduce((o,i)=> o[i], currentLang);
+    }
     setButtonTooltip(selectedInfo.text, $(this), null, selectedInfo.pos);
   });
 
@@ -977,7 +1029,7 @@ async function initMap() {
     if ($(this).hasClass("disabled")) return;
     timeSeriesModeEnabled = true;
     if (!heatmapModeEnabled) {
-      $("#back-arrow-text").html("Exit Time Series");
+      $("#back-arrow-text").html(currentLang.timeseries.exit.content);
     }
     $("#infobar").addClass("altmode");
     if (heatmapModeEnabled) {
@@ -998,7 +1050,7 @@ async function initMap() {
   $("#heatmap-btn").on("click", function() {
     if ($(this).hasClass("disabled")) return;
     heatmapModeEnabled = true;
-    $("#back-arrow-text").html("Exit Heatmap Mode");
+    $("#back-arrow-text").html(currentLang.infobar.heatmap.exit.content);
     $("#infobar").addClass("altmode");
     $("#infobar-tools, #heatmap").show();
     handleHeatmapMode();
@@ -1113,7 +1165,7 @@ async function initMap() {
 
     if ($(this).hasClass("waiting")) return;
 
-    $(this).addClass("waiting").text("Generating...");
+    $(this).addClass("waiting").text(currentLang.shareModal.waiting.content);
     //var ratio = Math.max(1920/$("#map").width(), 1080/$("#map").height());
 
     var canvas = await html2canvas(document.getElementById('map'),
@@ -1143,7 +1195,7 @@ async function initMap() {
     var momentTime = moment.tz(currentPlaybackTimeInMs, selected_city_tmz);
     var dateStr = isPlaybackTimelineOpen ? momentTime.format("YYYYMMDDHHmm") : momentTime.startOf("day").format("YYYYMMDDHHmm");
     download(exportImage, dateStr + ".png", "image/png");
-    $(this).removeClass("waiting").text("Capture Screenshot");
+    $(this).removeClass("waiting").text(currentLang.shareModal.captureBtn.content);
   });
 
   $("#legend-table").on("click", "td input", function(e) {
@@ -1256,18 +1308,19 @@ async function initMap() {
     traxMarker.setVisible(false);
     traxMarkers.push(traxMarker);
   }
+  changeBrowserUrlState();
 }
 
 
 function siteTourShort() {
-  var defaultTourStepTitle = "Air Tracker Tour";
+  var defaultTourStepTitle = currentLang.tour.heading.content;
 
   // TODO: Make tour views/text fit better for mobile
   var steps = [];
 
-  var step_0_text = "This tour covers the basics of Air Tracker. <br> <br> To start, click 'Next'.";
+  var step_0_text = currentLang.tour.step0.content;
   if (!isMobileView()) {
-    step_0_text += "<br><br> You can also use the forward/backward arrow keys on your keyboard.";
+    step_0_text += "<br><br> " + currentLang.tour.step0.content2;
   }
   var step_0 = {
     title: defaultTourStepTitle,
@@ -1276,20 +1329,20 @@ function siteTourShort() {
 
   var step_1 = {
     title: defaultTourStepTitle,
-    intro: "Air Tracker is interactive and works within the dotted bounds around each featured city. <br><br> You can click anywhere within those bounds to find a source area influencing that point of interest."
+    intro: currentLang.tour.step1.content
   };
 
   var step_2 = {
     title: defaultTourStepTitle,
     element: null,
     highlightPaddings:  {top: -150, left: -50, width: 500, height: 200},
-    intro: "A source area, which is depicted as a non-masked out region, shows where pollution is most likely originating."
+    intro: currentLang.tour.step2.content
   };
 
   var step_3 = {
     title: defaultTourStepTitle,
     element: null,
-    intro: "These colored circles represent regulatory air quality monitors. The colors within the circle represent real-time air pollution readings.",
+    intro: currentLang.tour.step3.content,
     position: "right",
     highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
   };
@@ -1297,7 +1350,7 @@ function siteTourShort() {
   var step_4 = {
     title: defaultTourStepTitle,
     element: null,
-    intro: "The blue arrow points in the direction that wind is moving. You can click on these monitors to show real-time wind and pollution readings on the side bar.",
+    intro: currentLang.tour.step4.content,
     position: "right",
     highlightPaddings: {left: -50, top: -50, width: 70, height: 70},
   };
@@ -1305,14 +1358,14 @@ function siteTourShort() {
   var step_5 = {
     title: defaultTourStepTitle,
     element: document.querySelector(".chart-btn"),
-    intro: "Once you've click on a monitor, you can also click the chart emblem on the side bar to see pollution concentrations over time at that monitor.",
+    intro: currentLang.tour.step5.content,
     position: "right",
   };
 
   var step_6 = {
     title: defaultTourStepTitle,
     element: document.querySelector("#purple_air-legend-row"),
-    intro: "'PurpleAir' and 'Clarity' sensor data can be added to the map using the toggle button in the legend.",
+    intro: currentLang.tour.step6.content,
     highlightPaddings:  {height: 38},
     position: "left",
   };
@@ -1320,42 +1373,42 @@ function siteTourShort() {
   var step_7 = {
     title: defaultTourStepTitle,
     element: document.querySelector("#legend"),
-    intro: "Additional air quality data sources vary by city. <br><br> In Salt Lake City, three trains from the light rail system 'TRAX' feature real-time air pollution monitors that map readings when those trains are running. <br><br> In Pittsburgh, real-time smell reports highlight areas where citizens have reported nuisance smells.",
+    intro: currentLang.tour.step7.content,
     position: "left"
   };
 
   var step_8 = {
     title: defaultTourStepTitle,
     element: document.querySelector('#timeline-container'),
-    intro: "The default map of Air Tracker shows current, real-time data. <br><br> You can also look up source areas in the past. Scroll through the dates at the bottom of the page. When you click on a new date, the map will update, showing the data from the selected day.",
+    intro: currentLang.tour.step8.content,
     position: "top-middle-aligned"
   };
 
   var step_9 = {
     title: defaultTourStepTitle,
     element: document.querySelector('.timestampPreview'),
-    intro: "To select a new time within a day, click on the clock in the lower left-hand corner of the screen.",
+    intro: currentLang.tour.step9.content,
     position: "top-left-aligned",
   };
 
   var step_10 = {
     title: defaultTourStepTitle,
     element: null,
-    intro: "Once you clicked the clock, you can change the time of day in 3 ways: <br><br> <ol><li>Use the scroll bar on the timeline.</li><li>Click the left/right arrows on your keyboard.</li><li>Hold down the left or right arrow buttons on the timeline and a pop-up will allow you to select a time to jump to.</li>",
+    intro: currentLang.tour.step10.content,
     position: "top-left-aligned",
   };
 
   var step_11 = {
     title: defaultTourStepTitle,
     element: document.querySelector('.playbackButton'),
-    intro: "To animate source areas on a specific date, click the play button next to the calendar. This will play through measured air pollution and source area data.",
+    intro: currentLang.tour.step11.content,
     position: "top-left-aligned",
   };
 
   var step_12 = {
     title: defaultTourStepTitle,
     element: document.querySelector("#share-picker"),
-    intro: "You can share a snapshot of the map view you were looking at by clicking this button. A pop-up will appear with various options.",
+    intro: currentLang.tour.step12.content,
     position: "right",
   };
 
@@ -1665,6 +1718,7 @@ async function getCityInBounds(mapFirstLoad) {
     // show/hide sensor types from legend, based on what the city offers
     toggleOffAllNonForcedSensors();
     $legend.show();
+    $langPicker.removeClass("no-legend")
     $(".custom-legend").accordion( "option", "active", true );
     $(".custom-legend").accordion( "option", "active", 0 );
     $("#legend .legend-row").hide();
@@ -1877,6 +1931,7 @@ function getShareUrl() {
   } else {
     delete urlVars.pinnedPoint;
   }
+  urlVars.lang = currentLang.id;
   var urlVarsString = "?";
   for (var urlVar in urlVars) {
     urlVarsString += urlVar + "=" + urlVars[urlVar] + "&";
@@ -1972,6 +2027,10 @@ function isInTour() {
 
 
 function initDomElms() {
+  $("#language-picker-select").on("change", async function(e) {
+    await languageSelector(e.target.value)
+  })
+
   $("#share-picker").show().button({
     icons: {
       primary: "ui-icon-custom-share-black"
@@ -2111,6 +2170,7 @@ function initDomElms() {
   $cityName = $("#city_name");
   $map = $("#map");
   $legend = $("#legend");
+  $langPicker = $(".language-picker");
   $currentDateLegendText = $("#current-date-legend");
   $currentClockPreviewTime = $("#playback-timeline-container #currentTime");
   $searchBoxClear = $(".searchBoxClearIcon");
@@ -2191,6 +2251,7 @@ function setupGoogleMapsSearchPlaceChangedHandlers() {
 
 
 async function determineSensorAndUpdateInfoBar() {
+  if (!selectedCity) return;
   var primaryInfoPopulator = selectedSensorMarker;
   var found = false;
   // Handle case where a user has clicked on the map where a trax sensor can be but it is not yet visible.
@@ -2751,12 +2812,19 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
     } else {
       wind_val = data["wind_speed"];
     }
+
+    // ACHD - mph, and channel named labeled as such
+    // AirNow if rws, it's knots, otherwise it's m/s
+    // QuantAQ is mph
+    // AQSync is m/s
+    // AirMatters (places like Brazil) is m/s
+
     var channelName = info.sensors.wind_speed.sources[0].channel.toLowerCase();
     if (channelName.endsWith("rws")) {
       // knots to mph
       // AirNow sometimes has RWS (rather than WS) for wind speed, which is in knots (as opposed to m/s).
       wind_val = wind_val * 1.15078;
-    } else if (!channelName.endsWith("mph")) {
+    } else if (!channelName.endsWith("mph") && !info.name.includes("QuantAQ")) {
       // m/s to mph
       // In general, wind data in ESDR appears to be in m/s. However, sometimes the person who wrote the relevant scraper
       // was kind enough to include units in the channel name, so we can check on that to see if the data is actually mph.
@@ -2794,6 +2862,13 @@ async function loadAvailableCities() {
         dataType : 'json',
       });
       available_cities = result?.cities ? result.cities : {};
+      available_cities = Object.fromEntries(Object.entries(available_cities).filter(function(key_val) {
+        if (HIDE_NON_PUBLIC_CITIES && key_val[1].is_public == false) {
+          return false;
+        } else {
+          return true;
+        }
+      }));
       let lineSymbol = {
         path: 'M 0,-1 0,1',
         strokeOpacity: 1,
@@ -2886,7 +2961,11 @@ async function loadAvailableCities() {
       var tpl_source = document.getElementById("sensors-tpl").innerHTML;
       var template = Handlebars.compile(tpl_source);
       var data = result.sensor_mappings;
+      for (let sensor of data) {
+        sensor.title = currentLang.legend.toggle.title;
+      }
       document.getElementById('additional-sensors').innerHTML = template(data);
+      $traxToggle = $("#toggle-trax");
   } catch (error) {
       console.error(error);
   }
@@ -2943,7 +3022,7 @@ function updateInfoBar(marker) {
   var isDaySummary = !markerData['is_current_day'] && markerData.sensorType != "trax";
 
   var markerDataTimeInMs = markerData.sensorType ==  "trax" || markerData.sensorType  == "backtrace" ? markerData['epochtimeInMs'] : markerData['sensor_data_time'] || markerData['wind_data_time'];
-  var markerDataTimeMomentFormatted = moment.tz(markerDataTimeInMs, selected_city_tmz).format("h:mm A (zz)");
+  var markerDataTimeMomentFormatted = formatTimeWithTimeZone(moment.tz(markerDataTimeInMs, selected_city_tmz));
 
   // Set infobar header to sensor name (if TRAX, PurpleAir, etc) or clicked lat/lon coords otherwise
   $infobarHeader.show();
@@ -2955,32 +3034,32 @@ function updateInfoBar(marker) {
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'] ;
   if (isSensorMarkerVisible(selectedSensorMarker)) {
     if (isDaySummary) {
-      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,"Daily Max at "  + markerDataTimeMomentFormatted);
+      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,currentLang.infobarContent.pollutants.daySummary.content + " "  + markerDataTimeMomentFormatted);
     } else {
       if (sensorVal >= 0) {
         setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
       } else {
         // Clicked on a trax sensor, which is now invisible since the time does not match for it.
-        setInfobarUnavailableSubheadings($infobarPollution,"Click on the nearest sensor to see pollution measurements.");
+        setInfobarUnavailableSubheadings($infobarPollution,currentLang.infobarContent.pollutants.unavailable.content);
       }
     }
   } else {
-    setInfobarUnavailableSubheadings($infobarPollution,"Click on the nearest sensor to see pollution measurements.")
+    setInfobarUnavailableSubheadings($infobarPollution,currentLang.infobarContent.pollutants.unavailable.content)
   }
 
   // If time selected, show sensor wind in infobar
   if (selectedSensorMarker) {
     if (isDaySummary) {
-      setInfobarUnavailableSubheadings($infobarWind,"Click the clock icon to explore wind information for this past day.");
+      setInfobarUnavailableSubheadings($infobarWind,currentLang.infobarContent.pollutants.unavailable.content2);
     } else {
       if (markerData['wind_direction']) {
-        setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " at " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
+        setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " " + currentLang.infobarContent.pollutants.wind.content + " " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
       } else {
-        setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest sensor (with an arrow) to see wind measurements.");
+        setInfobarUnavailableSubheadings($infobarWind,currentLang.infobarContent.pollutants.unavailable.content3);
       }
     }
   } else {
-    setInfobarUnavailableSubheadings($infobarWind,"Click on the nearest sensor (with an arrow) to see wind measurements.");
+    setInfobarUnavailableSubheadings($infobarWind,currentLang.infobarContent.pollutants.unavailable.content3);
   }
 
   // Show plume backtrace information
@@ -2989,10 +3068,10 @@ function updateInfoBar(marker) {
     var infoStr = "";
     //var uncertaintyDetailLevel = Util.parseVars(window.location.href).uncertaintyDetail;
     if (overlayData.hasData) {
-      var tm = moment.tz(overlayData['epochtimeInMs'], selected_city_tmz).format("h:mm A (zz)");
+      var tm = formatTimeWithTimeZone(moment.tz(overlayData['epochtimeInMs'], selected_city_tmz));
       if (uncertaintyDetailLevel && overlayData.uncertainty) {
         if (uncertaintyDetailLevel == "1") {
-          setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,"Model Confidence",tm);
+          setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,currentLang.infobarContent.modelConfidence.mainHeading.content,tm);
           $infobarPlume.children(".infobar-text");
           $("#infobar-plume-section").removeClass("detailed");
         } else if (uncertaintyDetailLevel == "2") {
@@ -3001,7 +3080,7 @@ function updateInfoBar(marker) {
           $("#infobar-plume-section").addClass("detailed");
         }
       } else {
-        infoStr = "Snapshot from model at " + tm;
+        infoStr = infobarContent.components.backtrace.content2 + " " + tm;
         setInfobarSubheadings($infobarPlume,infoStr,"","","");
       }
       //$infobarPlume.children(".infobar-unit").show();
@@ -3010,7 +3089,7 @@ function updateInfoBar(marker) {
       if (selectedSensorMarker) {
         pollution_time = markerDataTimeInMs;
       }
-      infoStr = "No pollution backtrace available at " + moment.tz(pollution_time, selected_city_tmz).format("h:mm A (zz)");
+      infoStr = infobarContent.components.backtrace.content3 + " " + formatTimeWithTimeZone(moment.tz(pollution_time, selected_city_tmz));
       setInfobarUnavailableSubheadings($infobarPlume,infoStr);
       $infobarPlume.children(".infobar-text").removeClass('display-unset');
       //$infobarPlume.children(".infobar-unit").hide();
@@ -3033,11 +3112,11 @@ function createUncertaintyTable($element, data) {
     confidenceColor = "goldenrod";
   }
   var tableString = "";
-  tableString += "<table><tr><th></th><th>Wind Speed (m/s)</th><th>Wind Direction (deg)</th></tr>";
+  tableString += "<table><tr><th></th><th><span data-lang-key='infobarContent.modelConfidence.windSpeedHeading.content'>" + currentLang.infobarContent.modelConfidence.windSpeedHeading.content + "</span> (m/s)</th><th><span data-lang-key='infobarContent.modelConfidence.windDirectionHeading.content'>" + currentLang.infobarContent.modelConfidence.windDirectionHeading.content + "</span> (deg)</th></tr>";
   tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td id='hrrr-wd'>"+data.hrrr_wd+"</td></tr>";
   tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td id='kriged-wd'>"+data.kriged_wd+"</td></tr>";
-  tableString += "<tr><th>Error</th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
-  tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + " Model Confidence</td></tr>";
+  tableString += "<tr><th><span data-lang-key='infobarContent.modelConfidence.error.content'>" + currentLang.infobarContent.modelConfidence.error.content + "</span></th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
+  tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + "<span data-lang-key='infobarContent.modelConfidence.mainHeading.content'> " + currentLang.infobarContent.modelConfidence.mainHeading.content + "</span></td></tr>";
   $element.children(".infobar-text")[0].innerHTML = tableString;
   $element.children(".infobar-text").children("table").addClass("infobar-table");
 
@@ -3094,6 +3173,16 @@ async function handleTRAXMarkerClicked(marker, fromAnimate) {
   await drawFootprint(traxLocations[marker.traxId]['lat'], traxLocations[marker.traxId]['lng'], !fromAnimate);
 
   updateInfoBar(marker);
+}
+
+
+function formatTimeWithTimeZone(m_time) {
+  var time = m_time.format("h:mm A");
+  var zone = m_time.format("zz");
+  if (/^\+|-/i.test(zone)) {
+    zone = "(UTC" + zone + ")";
+  }
+  return time + " " + zone;
 }
 
 
@@ -3219,7 +3308,9 @@ function resetMapToCitiesOverview(city_locode) {
   toggleOffAllNonForcedSensors();
   clearUserAddedMarkers();
   selectedCity = "";
+  selected_city_tmz = "";
   $legend.hide();
+  $langPicker.addClass("no-legend");
   $("#infobar-back-arrow-container").trigger("click");
   $("#add-placemarker, #remove-placemarkers").addClass("disabled");
 }
@@ -3562,7 +3653,7 @@ async function alterOverlayImage(url) {
     let r = imageData.data[i+0], g = imageData.data[i+1], b = imageData.data[i+2];
     let a = imageData.data[i+3];
     let s = Math.max(r, g, b) - Math.min(r, g, b); // color saturation
-    r = g = b = 200;
+    r = g = b = 180;
     if (a < 128) {
       // Outside backtrace; heavy grey overlay
        a = 255;
@@ -3592,7 +3683,7 @@ function MaskClass(map) {
   // Create 4 rectangles to mask off the area
   var rectangleMaskOptions = {
     map: map,
-    fillColor: "#c8c8c8",
+    fillColor: "#b4b4b4",
     fillOpacity: 0.8,
     strokeOpacity: 0,
     clickable: false,

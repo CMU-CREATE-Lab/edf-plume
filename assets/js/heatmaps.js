@@ -178,64 +178,64 @@ function computeRRule() {
   });
 
   $("#rrule-str").val(encodeURIComponent(rule.toString()));
-  var message = "Starting ";
+  var message = currentLang.infobar.heatmap.selectedFrequencyMsg.t1.content + " ";
   message += m_startDateTime.format("MMMM DD, yyyy");
-  message += " from " + m_startDateTime.format("h A");
+  message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t2.content + " " + m_startDateTime.format("h A");
   if (isHourly) {
     if (intervals == 1) {
-      message += " every hour";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t3.content;
     } else {
-      message += " every " + intervals + " hours";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t4.content + " " + intervals + " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t5.content;
     }
     if (daysOfWeek.length < 7) {
-      message += " on " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t6.content + " " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
     }
     if (months.length < 12) {
-      message += " in " + getPrettyRanges(getNumberRanges(months), "month");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t7.content + " " + getPrettyRanges(getNumberRanges(months), "month");
     }
   } else if (frequencyRRule == "RRule.DAILY") {
     if (intervals == 1) {
-      message += " every day";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t8.content;
     } else {
-      message += " every " + intervals + " days";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t4.content + " " + intervals + " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t9.content;
     }
-    message += " between the hours of " + getNumberRanges(hours);
+    message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t10.content + " " + getNumberRanges(hours);
     if (daysOfWeek.length < 7) {
-      message += " on " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t6.content + " " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
     }
     if (months.length < 12) {
-      message += " in " + getPrettyRanges(getNumberRanges(months), "month");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t7.content + " " + getPrettyRanges(getNumberRanges(months), "month");
     }
   } else if (frequencyRRule == "RRule.WEEKLY") {
     if (intervals == 1) {
-      message += " every week";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t11.content;
     } else {
-      message += " every " + intervals + " weeks";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t4.content + intervals + " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t12.content;
     }
-    message += " between the hours of " + getNumberRanges(hours);
+    message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t15.content + " " + getNumberRanges(hours);
     if (daysOfWeek.length < 7) {
-      message += " on " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t6.content + " " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
     }
     if (months.length < 12) {
-      message += " in " + getPrettyRanges(getNumberRanges(months), "month");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t7.content + " " + getPrettyRanges(getNumberRanges(months), "month");
     }
   } else if (frequencyRRule == "RRule.MONTHLY") {
     if (intervals == 1) {
-      message += " every month";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t13.content;
     } else {
-      message += " every " + intervals + " months";
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t4.content + " " + intervals + " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t14.content;
     }
-    message += " between the hours of " + getNumberRanges(hours);
+    message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t10.content + getNumberRanges(hours);
     if (daysOfWeek.length < 7) {
-      message += " on " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t6.content + " " + getPrettyRanges(getNumberRanges(daysOfWeekNums), "dayofweek");
     }
     if (months.length < 12) {
-      message += " in " + getPrettyRanges(getNumberRanges(months), "month");
+      message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t7.content + " " + getPrettyRanges(getNumberRanges(months), "month");
     }
   }
 
-  message += " until " + m_endDateTime.format("MMMM DD, yyyy");
-  message += " at " + m_endDateTime.format("h A");
+  message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t15.content + " " + m_endDateTime.format("MMMM DD, yyyy");
+  message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t16.content + " " + m_endDateTime.format("h A");
 
   message += "<br><br>";
 
@@ -251,6 +251,6 @@ function computeRRule() {
     $("#get-heatmap-button-container").removeClass("disabled-cursor");
   }
 
-  message += numDates + " hours will be processed";
+  message += numDates + " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t17.content;
   return message;
 }

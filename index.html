@@ -6,7 +6,7 @@
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" />
-    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/controls.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/widgets.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/TimelineHeatmap.css" />
@@ -27,7 +27,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone-with-data-10-year-range.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script type="text/javascript" src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -51,19 +51,21 @@
 
     <script type="text/javascript" src="./assets/lib/grapher/grapher.min.js"></script>
     <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.8/handlebars.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
 
     <script type="text/javascript" src="./assets/lib/rrule/rrule.min.js"></script>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
 
-    <script id="sensors-tpl" type="text/template">
+    <script type="text/javascript" src="https://storage.googleapis.com/air-tracker-edf-website/prod/assets/data/lang/langs.js"></script>
+
+    <script type="text/template" id="sensors-tpl">
       {{#each .}}
         <tr id="{{id}}-legend-row" class="legend-row">
           <td class="entry-title two-rows">
             {{name}} PM<sub>2.5</sub>:
-            <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-{{id}}"></span>
+            <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-{{id}}" data-lang-key="infobar.moreInfo.title"></span>
           </td>
           <td colspan="2">
             <table>
@@ -84,7 +86,7 @@
             </table>
           </td>
           <td>
-            <label class="switch" title="Toggle {{name}} sensors">
+            <label class="switch" title="{{title}}" data-lang-key="legend.toggle.title">
               <input type="checkbox" id="toggle-{{id}}" data-marker-type="{{id}}">
               <span class="slider round">
                 <span class="input-state-text"></span>
@@ -94,623 +96,620 @@
         </tr>
       {{/each}}
     </script>
-  </head>
-  <body class="materialUI">
-    <div id="heatmap-loading-mask"><div class="loader"></div></div>
-    <div id="controls" class="playbackTimelineOff" style="display: none">
-      <div id="playback-timeline-container" class="noselect materialUI">
-        <div class="materialTimelineContainerMain">
-          <div class="materialTimelineContainer">
-            <div class="timestampPreview disabled" title="Explore more hours in this day"><div id="currentTime"></div></div>
-            <div class="playbackButton" title="Play"></div>
-            <div class="leftSeekControl" title="Click to seek backward. Press and hold to jump to a different hour."><span class="leftSeekControlIcon"></span></div>
-            <div class="materialTimeline"></div>
-            <div class="rightSeekControl" title="Click to seek forward. Press and hold to jump to a different hour."><span class="rightSeekControlIcon"></span></div>
+    <script type="text/template" id="language-picker-tpl">
+      <form action="" class="language-picker__form">
+        <select name="language-picker-select" id="language-picker-select">
+          {{#each .}}
+            <option lang="{{@key}}" value="{{@key}}" selected>{{this}}</option>
+          {{/each}}
+        </select>
+      </form>
+    </script>
+    <script type="text/template" id="body-tpl">
+      <div id="heatmap-loading-mask"><div class="loader"></div></div>
+      <div id="controls" class="playbackTimelineOff" style="display: none">
+        <div id="playback-timeline-container" class="noselect materialUI">
+          <div class="materialTimelineContainerMain">
+            <div class="materialTimelineContainer">
+              <div class="timestampPreview disabled" title="{{playbackTimelineContainer.timestampPreview.title}}" data-lang-key="playbackTimelineContainer.timestampPreview.title"><div id="currentTime"></div></div>
+              <div class="playbackButton" title="{{playbackTimelineContainer.playbackButton.title}}" data-lang-key="playbackTimelineContainer.playbackButton.title"></div>
+              <div class="leftSeekControl" title="{{playbackTimelineContainer.leftSeekControl.title}}" data-lang-key="playbackTimelineContainer.leftSeekControl.title"><span class="leftSeekControlIcon"></span></div>
+              <div class="materialTimeline"></div>
+              <div class="rightSeekControl" title="{{playbackTimelineContainer.rightSeekControl.title}}" data-lang-key="playbackTimelineContainer.rightSeekControl.title"><span class="rightSeekControlIcon"></span></div>
+            </div>
           </div>
+          <div id="timeJumpControl" title="{{playbackTimelineContainer.timeJumpControl.title}}" data-lang-key="playbackTimelineContainer.timeJumpControl.title"></div>
         </div>
-        <div id="timeJumpControl" title="Jump to an hour"></div>
+        <div id="timeline-container" class="noselect timeline-container"></div>
+        <div id="timeline-handle" class="noselect force-no-visibility"><span><span data-lang-key="playbackTimelineContainer.dayPickerHeader.content">{{playbackTimelineContainer.dayPickerHeader.content}}</span>&nbsp;-&nbsp;</span><span id='city_name'></span></div>
+        <button id="calendar-btn" title="{{calendar.titleBar.title}}" data-lang-key="calendar.titleBar.title" class="force-hidden custom-button-flat calendar-default-icon" disabled>
+          <div class="calendar-specific-day hidden"></div>
+        </button>
       </div>
-      <div id="timeline-container" class="noselect timeline-container"></div>
-      <div id="timeline-handle" class="noselect force-no-visibility"><span>Daily AQI&nbsp;-&nbsp;</span><span id='city_name'></span></div>
-      <button id="calendar-btn" title="Calendar" class="force-hidden custom-button-flat calendar-default-icon" disabled>
-        <div class="calendar-specific-day hidden"></div>
-      </button>
-    </div>
-    <div id="infobar" class='infocontainer no-controls'>
-      <div id="infobar-tools">
-        <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
-        <div id="infobar-back-arrow-container" title="Exit mode">
-          <div id="back-arrow"></div>
-          <span id="back-arrow-text">Exit Mode</span>
+      <div id="infobar" class='infocontainer no-controls'>
+        <div id="infobar-tools">
+          <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
+          <div id="infobar-back-arrow-container" title="{{infobar.infobarBackArrowContainer.title}}" data-lang-key="infobar.infobarBackArrowContainer.title">
+            <div id="back-arrow"></div>
+            <span id="back-arrow-text" data-lang-key="infobar.backArrowText.content">{{infobar.backArrowText.content}}</span>
+          </div>
+          <span class='more-info more-info-grapher' title="{{infobar.moreInfo.title}}" data-info="grapher" data-lang-key="infobar.moreInfo.title"></span>
+          <div id="infobar-tools-wrapper">
+            <div id="heatmap">
+              <p class="description" data-lang-key="infobar.heatmap.description.content">{{infobar.heatmap.description.content}}</p>
+              <div class="left-align-content add-top-margin">
+                <div class="custom-radio custom-radio-left">
+                  <input type="radio" name="date-picker-selector" value="gui" id="gui-collection-radio" checked>
+                  <label for="gui-collection-radio" data-lang-key="infobar.heatmap.guiCollectionRadioLabel.content" class="noselect">{{infobar.heatmap.guiCollectionRadioLabel.content}}</label>
+                </div>
+                <div class="custom-radio custom-radio-right">
+                  <input type="radio" name="date-picker-selector" value="manual" id="manual-collection-radio">
+                  <label for="manual-collection-radio" data-lang-key="infobar.heatmap.manualCollectionRadioLabel.content" class="noselect">{{infobar.heatmap.manualCollectionRadioLabel.content}}</label>
+                </div>
+              </div>
+              <div id="heatmap-manual-date-entry-container" data-radio="manual-collection-radio">
+                <p class="description" data-lang-key="infobar.heatmap.manualCollectionDescription.content">{{infobar.heatmap.manualCollectionDescription.content}}</p>
+                <p class="description2" data-lang-key="infobar.heatmap.manualCollectionDescription.content2">{{infobar.heatmap.manualCollectionDescription.content2}}</p>
+                <div class="heatmap-dates-wrapper">
+                  <p class="description">(e.g. 2022-07-02 15:00, 2022-07-02 16:00)</p>
+                  <textarea id="heatmap-dates" rows="10" cols="34"></textarea>
+                </div>
+              </div>
+              <div id="heatmap-gui-datepicker-entry-container" data-radio="gui-collection-radio">
+                <p class="description" data-lang-key="infobar.heatmap.guiCollectionDescription.content">{{infobar.heatmap.guiCollectionDescription.content}}</p>
+                <table id="heatmap-date-picker">
+                  <tr>
+                    <td width="20">
+                      <div id="datetimepickerStartHeading" data-lang-key="infobar.heatmap.datetimepickerStartHeading.content">{{infobar.heatmap.datetimepickerStartHeading.content}}: </div>
+                    </td>
+                    <td>
+                      <div class="input-block">
+                        <input id="datetimepicker-start" type="text" placeholder="{{infobar.heatmap.datetimepickerStart.placeholder}}" autocomplete="off" data-lang-key="infobar.heatmap.datetimepickerStart.placeholder">
+                        <i class="fa fa-calendar-alt"></i>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td id="datetimepickerIntervalHeading" data-lang-key="infobar.heatmap.datetimepickerIntervalHeading.content">
+                      {{infobar.heatmap.datetimepickerIntervalHeading.content}}:
+                    </td>
+                    <td>
+                      <input type="number" id="interval" name="interval" min="1" value="1">
+                      <select name="frequency" id="frequency">
+                        <option value="RRule.HOURLY">Hour(s)</option>
+                        <option value="RRule.DAILY">Day(s)</option>
+                        <option value="RRule.WEEKLY">Week(s)</option>
+                        <option value="RRule.MONTHLY">Month(s)</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr id="hour-row">
+                    <td colspan="2" id="datetimepickerHourSelectorHeading">
+                      <span data-lang-key="infobar.heatmap.datetimepickerHourSelectorHeading.content">{{infobar.heatmap.datetimepickerHourSelectorHeading.content}}</span>: (<a href="javascript:void(0)" class="select-all" data-lang-key="infobar.heatmap.selectAllOptions.content">{{infobar.heatmap.selectAllOptions.content}}</a>)
+                      <div id="hour" class="checkbox-group">
+                        <label><input name="byhour" type="checkbox" value="0" checked>12 AM</label>
+                        <label><input name="byhour" type="checkbox" value="1" checked>01 AM</label>
+                        <label><input name="byhour" type="checkbox" value="2" checked>02 AM</label>
+                        <label><input name="byhour" type="checkbox" value="3" checked>03 AM</label>
+                        <label><input name="byhour" type="checkbox" value="4" checked>04 AM</label>
+                        <label><input name="byhour" type="checkbox" value="5" checked>05 AM</label>
+                        <label><input name="byhour" type="checkbox" value="6" checked>06 AM</label>
+                        <label><input name="byhour" type="checkbox" value="7" checked>07 AM</label>
+                        <label><input name="byhour" type="checkbox" value="8" checked>08 AM</label>
+                        <label><input name="byhour" type="checkbox" value="9" checked>09 AM</label>
+                        <label><input name="byhour" type="checkbox" value="10" checked>10 AM</label>
+                        <label><input name="byhour" type="checkbox" value="11" checked>11 AM</label>
+                        <label><input name="byhour" type="checkbox" value="12" checked>12 PM</label>
+                        <label><input name="byhour" type="checkbox" value="13" checked>01 PM</label>
+                        <label><input name="byhour" type="checkbox" value="14" checked>02 PM</label>
+                        <label><input name="byhour" type="checkbox" value="15" checked>03 PM</label>
+                        <label><input name="byhour" type="checkbox" value="16" checked>04 PM</label>
+                        <label><input name="byhour" type="checkbox" value="17" checked>05 PM</label>
+                        <label><input name="byhour" type="checkbox" value="18" checked>06 PM</label>
+                        <label><input name="byhour" type="checkbox" value="19" checked>07 PM</label>
+                        <label><input name="byhour" type="checkbox" value="20" checked>08 PM</label>
+                        <label><input name="byhour" type="checkbox" value="21" checked>09 PM</label>
+                        <label><input name="byhour" type="checkbox" value="22" checked>10 PM</label>
+                        <label><input name="byhour" type="checkbox" value="23" checked>11 PM</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" id="datetimepickerDayOfWeekSelectorHeading">
+                      <span data-lang-key="infobar.heatmap.datetimepickerDayOfWeekSelectorHeading.content">{{infobar.heatmap.datetimepickerDayOfWeekSelectorHeading.content}}</span>: (<a href="javascript:void(0)" class="select-all" data-lang-key="infobar.heatmap.selectAllOptions.content">{{infobar.heatmap.selectAllOptions.content}}</a>)
+                      <div id="dayofweek" class="checkbox-group">
+                      <label><input type="checkbox" name="byweekday" value="RRule.MO" checked>Mon</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.TU" checked>Tue</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.WE" checked>Wed</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.TH" checked>Thu</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.FR" checked>Fri</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.SA" checked>Sat</label>
+                      <label><input type="checkbox" name="byweekday" value="RRule.SU" checked>Sun</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" id="datetimepickerMonthSelectorHeading">
+                      <span data-lang-key="infobar.heatmap.datetimepickerMonthSelectorHeading.content">{{infobar.heatmap.datetimepickerMonthSelectorHeading.content}}</span>: (<a href="javascript:void(0)" class="select-all" data-lang-key="infobar.heatmap.selectAllOptions.content">{{infobar.heatmap.selectAllOptions.content}}</a>)
+                      <div id="month" class="checkbox-group">
+                        <label><input name="bymonth" type="checkbox" value="1" checked>Jan</label>
+                        <label><input name="bymonth" type="checkbox" value="2" checked>Feb</label>
+                        <label><input name="bymonth" type="checkbox" value="3" checked>Mar</label>
+                        <label><input name="bymonth" type="checkbox" value="4" checked>Apr</label>
+                        <label><input name="bymonth" type="checkbox" value="5" checked>May</label>
+                        <label><input name="bymonth" type="checkbox" value="6" checked>Jun</label>
+                        <label><input name="bymonth" type="checkbox" value="7" checked>Jul</label>
+                        <label><input name="bymonth" type="checkbox" value="8" checked>Aug</label>
+                        <label><input name="bymonth" type="checkbox" value="9" checked>Sep</label>
+                        <label><input name="bymonth" type="checkbox" value="10" checked>Oct</label>
+                        <label><input name="bymonth" type="checkbox" value="11" checked>Nov</label>
+                        <label><input name="bymonth" type="checkbox" value="12" checked>Dec</label>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div data-lang-key="infobar.heatmap.datetimepickerEndHeading.content">{{infobar.heatmap.datetimepickerEndHeading.content}}: </div>
+                    </td>
+                    <td>
+                      <div class="input-block">
+                        <input id="datetimepicker-end" type="text" placeholder="{{infobar.heatmap.datetimepickerEnd.placeholder}}" autocomplete="off" data-lang-key="infobar.heatmap.datetimepickerEnd.placeholder">
+                        <i class="fa fa-calendar-alt"></i>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+                <input type="hidden" id="rrule-str">
+                <p id="result"></p>
+              </div>
+            </div>
+            <div id="timeseries">
+              <div id="grapher_container" class="noselect">
+                <div class="alert" data-lang-key="timeseries.alert.content">
+                  {{timeseries.alert.content}}
+                </div>
+                <table id="grapher" border="0" cellpadding="0" cellspacing="0">
+                  <tr>
+                      <td>
+                        <div id="date_axis" class="date_axis"></div>
+                      </td>
+                      <td>
+                        <div id="zoomGrapherIn" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" data-lang-key="timeseries.zoomGrapherIn.title" title="{{timeseries.zoomGrapherIn.title}}">
+                          <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-plus-white"></span>
+                        </div>
+                        <div id="zoomGrapherOut" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" data-lang-key="timeseries.zoomGrapherOut.title" title="{{timeseries.zoomGrapherOut.title}}">
+                          <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-minus-white"></span>
+                        </div>
+                      </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div id="plot_container" class="plot_container"></div>
+                      </td>
+                      <td>
+                        <div id="y_axis" class="y_axis">
+                          <div id="y_axis_label" class="rotate_90 y_axis_label">(ug/m<sup>3</sup>)</div>
+                        </div>
+                      </td>
+                  </tr>
+                  <tr><td id="hover_sample_value_and_time"></td></tr>
+                </table>
+                <div id='grapher_legend'>
+                  <table id="graph_legend_content"></table>
+                </div>
+              </div>
+            </div>
+            <br>
+            <div id="get-heatmap-button-container"><div id='get-heatmap'><span class="button-text" data-lang-key="timeseries.generateHeatmapBtn.content">{{timeseries.generateHeatmapBtn.content}}</span></div></div>
+          </div>
         </div>
-        <span class='more-info more-info-grapher' title="Learn more" data-info="grapher"></span>
-        <div id="infobar-tools-wrapper">
-          <div id="heatmap">
-            <!-- <p class="heading">Source Area Over Time</p> -->
-            <p class="description">Generate a heatmap of cumulative source area likelihoods for the clicked location. Choose "Guided Date Picker" to quickly produce a list of date-times, or choose "Manual Entry" to enter in your own list of date-times. If you clicked a sensor on the map when in manual entry mode, you can also obtain date-times from the Time Series chart feature.</p>
-            <div class="left-align-content add-top-margin">
-              <div class="custom-radio custom-radio-left">
-                <input type="radio" name="date-picker-selector" value="gui" id="gui-collection-radio" checked>
-                <label for="gui-collection-radio" class="noselect">Guided Date Picker</label>
-              </div>
-              <div class="custom-radio custom-radio-right">
-                <input type="radio" name="date-picker-selector" value="manual" id="manual-collection-radio">
-                <label for="manual-collection-radio" class="noselect">Manual Entry</label>
-              </div>
-            </div>
-            <div id="heatmap-manual-date-entry-container" data-radio="manual-collection-radio">
-              <p class="description">Enter a list of dates, comma delimited, to create a heatmap of cumulative source area likelihoods for the clicked location, across that set of times. If you clicked a sensor on the map, you can also obtain date-times from the Time Series chart feature found below by clicking data points in the chart. <br><br> Note that dates entered are assumed to be in local time.</p>
-              <div class="heatmap-dates-wrapper">
-                <p class="description">(e.g. 2022-07-02 15:00, 2022-07-02 16:00)</p>
-                <textarea id="heatmap-dates" rows="10" cols="34"></textarea>
-              </div>
-            </div>
-            <div id="heatmap-gui-datepicker-entry-container" data-radio="gui-collection-radio">
-              <p class="description">Fill out the form below to generate a series of date-times that will be used to create a heatmap of cumulative source area likelihoods for the clicked location.</p>
-              <table id="heatmap-date-picker">
-                <tr>
-                  <td width="20">
-                    <div>From: </div>
-                  </td>
-                  <td>
-                    <div class="input-block">
-                      <input id="datetimepicker-start" type="text" placeholder="Start Date Time" autocomplete="off">
-                      <i class="fa fa-calendar-alt"></i>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    Every:
-                  </td>
-                  <td>
-                    <input type="number" id="interval" name="interval" min="1" value="1">
-                    <select name="frequency" id="frequency">
-                      <option value="RRule.HOURLY">Hour(s)</option>
-                      <option value="RRule.DAILY">Day(s)</option>
-                      <option value="RRule.WEEKLY">Week(s)</option>
-                      <option value="RRule.MONTHLY">Month(s)</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr id="hour-row">
-                  <td colspan="2">
-                    At: (<a href="javascript:void(0)" class="select-all">select all</a>)
-                    <div id="hour" class="checkbox-group">
-                      <label><input name="byhour" type="checkbox" value="0" checked>12 AM</label>
-                      <label><input name="byhour" type="checkbox" value="1" checked>01 AM</label>
-                      <label><input name="byhour" type="checkbox" value="2" checked>02 AM</label>
-                      <label><input name="byhour" type="checkbox" value="3" checked>03 AM</label>
-                      <label><input name="byhour" type="checkbox" value="4" checked>04 AM</label>
-                      <label><input name="byhour" type="checkbox" value="5" checked>05 AM</label>
-                      <label><input name="byhour" type="checkbox" value="6" checked>06 AM</label>
-                      <label><input name="byhour" type="checkbox" value="7" checked>07 AM</label>
-                      <label><input name="byhour" type="checkbox" value="8" checked>08 AM</label>
-                      <label><input name="byhour" type="checkbox" value="9" checked>09 AM</label>
-                      <label><input name="byhour" type="checkbox" value="10" checked>10 AM</label>
-                      <label><input name="byhour" type="checkbox" value="11" checked>11 AM</label>
-                      <label><input name="byhour" type="checkbox" value="12" checked>12 PM</label>
-                      <label><input name="byhour" type="checkbox" value="13" checked>01 PM</label>
-                      <label><input name="byhour" type="checkbox" value="14" checked>02 PM</label>
-                      <label><input name="byhour" type="checkbox" value="15" checked>03 PM</label>
-                      <label><input name="byhour" type="checkbox" value="16" checked>04 PM</label>
-                      <label><input name="byhour" type="checkbox" value="17" checked>05 PM</label>
-                      <label><input name="byhour" type="checkbox" value="18" checked>06 PM</label>
-                      <label><input name="byhour" type="checkbox" value="19" checked>07 PM</label>
-                      <label><input name="byhour" type="checkbox" value="20" checked>08 PM</label>
-                      <label><input name="byhour" type="checkbox" value="21" checked>09 PM</label>
-                      <label><input name="byhour" type="checkbox" value="22" checked>10 PM</label>
-                      <label><input name="byhour" type="checkbox" value="23" checked>11 PM</label>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="2">
-                    On: (<a href="javascript:void(0)" class="select-all">select all</a>)
-                    <div id="dayofweek" class="checkbox-group">
-                    <label><input type="checkbox" name="byweekday" value="RRule.MO" checked>Mon</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.TU" checked>Tue</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.WE" checked>Wed</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.TH" checked>Thu</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.FR" checked>Fri</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.SA" checked>Sat</label>
-                    <label><input type="checkbox" name="byweekday" value="RRule.SU" checked>Sun</label>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="2">
-                    Of Every: (<a href="javascript:void(0)" class="select-all">select all</a>)
-                    <div id="month" class="checkbox-group">
-                      <label><input name="bymonth" type="checkbox" value="1" checked>Jan</label>
-                      <label><input name="bymonth" type="checkbox" value="2" checked>Feb</label>
-                      <label><input name="bymonth" type="checkbox" value="3" checked>Mar</label>
-                      <label><input name="bymonth" type="checkbox" value="4" checked>Apr</label>
-                      <label><input name="bymonth" type="checkbox" value="5" checked>May</label>
-                      <label><input name="bymonth" type="checkbox" value="6" checked>Jun</label>
-                      <label><input name="bymonth" type="checkbox" value="7" checked>Jul</label>
-                      <label><input name="bymonth" type="checkbox" value="8" checked>Aug</label>
-                      <label><input name="bymonth" type="checkbox" value="9" checked>Sep</label>
-                      <label><input name="bymonth" type="checkbox" value="10" checked>Oct</label>
-                      <label><input name="bymonth" type="checkbox" value="11" checked>Nov</label>
-                      <label><input name="bymonth" type="checkbox" value="12" checked>Dec</label>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div>Until: </div>
-                  </td>
-                  <td>
-                    <div class="input-block">
-                      <input id="datetimepicker-end" type="text" placeholder="End Date Time" autocomplete="off">
-                      <i class="fa fa-calendar-alt"></i>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-              <input type="hidden" id="rrule-str">
-              <p id="result"></p>
-            </div>
+        <div id="infobar-content">
+          <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
+          <div id="infobar-location-header"></div>
+          <div id="infobar-initial" class="initial">
+            <p data-lang-key="infobarContent.initial.p1.content">{{infobarContent.initial.p1.content}}</p>
+            <p data-lang-key="infobarContent.initial.p2.content">{{infobarContent.initial.p2.content}}</p>
+            <p data-lang-key="infobarContent.initial.p3.content">{{infobarContent.initial.p3.content}}:</p>
+            <ul>
+              <li data-lang-key="infobarContent.initial.li1.content">{{infobarContent.initial.li1.content}}</li>
+              <br>
+              <li data-lang-key="infobarContent.initial.li2.content">{{infobarContent.initial.li2.content}}</li>
+              <br>
+              <li data-lang-key="infobarContent.initial.li3.content">{{infobarContent.initial.li3.content}}</li>
+            </ul>
           </div>
-          <div id="timeseries">
-            <div id="grapher_container" class="noselect">
-              <div class="alert">
-                Only up to 5 sensors can be graphed. Remove one before adding another.
+          <div id="infobar-component-container">
+            <div id="infobar-plume-section" class="infobar-component">
+              <div class="infobar-component-header"><span data-lang-key="infobarContent.components.backtrace.content">{{infobarContent.components.backtrace.content}}</span>: <span class='more-info' title="{{infobar.moreInfo.title}}" data-info="side-panel-backtrace" data-lang-key="infobar.moreInfo.title"></span><div class="plume-expand-icon" title="{{infobar.moreDetails.title}}" data-lang-key="infobar.moreDetails.title"></div></div>
+              <div id="infobar-plume">
+                <div class="plume-expand"></div>
+                <div class="infobar-text"></div>
+                <div class="infobar-data"></div>
+                <div class="infobar-unit"></div>
+                <div class="infobar-time"></div>
               </div>
-              <table id="grapher" border="0" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td>
-                      <div id="date_axis" class="date_axis"></div>
-                    </td>
-                    <td>
-                      <div id="zoomGrapherIn" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom in the graphs">
-                        <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-plus-white"></span>
-                      </div>
-                      <div id="zoomGrapherOut" class="zoomGrapherBtn ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" title="Zoom out the graphs">
-                        <span class="ui-button-text"></span><span class="ui-button-icon-secondary ui-icon ui-icon-custom-minus-white"></span>
-                      </div>
-                    </td>
-                </tr>
-                <tr>
-                  <td>
-                    <div id="plot_container" class="plot_container"></div>
-                    </td>
-                    <td>
-                      <div id="y_axis" class="y_axis">
-                        <div id="y_axis_label" class="rotate_90 y_axis_label">(ug/m<sup>3</sup>)</div>
-                      </div>
-                    </td>
-                </tr>
-                <tr><td id="hover_sample_value_and_time"></td></tr>
-              </table>
-              <div id='grapher_legend'>
-                <table id="graph_legend_content"></table>
+              <div class="heatmap-modal-button-container"><button id="heatmap-btn" data-lang-key="infobarContent.components.heatmapBtn.content">{{infobarContent.components.heatmapBtn.content}}</button></div>
+            </div>
+            <div id="infobar-pollution-section" class="infobar-component">
+              <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="{{infobar.moreInfo.title}}" data-lang-key="infobar.moreInfo.title" data-info="side-panel-data"></span><span class='chart-btn' title="{{infobarContent.components.timeseriesBtn.title}}" data-lang-key="infobarContent.components.timeseriesBtn.title"></span></div>
+              <div id="infobar-pollution" class="infobar-component-value">
+                <div class="infobar-text"><i data-lang-key="infobarContent.components.pollutionHeading.content">{{infobarContent.components.pollutionHeading.content}}</i></div>
+                <div class="infobar-data"></div>
+                <div class="infobar-unit"></div>
+                <div class="infobar-time"></div>
+              </div>
+            </div>
+            <div id="infobar-wind-section" class="infobar-component">
+              <div class="infobar-component-header" data-lang-key="infobarContent.components.windHeading.content">{{infobarContent.components.windHeading.content}}: <span class='more-info' title="{{infobar.moreInfo.title}}" data-info="side-panel-data" data-lang-key="infobar.moreInfo.title"></span></div>
+              <div id="infobar-wind" class="infobar-component-value">
+                <div class="infobar-text"><i data-lang-key="infobarContent.components.windDescription.content">{{infobarContent.components.windDescription.content}}</i></div>
+                <div class="infobar-data-intro" data-lang-key="infobarContent.components.windHeadingDirection.content">{{infobarContent.components.windHeadingDirection.content}}</div>
+                <div class="infobar-data"></div>
+                <div class="infobar-unit"></div>
+                <div class="infobar-time"></div>
               </div>
             </div>
           </div>
-          <br>
-          <div id="get-heatmap-button-container"><div id='get-heatmap'><span class="button-text">Generate Heatmap</span></div></div>
+          <div id="infobar-close-handle-container">
+            <div id="infobar-close-handle"></div>
+          </div>
+          <div id="infobar-close-toggle-container" title="{{infobarContent.components.toggleInfo.title}}" data-lang-key="infobarContent.components.toggleInfo.title">
+            <div class="infobar-close-toggle-icon"></div>
+          </div>
+          <div class="side-controls-container">
+            <div class="side-controls-container-column">
+              <button id="city-picker" class="control-button" data-lang-key="infobarContent.components.sideControls.cityPicker.title">{{infobarContent.components.sideControls.cityPicker.title}}</button>
+              <button id="share-picker" class="control-button" data-lang-key="infobarContent.components.sideControls.share.title">{{infobarContent.components.sideControls.share.title}}</button>
+              <button id="help-tour" class="control-button" data-lang-key="infobarContent.components.sideControls.helpTour.title">{{infobarContent.components.sideControls.helpTour.title}}</button>
+              <button id="reach-out" class="control-button" data-lang-key="infobarContent.components.sideControls.reachOut.title">{{infobarContent.components.sideControls.reachOut.title}}</button>
+              <button id="methodology" class="control-button" data-lang-key="infobarContent.components.sideControls.methodology.title">{{infobarContent.components.sideControls.methodology.title}}</button>
+            </div>
+            <div class="side-controls-container-column">
+              <div class="searchBoxContainer">
+                <input class="searchBox" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off" data-lang-key="infobarContent.components.searchControls.searchBox.placeholder">
+                <span class="searchBoxIcon" title="{{infobarContent.components.searchControls.toggle.title}}" data-lang-key="infobarContent.components.searchControls.toggle.title"></span>
+                <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}" data-lang-key="infobarContent.components.searchControls.clear.title"></span>
+              </div>
+              <button id="add-placemarker" class="control-button disabled" data-lang-key="infobarContent.components.placeMarkers.addPlaceMarker.title">{{infobarContent.components.placeMarkers.addPlaceMarker.title}}</button>
+              <button id="remove-placemarkers" class="control-button disabled" data-lang-key="infobarContent.components.placeMarkers.removePlaceMarker.title">{{infobarContent.components.placeMarkers.removePlaceMarker.title}}</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div id="infobar-content">
-        <a href="./"><div id="infobar-header" title="Air Tracker"></div></a>
-        <div id="infobar-location-header"></div>
-        <div id="infobar-initial" class="initial">
-          <p>That air you're breathing, where's it been?</p>
-          <p>AirTracker makes visual connections between the air you are breathing and the locations
-            of air pollution sources in your city. Users can view source areas, which show where
-            air comes from at any time.
+      <table style="right: 0px; position: absolute;">
+        <tr>
+          <td class="vertical-align-top">
+            <div id="language-picker" class="language-picker no-legend" title="{{languagePicker.title}}" data-lang-key="languagePicker.title"></div>
+          </td>
+          <td>
+            <div class="custom-legend noselect no-controls" id="legend">
+              <h3 class="legend-title"><span data-lang-key="legend.heading.content">{{legend.heading.content}}</span></h3>
+              <div class="legend-scale">
+                <table id="legend-table">
+                  <tr>
+                    <td data-lang-key="legend.date.content">{{legend.date.content}}:</td>
+                    <td colspan="2" id="current-date-legend"></td>
+                  </tr>
+                  <tr id="backtrace-legend-row" class="legend-row force-hidden">
+                    <td class="entry-title" data-lang-key="legend.backtrace.content">{{legend.backtrace.content}}: <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-backtrace" data-lang-key="infobar.moreInfo.title"></span></td>
+                    <td colspan="2" class="backtrace-color-map"></td>
+                  </tr>
+                  <tr id="backtrace-details-legend-row" class="force-hidden">
+                    <td class="entry-title"></td>
+                    <td class="legend-label" data-lang-key="legend.backtraceDetails.content">{{legend.backtraceDetails.content}}</td>
+                    <td class="legend-label backtrace-text2" data-lang-key="legend.backtraceDetails.content2">{{legend.backtraceDetails.content2}}</td>
+                  </tr>
+                  <tr id="air_now-legend-row" class="legend-row">
+                    <td class="entry-title two-rows">
+                      <span data-lang-key="legend.referenceMonitor.content">{{legend.referenceMonitor.content}}</span> PM<sub>2.5</sub>:
+                      <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-air_now" data-lang-key="infobar.moreInfo.title"></span>
+                    </td>
+                    <td colspan="2">
+                      <table>
+                        <tr>
+                          <td class="smell-color-td PM25-color-1"></td>
+                          <td class="smell-color-td PM25-color-2"></td>
+                          <td class="smell-color-td PM25-color-3"></td>
+                          <td class="smell-color-td PM25-color-4"></td>
+                          <td class="smell-color-td PM25-color-5"></td>
+                        </tr>
+                        <tr>
+                          <td class="legend-label">0+</td>
+                          <td class="legend-label">12+</td>
+                          <td class="legend-label">35+</td>
+                          <td class="legend-label">55+</td>
+                          <td class="legend-label">150+</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tbody id="additional-sensors"></tbody>
+                  <tr id="smell_report-legend-row" class="legend-row">
+                    <td class="entry-title" data-lang-key="legend.smellMonitor.content">
+                      {{legend.smellMonitor.content}}:
+                    </td>
+                    <td colspan="2">
+                      <table>
+                        <tr>
+                          <td class="smell-color-td smell-color-1"></td>
+                          <td class="smell-color-td smell-color-2"></td>
+                          <td class="smell-color-td smell-color-3"></td>
+                          <td class="smell-color-td smell-color-4"></td>
+                          <td class="smell-color-td smell-color-5"></td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr id="trax-legend-row" class="legend-row">
+                    <td class="entry-title two-rows">
+                      TRAX PM<sub>2.5</sub>:
+                      <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-trax" data-lang-key="infobar.moreInfo.title"></span>
+                    </td>
+                    <td colspan="2">
+                      <span class="trax-color-1 trax-span opacity-25"></span>
+                      <span class="trax-color-1 trax-span opacity-50"></span>
+                      <span class="trax-color-1 trax-span opacity-75"></span>
+                      <span class="trax-color-1 trax-span"></span>
+                      <span class="trax-color-1 trax-span"></span>
+                      <span class="trax-color-2 trax-span"></span>
+                      <span class="trax-color-2 trax-span"></span>
+                      <span class="trax-color-3 trax-span"></span>
+                      <span class="trax-color-3 trax-span"></span>
+                      <span class="trax-color-4 trax-span"></span>
+                      <span class="trax-color-4 trax-span"></span>
+                      <span class="trax-color-5 trax-span"></span>
+                      <span class="trax-color-5 trax-span"></span>
+                      <span class="trax-color-5 trax-span opacity-75"></span>
+                      <span class="trax-color-5 trax-span opacity-50"></span>
+                      <span class="trax-color-5 trax-span opacity-25"></span>
+                    </td>
+                    <td>
+                      <label class="switch" title="{{legend.toggle.title}}" data-lang-key="legend.toggle.title">
+                        <input type="checkbox" id="toggle-trax" data-marker-type="trax">
+                        <span class="slider round">
+                          <span class="input-state-text"></span>
+                        </span>
+                      </label>
+                    </td>
+                  </tr>
+                  <tr id="wind-legend-row">
+                    <td class="entry-title">Wind: <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-wind" data-lang-key="infobar.moreInfo.title"></span></td>
+                    <td colspan="4" class="wind-arrow-td wind-arrow"></td>
+                  </tr>
+                  <tbody id="overlays">
+                    <tr id="facilities-legend-row">
+                      <td class="entry-title"><span data-lang-key="legend.facilityOverlays.content">{{legend.facilityOverlays.content}}</span> <br> <span data-lang-key="legend.facilityOverlays.content2">{{legend.facilityOverlays.content2}}</span>: <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-facilities" data-lang-key="infobar.moreInfo.title"></span></td>
+                      <td colspan="2" class="facilities-td facilities"></td>
+                      <td>
+                        <label class="switch" title="{{legend.toggle.title}}" data-lang-key="legend.toggle.title">
+                          <input type="checkbox" id="toggle-facilities" data-marker-type="facilities">
+                          <span class="slider round">
+                            <span class="input-state-text"></span>
+                          </span>
+                        </label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <div id="footprint-first-click-dialog" title="{{explanations.dialogTitle.title}}" data-lang-key="explanations.dialogTitle.title">
+        <div id="explanation-content-container">
+          <div id="explanation-1" class="explanation-content">
+            <p data-lang-key="explanations.explanation1.p1">{{explanations.explanation1.p1}}</p>
+            <p data-lang-key="explanations.explanation1.p2">{{explanations.explanation1.p2}}</p>
+            <p data-lang-key="explanations.explanation1.p3">{{explanations.explanation1.p3}}</p><br><br>
+          </div>
+          <div id="explanation-2" class="explanation-content">
+            <h4 data-lang-key="explanations.explanation2.heading.content">{{explanations.explanation2.heading.content}}:</h4>
+            <span data-lang-key="explanations.explanation2.description.content">{{explanations.explanation2.description.content}}</span>:
             <br><br>
-            Key interactive features include:
-          </p>
-          <ul>
-            <li>View real-time air pollution and wind measurements across your city. Click on a blue circle, indicating an available city. Once the region has loaded, click on a circle to see these sensor measurements.</li>
+            <div><img src="./assets/img/edf-wind-pt1a.jpg"></div>
             <br>
-            <li>Click anywhere in the dotted region of the city to create a source area that "looks upwind" to see where the air came from to end up at that location, at that time. </li>
+            <div><img src="./assets/img/edf-wind-pt1b.jpg"></div>
             <br>
-            <li>When examining a city, explore past air pollution measurements and source areas that may influence air quality in a neighborhood. Choose a day on the timeline and click the clock in the lower left to explore data within that day.</li>
-          </ul>
-        </div>
-        <div id="infobar-component-container">
-          <div id="infobar-plume-section" class="infobar-component">
-            <div class="infobar-component-header">Source Area: <span class='more-info' title="Learn more" data-info="side-panel-backtrace"></span><div class="plume-expand-icon" title="More details"></div></div>
-            <div id="infobar-plume">
-              <div class="plume-expand"></div>
-              <div class="infobar-text"></div>
-              <div class="infobar-data"></div>
-              <div class="infobar-unit"></div>
-              <div class="infobar-time"></div>
-            </div>
-            <div class="heatmap-modal-button-container"><button id="heatmap-btn">Generate heatmap of cumulative source area likelihoods over time</button></div>
-          </div>
-          <div id="infobar-pollution-section" class="infobar-component">
-            <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="Learn more" data-info="side-panel-data"></span><span class='chart-btn' title="Explore PM data over time"></span></div>
-            <div id="infobar-pollution" class="infobar-component-value">
-              <div class="infobar-text"><i>Click on the nearest sensor to see pollution measurements.</i></div>
-              <div class="infobar-data"></div>
-              <div class="infobar-unit"></div>
-              <div class="infobar-time"></div>
-            </div>
-          </div>
-          <div id="infobar-wind-section" class="infobar-component">
-            <div class="infobar-component-header">Wind: <span class='more-info' title="Learn more" data-info="side-panel-data"></span></div>
-            <div id="infobar-wind" class="infobar-component-value">
-              <div class="infobar-text"><i>Click on the nearest sensor (with an arrow) to see wind measurements.</i></div>
-              <div class="infobar-data-intro">Coming from</div>
-              <div class="infobar-data"></div>
-              <div class="infobar-unit"></div>
-              <div class="infobar-time"></div>
-            </div>
+            <div><img src="./assets/img/edf-wind-pt1c.jpg"></div>
+            <br>
+            <span data-lang-key="explanations.explanation2.description2.content">{{explanations.explanation2.description2.content}}</span>
+            <br><br>
+            <span data-lang-key="explanations.explanation2.description3.content">{{explanations.explanation2.description3.content}}</span>
+            <br><br>
+            <div><img src="./assets/img/edf-wind-pt2a.jpg"></div>
+            <br>
+            <div><img src="./assets/img/edf-wind-pt2b.jpg"></div>
+            <br>
+            <div><img src="./assets/img/edf-wind-pt2c.jpg"></div>
+            <br>
           </div>
         </div>
-        <div id="infobar-close-handle-container">
-          <div id="infobar-close-handle"></div>
+        <div id="explanationstep-container" data-max-steps="2" data-current-step="1">
+          <a id="explanationstep-back" class="explanation-step-button disabled" data-direction="-1" href="javascript:void(0)">&xlarr; <span data-lang-key="explanations.back.content">{{explanations.back.content}}</span></a> | <a id="explanationstep-forward" class="explanation-step-button" data-direction="1" href="javascript:void(0)"><span data-lang-key="explanations.next.content">{{explanations.next.content}}</span> &xrarr;</a>
         </div>
-        <div id="infobar-close-toggle-container" title="Toggle infobar">
-          <div class="infobar-close-toggle-icon"></div>
-        </div>
-        <div class='side-controls-container'>
-          <div class="side-controls-container-column">
-            <button id="city-picker" class="control-button">Explore a city</button>
-            <button id="share-picker" class="control-button">Share</button>
-            <button id="help-tour" class="control-button">Take a Tour</button>
-            <button id="reach-out" class="control-button">Reach out</button>
-            <button id="methodology" class="control-button">Methodology</button>
-          </div>
-          <div class="side-controls-container-column">
-            <div class="searchBoxContainer">
-              <input class="searchBox" placeholder="Search for a point of interest..." autocomplete="off">
-              <span class="searchBoxIcon" title="Toggle search"></span>
-              <span class="searchBoxClearIcon" title="Clear search"></span>
-            </div>
-            <button id="add-placemarker" class="control-button disabled">Add placemarker. Once added, it is draggable on the map.</button>
-            <button id="remove-placemarkers" class="control-button disabled">Clear user added placemarkers</button>
-          </div>
+        <br><br>
+        <div id="checkbox-container">
+          <input type="checkbox" id="dont-show-again" name="dont-show-again" value="1">
+          <label for="dont-show-again" data-lang-key="explanations.showAgainToggle.content">{{explanations.showAgainToggle.content}}</label>
         </div>
       </div>
-    </div>
-    <div class="custom-legend noselect no-controls" id="legend">
-      <h3 class="legend-title">Legend</h3>
-      <div class="legend-scale">
-        <table id="legend-table">
-          <tr>
-            <td>Date:</td>
-            <td colspan="2" id="current-date-legend"></td>
-          </tr>
-          <tr id="backtrace-legend-row" class="legend-row force-hidden">
-            <td class="entry-title">Source Area: <span class='more-info more-info-legend' title="Learn more" data-info="legend-backtrace"></span></td>
-            <td colspan="2" class="backtrace-color-map"></td>
-          </tr>
-          <tr id="backtrace-details-legend-row" class="force-hidden">
-            <td class="entry-title"></td>
-            <td class="legend-label">Less Likely</td>
-            <td class="legend-label backtrace-text2">More Likely</td>
-          </tr>
-          <tr id="air_now-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              Reference PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-air_now"></span>
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td PM25-color-1"></td>
-                  <td class="smell-color-td PM25-color-2"></td>
-                  <td class="smell-color-td PM25-color-3"></td>
-                  <td class="smell-color-td PM25-color-4"></td>
-                  <td class="smell-color-td PM25-color-5"></td>
-                </tr>
-                <tr>
-                  <td class="legend-label">0+</td>
-                  <td class="legend-label">12+</td>
-                  <td class="legend-label">35+</td>
-                  <td class="legend-label">55+</td>
-                  <td class="legend-label">150+</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tbody id="additional-sensors"></tbody>
-          <tr id="smell_report-legend-row" class="legend-row">
-            <td class="entry-title">
-              Smell Reports:
-            </td>
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="smell-color-td smell-color-1"></td>
-                  <td class="smell-color-td smell-color-2"></td>
-                  <td class="smell-color-td smell-color-3"></td>
-                  <td class="smell-color-td smell-color-4"></td>
-                  <td class="smell-color-td smell-color-5"></td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr id="trax-legend-row" class="legend-row">
-            <td class="entry-title two-rows">
-              TRAX PM<sub>2.5</sub>:
-              <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="Learn more" data-info="legend-trax"></span>
-            </td>
-            <td colspan="2">
-              <span class="trax-color-1 trax-span opacity-25"></span>
-              <span class="trax-color-1 trax-span opacity-50"></span>
-              <span class="trax-color-1 trax-span opacity-75"></span>
-              <span class="trax-color-1 trax-span"></span>
-              <span class="trax-color-1 trax-span"></span>
-              <span class="trax-color-2 trax-span"></span>
-              <span class="trax-color-2 trax-span"></span>
-              <span class="trax-color-3 trax-span"></span>
-              <span class="trax-color-3 trax-span"></span>
-              <span class="trax-color-4 trax-span"></span>
-              <span class="trax-color-4 trax-span"></span>
-              <span class="trax-color-5 trax-span"></span>
-              <span class="trax-color-5 trax-span"></span>
-              <span class="trax-color-5 trax-span opacity-75"></span>
-              <span class="trax-color-5 trax-span opacity-50"></span>
-              <span class="trax-color-5 trax-span opacity-25"></span>
-            </td>
-            <td>
-              <label class="switch" title="Toggle TRAX sensors">
-                <input type="checkbox" id="toggle-trax" data-marker-type="trax">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr id="wind-legend-row">
-            <td class="entry-title">Wind: <span class='more-info more-info-legend' title="Learn more" data-info="legend-wind"></span></td>
-            <td colspan="4" class="wind-arrow-td wind-arrow"></td>
-          </tr>
-          <tbody id="overlays">
-            <tr id="facilities-legend-row">
-              <td class="entry-title">Industrial <br> Facilities: <span class='more-info more-info-legend' title="Learn more" data-info="legend-facilities"></span></td>
-              <td colspan="2" class="facilities-td facilities"></td>
+      <div id="calendar-dialog" title="{{calendar.titleBar.title}}" data-role="none" data-lang-key="calendar.titleBar.title">
+        <p data-lang-key="calendar.p1.content">{{calendar.p1.content}}:</p>
+        <input type="hidden" autofocus="autofocus" />
+        <select id="calendar" data-role="none"></select>
+      </div>
+      <div class="shareViewModal">
+        <div id="share-link-container-main">
+          <p class="heading" data-lang-key="shareModal.shareUrl.content">{{shareModal.shareUrl.content}}</p>
+          <div class="share-link-container-content">
+            <div class="shareurl always-selectable"></div>
+            <span class="copy-text-button shareurl-copy-text-button" title="{{shareModal.shareBtn.title}}" data-lang-key="shareModal.shareBtn.title"></span>
+          </div>
+        </div>
+        <div id="embed-link-container-main">
+          <br>
+          <p class="heading" data-lang-key="shareModal.screenshotHeading.content">{{shareModal.screenshotHeading.content}}</p>
+          <div id='get-screenshot-container'>
+            <div id='get-screenshot' data-lang-key="shareModal.captureBtn.content">{{shareModal.captureBtn.content}}</div>
+            <div id='get-screenshot-description' data-lang-key="shareModal.description.content">{{shareModal.description.content}}<br><span data-lang-key="shareModal.description.content2">{{shareModal.description.content2}}</span></div>
+          </div>
+        </div>
+        <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
+      </div>
+      <div class="reachOutModal">
+        <div>
+          <p class="heading" data-lang-key="reachOutModal.heading.content">{{reachOutModal.heading.content}}</p>
+          <div><span data-lang-key="reachOutModal.description.content">{{reachOutModal.description.content}}</span> <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a></div>
+        </div>
+        <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
+      </div>
+      <div class="methodologyModal">
+        <div>
+          <p class="heading" data-lang-key="methodologyModal.heading.content">{{methodologyModal.heading.content}}</p>
+          <div><a href="https://storage.googleapis.com/air-tracker-edf-website/prod/assets/data/20220524_Air_Tracker_Methodology.pdf" target="_blank" data-lang-key="methodologyModal.description.content">{{methodologyModal.description.content}}</a> <span data-lang-key="methodologyModal.description.content2">{{methodologyModal.description.content2}}</span></div>
+        </div>
+        <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
+      </div>
+      <div class="backtraceSettingsModal">
+        <div>
+          <p class="heading" data-lang-key="backtraceSettingsModal.heading.content">{{backtraceSettingsModal.heading.content}}</p>
+          <table>
+            <tr>
+              <td data-lang-key="backtraceSettingsModal.td1.content">{{backtraceSettingsModal.td1.content}}:</td>
               <td>
-                <label class="switch" title="Toggle facility markers and boundaries">
-                  <input type="checkbox" id="toggle-facilities" data-marker-type="facilities">
+                <label class="switch" title="{{backtraceSettingsModal.td1.title}}" data-lang-key="backtraceSettingsModal.td1.title">
+                  <input type="checkbox" id="toggle-backtrace-likelihood">
                   <span class="slider round">
                     <span class="input-state-text"></span>
                   </span>
                 </label>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div id="map" class="no-controls"></div>
-    <div id="footprint-first-click-dialog" title="Reminder!">
-      <div id="explanation-content-container">
-        <div id="explanation-1" class="explanation-content">
-          Clicking on the map will show you the <b>source area</b> for that location at the selected time. <br><br>
-          The visible area reveals the most likely origin of the air at your selected location. <br><br>
-          The air in the grey area is most likely not reaching your selected location.<br><br>
+            <tr>
+              <td data-lang-key="backtraceSettingsModal.td2.content">{{backtraceSettingsModal.td2.content}}:</td>
+              <td>
+                <label class="switch" title="{{backtraceSettingsModal.td2.title}}" data-lang-key="backtraceSettingsModal.td2.title">
+                  <input type="checkbox" id="toggle-uncertainty-details">
+                  <span class="slider round">
+                    <span class="input-state-text"></span>
+                  </span>
+                </label>
+              </td>
+            </tr>
+          </table>
         </div>
-        <div id="explanation-2" class="explanation-content">
-          <h4>Wind:</h4>
-          The wind arrow points in the direction that the air is blowing. While the weather models that Air Tracker uses are quite reliable, they are not always perfect.
-          Here is what to look for:
-          <br><br>
-          <div><img src="./assets/img/edf-wind-pt1a.jpg"></div>
-          <br>
-          <div><img src="./assets/img/edf-wind-pt1b.jpg"></div>
-          <br>
-          <div><img src="./assets/img/edf-wind-pt1c.jpg"></div>
-          <br>
-          In the above examples when the wind arrow overlaps with the source area, we have a lot of confidence that the source area is correct.
-          <br><br>
-          And then in this different set of examples below, when the wind arrow and source area don't match, we have less confidence that the source area is correct.
-          <br><br>
-          <div><img src="./assets/img/edf-wind-pt2a.jpg"></div>
-          <br>
-          <div><img src="./assets/img/edf-wind-pt2b.jpg"></div>
-          <br>
-          <div><img src="./assets/img/edf-wind-pt2c.jpg"></div>
-          <br>
+        <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
+      </div>
+      <div class="tosModal">
+        <div class="content">
+          <h3 data-lang-key="tosModal.header.content">{{tosModal.header.content}}</h3>
+          <p data-lang-key="tosModal.p1.content">
+            {{tosModal.p1.content}}
+          </p>
+          <p data-lang-key="tosModal.p2.content">
+            {{tosModal.p2.content}}
+          </p>
+          <p data-lang-key="tosModal.p3.content">
+            {{tosModal.p3.content}}
+          </p>
+          <p>
+            <span data-lang-key="tosModal.p4.content">{{tosModal.p4.content}}</span>
+            <ul>
+              <li data-lang-key="tosModal.li1.content">{{tosModal.li1.content}}</li>
+              <li><span data-lang-key="tosModal.li2.content">{{tosModal.li2.content}}</span>: [<a href="https://globalcleanair.org/air-tracker" target="_blank">https://globalcleanair.org/air-tracker</a>]</li>
+              <li><span data-lang-key="tosModal.li3.content">{{tosModal.li3.content}}</span>*</li>
+              <li><span data-lang-key="tosModal.li4.content">{{tosModal.li4.content}}</span>*</li>
+              <li><span data-lang-key="tosModal.li5.content">{{tosModal.li5.content}}</span>*</li>
+            *<span data-lang-key="tosModal.note.content">{{tosModal.note.content}}</span></li>
+            <br>
+            <span data-lang-key="tosModal.separator.content">{{tosModal.separator.content}}</span>:
+              <li data-lang-key="tosModal.li6.content">{{tosModal.li6.content}}</li>
+              <li data-lang-key="tosModal.li7.content">{{tosModal.li7.content}}</li>
+              <li data-lang-key="tosModal.li8.content">{{tosModal.li8.content}}</li>
+              <li data-lang-key="tosModal.li9.content">{{tosModal.li9.content}}</li>
+              <li data-lang-key="tosModal.li10.content">{{tosModal.li10.content}}</li>
+              <li data-lang-key="tosModal.li11.content">{{tosModal.li11.content}}</li>
+            </ul>
+          </p>
+          <p data-lang-key="tosModal.p5.content">
+            {{tosModal.p5.content}}
+          </p>
+          <p data-lang-key="tosModal.p6.content">
+            {{tosModal.p6.content}}
+          </p>
+          <p>
+            <span data-lang-key="tosModal.p7.content">{{tosModal.p7.content}}</span>:
+            <ul>
+              <li><a href="https://www.epa.gov/toxics-release-inventory-tri-program" target="_blank">Toxic Releases Inventory (TRI)</a></li>
+              <li><a href="https://www.epa.gov/air-emissions-inventories/national-emissions-inventory-nei" target="_blank">National Emissions Inventory (NEI)</a></li>
+              <li><a href="https://www.epa.gov/frs" target="_blank">Facility Registry Service (FRS)</a></li>
+              <li><a href="https://www.airnow.gov/" target="_blank">AirNow</a></li>
+              <li><a href="https://air-matters.com/" target="_blank">AirMatters</a></li>
+              <li><a href="https://map.purpleair.com/" target="_blank">PurpleAir</a></li>
+              <li><a href="https://openmap.clarity.io/" target="_blank">Clarity</a></li>
+              <li><a href="https://mesowest.utah.edu/" target="_blank">MesoWest</a></li>
+              <li><a href="https://tnris.org/" target="_blank">Texas Natural Resources Information System (TNRIS)</a></li>
+            </ul>
+          </p>
+          <p data-lang-key="tosModal.p8.content">
+            {{tosModal.p8.content}}
+          </p>
+          <p data-lang-key="tosModal.p9.content">
+            {{tosModal.p9.content}}
+          </p>
+          <p data-lang-key="tosModal.p10.content">
+            {{tosModal.p10.content}}
+          </p>
+          <p>
+            <span data-lang-key="tosModal.p11.content">{{tosModal.p11.content}}</span> <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a>
+          </p>
+        </div>
+        <div class="footer">
+          <input id="tos-agree" type="checkbox">
+          <label for="tos-agree" data-lang-key="tosModal.consent.content">{{tosModal.consent.content}}</label>
         </div>
       </div>
-      <div id="explanationstep-container" data-max-steps="2" data-current-step="1">
-        <a id="explanationstep-back" class="explanation-step-button disabled" data-direction="-1" href="javascript:void(0)">&xlarr; BACK</a> | <a id="explanationstep-forward" class="explanation-step-button" data-direction="1" href="javascript:void(0)">NEXT &xrarr;</a>
+      <div id="city-picker-controls">
+        <select id="city-selector"></select>
       </div>
-      <br><br>
-      <div id="checkbox-container">
-        <input type="checkbox" id="dont-show-again" name="dont-show-again" value="Don't Show Me Again">
-        <label for="dont-show-again">Don't show me this reminder again</label>
-      </div>
-    </div>
-    <div id="calendar-dialog" title="Calendar" data-role="none">
-      <p>Select a year to explore:</p>
-      <input type="hidden" autofocus="autofocus" />
-      <select id="calendar" data-role="none"></select>
-    </div>
-    <div class="shareViewModal">
-      <div id="share-link-container-main">
-        <p class="heading">Share URL</p>
-        <div class="share-link-container-content">
-          <div class="shareurl always-selectable"></div>
-          <span class="copy-text-button shareurl-copy-text-button" title="Click to copy to clipboard"></span>
-        </div>
-      </div>
-      <div id="embed-link-container-main">
-        <br>
-        <p class="heading">Share Screenshot</p>
-        <div id='get-screenshot-container'>
-          <div id='get-screenshot'>Capture Screenshot</div>
-          <span id='get-screenshot-description'>(Download an image of the current viewport. <br>Make your browser window larger or smaller to change the output resolution.)</span>
-        </div>
-      </div>
-      <span class="close-modal" title="Close"></span>
-    </div>
-    <div class="reachOutModal">
-      <div>
-        <p class="heading">Contact</p>
-        <div>Have any questions? Would you like to see Air Tracker in your neighborhood? Let us know at <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a></div>
-      </div>
-      <span class="close-modal" title="Close"></span>
-    </div>
-    <div class="methodologyModal">
-      <div>
-        <p class="heading">Learn More</p>
-        <div><a href="https://airtracker.createlab.org/assets/data/20220524_Air_Tracker_Methodology.pdf" target="_blank">Read more</a> about our methodology.</div>
-      </div>
-      <span class="close-modal" title="Close"></span>
-    </div>
-    <div class="backtraceSettingsModal">
-      <div>
-        <p class="heading">Source Area Settings</p>
-        <table>
-          <tr>
-            <td>Show contribution likelihoods:</td>
-            <td>
-              <label class="switch" title="Show backtrace contribution likelihoods">
-                <input type="checkbox" id="toggle-backtrace-likelihood">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-          <tr>
-            <td>Show detailed uncertainty info:</td>
-            <td>
-              <label class="switch" title="Show detailed uncertainty info">
-                <input type="checkbox" id="toggle-uncertainty-details">
-                <span class="slider round">
-                  <span class="input-state-text"></span>
-                </span>
-              </label>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <span class="close-modal" title="Close"></span>
-    </div>
-    <div class="tosModal">
-      <div class="content">
-        <h3>AIR TRACKER TERMS OF USE</h3>
-        <p>
-          EDF's mission is to link science, economics, law, and innovative private-sector partnerships to create transformational solutions to the most serious environmental problems.
-          Air Tracker is designed to provide people and communities with general available information about air quality in their area by presenting data from a number of public resources
-          in a common interface.
-        </p>
-        <p>
-          These Terms of Use (the "Terms") are by and between the Environmental Defense Fund, Inc, a New York nonprofit corporation ("EDF") and, you, the individual or entity accessing the
-          Air Tracker application and data.  By accessing and using Air Tracker, you acknowledge and agreed that, as of the date you first access Air Tracker, you have read, understand and
-          accept these terms. These terms may change from time to time, so your continued access to and use of Air Tracker means you consent to those changes.
-        </p>
-        <p>
-          Air Tracker is made available strictly for general informational, non-commercial purposes only. Air Tracker data should not be taken as professional, legal or health related
-          advice nor be relied upon as a source of information for any legal or regulatory action or health related decisions.  You may use the information available on Air Tracker to
-          inform yourself.
-        </p>
-        <p>
-          For example, you are permitted to:
-          <ul>
-            <li>Use Air Tracker for your own information and education</li>
-            <li>Link to the Air Tracker site using the following link: [<a href="https://globalcleanair.org/air-tracker" target="_blank">https://globalcleanair.org/air-tracker</a>]</li>
-            <li>Use and report images from Air Tracker*</li>
-            <li>Use Air Tracker to inform your community*</li>
-            <li>Use Air Tracker for school projects*</li>
-          *whenever you reference Air Tracker or information you use from this site, you must clearly identify it as "Air Tracker information subject to the Air Tracker Terms of Use").</li>
-          But you:
-            <li>Will not use EDF Air Tracker in any manner to interfere with, disrupt, negatively affect or inhibit other users from fully enjoying Air Tracker, or that could damage, disable, overburden or impair the functioning of any service(s) by which it may be made available.
-            <li>Will not modify Air Tracker or any service(s) through which it is made available;
-            <li>Not remove any references to Air Tracker, EDF or the public sources of the Air Tracker information;
-            <li>Will Not use Air Tracker as a part of any other application without prior written consent from us;
-            <li>Not mine any of the Air Tracker data or use any bots or similar data gathering or extraction methods designed to scrape or extract data from Air Tracker;
-            <li>Not use Air Tracker for any illegal or unauthorized purpose, to enable any high-risk activities or otherwise engage in, encourage or promote any activity that violates these Terms.
-          </ul>
-        </p>
-        <p>
-          Air Tracker are provided at no charge. Air Tracker data is made available to you without any need to register or for us to collect Personal Data online from users.
-          The limited permissions to access and use Air Tracker are nonexclusive and may be changed or revoked at any time. Any use of the Services other than as specifically
-          authorized herein is strictly prohibited, will terminate your permission to use Air Tracker and may result in liability to you.
-        </p>
-        <p>
-          TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, AIR TRACKER (INCLUDING, WITHOUT LIMITATION, ANY AND ALL DATA, TEXT, GRAPHICS, IMAGES, PHOTOGRAPHS, ILLUSTRATIONS,
-          AND INFORMATION OF ANY KIND, WHETHER EXPRESS, IMPLIED OR INFERRED) IS PROVIDED WITH NO REPRESENTATION OR WARRANTY OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY OR
-          OTHERWISE, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR USE, AVAILABILITY, ACCESSIBILITY, ACCURACY, AND NONINFRINGEMENT.
-          NEITHER EDF NOR ANY OF THE THIRD PARTY PUBLIC SOURCES OF THE AIR TRACKER DATA ARE LIABLE UNDER THIS AGREEMENT TO YOU OR ANYONE ELSE FOR ANY INDIRECT, SPECIAL, INCIDENTAL,
-          CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, EVEN IF SUCH DAMAGES WERE POSSIBLE AND EVEN IF DIRECT DAMAGES ARE NOT A REMEDY. IN ANY EVENT, NO LIABILITY UNDER THESE TERMS
-          WILL EXCEED MORE THAN FIVE HUNDRED DOLLARS (USD $500).
-        </p>
-        <p>
-          Air Tracker was developed using publicly available data from the following sources:
-          <ul>
-            <li><a href="https://www.epa.gov/toxics-release-inventory-tri-program" target="_blank">Toxic Releases Inventory (TRI)</a></li>
-            <li><a href="https://www.epa.gov/air-emissions-inventories/national-emissions-inventory-nei" target="_blank">National Emissions Inventory (NEI)</a></li>
-            <li><a href="https://www.epa.gov/frs" target="_blank">Facility Registry Service (FRS)</a></li>
-            <li><a href="https://www.airnow.gov/" target="_blank">AirNow</a></li>
-            <li><a href="https://air-matters.com/" target="_blank">AirMatters</a></li>
-            <li><a href="https://map.purpleair.com/" target="_blank">PurpleAir</a></li>
-            <li><a href="https://openmap.clarity.io/" target="_blank">Clarity</a></li>
-            <li><a href="https://mesowest.utah.edu/" target="_blank">MesoWest</a></li>
-            <li><a href="https://tnris.org/" target="_blank">Texas Natural Resources Information System (TNRIS)</a></li>
-          </ul>
-        </p>
-        <p>
-          Air Tracker and all data offered through the application, including any text, graphics, images, photographs, videos, illustrations, information of any kind,
-          and other content contained, implied or inferred therein were created by EDF, the data providers listed above, as well as other licensors and distributors and
-          may be protected under US law(s).  Except as explicitly stated in these terms, all rights in and to the data, application, and services are reserved by EDF, the
-          public sources of the data, and any other licensors and distributors.
-        </p>
-        <p>
-          These Terms constitute the entire agreement between you and EDF with respect to your use of the EDF Air Tracker and that no joint venture, partnership,
-          employment, agency or other relationship exists between you and EDF as a result of these terms or your use of the EDF Air Tracker. Our failure to exercise
-          or enforce any right or provision of these terms does not constitute a waiver of such right or provision. If any provision of these terms is found by a court
-          of competent jurisdiction to be invalid, the parties nevertheless agree that the court should endeavor to give effect to the parties' intentions as reflected in
-          the provision, and the other provisions of the Terms remain in full force and effect.
-        </p>
-        <p>
-          IF YOU DISAGREE WITH ANY OF THESE TERMS, THEN YOU SHOULD NOT ACCESS AIR TRACKER AND YOU DO NOT HAVE PERMISSION TO USE ANY INFORMATION FROM AIR TRACKER.
-        </p>
-        <p>
-          If you have questions, send an email to <a href="mailto:AirTracker@edf.org">AirTracker@edf.org</a>
-        </p>
-      </div>
-      <div class="footer">
-        <input id="tos-agree" type="checkbox">
-        <label for="tos-agree"> I agree to the above Terms and Conditions.</label>
-      </div>
-    </div>
-    <div id="city-picker-controls">
-      <select id="city-selector"></select>
-    </div>
-    <span class="button-tooltip">
-      <p></p>
-    </span>
-    <input class='mobile-menu-toggle' type="checkbox" id="active">
-    <label class='mobile-menu-toggle menu-btn' for="active"><span></span></label>
-    <label class='mobile-menu-toggle close' for="active"></label>
-    <div id='mobile-menu'>
-      <div class="searchModal">
-          <div class="searchBoxContainer">
-            <p class="heading">Search</p>
-            <input class="searchBox searchBoxMobile" placeholder="Search for a point of interest..." autocomplete="off">
-            <span class="searchBoxClearIcon" title="Clear search"></span>
+      <span class="button-tooltip">
+        <p></p>
+      </span>
+      <input class='mobile-menu-toggle' type="checkbox" id="active">
+      <label class='mobile-menu-toggle menu-btn' for="active"><span></span></label>
+      <label class='mobile-menu-toggle close' for="active"></label>
+      <div id='mobile-menu'>
+        <div class="searchModal">
+            <div class="searchBoxContainer">
+              <p class="heading" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</p>
+              <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off" data-lang-key="infobarContent.components.searchControls.searchBox.placeholder">
+              <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}" data-lang-key="infobarContent.components.searchControls.clear.title"></span>
+            </div>
+            <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
           </div>
-          <span class="close-modal" title="Close"></span>
+        <div class="wrapper">
+          <ul>
+            <li id="city-picker-mobile"><span class="mobile-city-picker-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.cityPicker.content">{{infobarContent.components.sideControls.cityPicker.content}}</a></li>
+            <li id="share-picker-mobile"><span class="mobile-share-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.share.content">{{infobarContent.components.sideControls.share.content}}</a></li>
+            <!-- <li id="help-tour-mobile"><span class="mobile-tour-icon"></span><a href="#">Tour</a></li> -->
+            <li id="reach-out-mobile"><span class="mobile-reach-out-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.reachOut.content">{{infobarContent.components.sideControls.reachOut.content}}</a></li>
+            <li id="methodology-mobile"><span class="mobile-methodology-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.methodology.content">{{infobarContent.components.sideControls.methodology.content}}</a></li>
+            <li id="search-mobile">
+              <span class="searchBoxIconMobile" title="{{infobarContent.components.searchControls.toggle.title}}" data-lang-key="infobarContent.components.searchControls.toggle.title"></span>
+              <a href="#" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</a>
+              <!-- <div class="searchBoxContainer">
+                <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off">
+                <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}"></span>
+              </div> -->
+            </li>
+          </ul>
         </div>
-      <div class="wrapper">
-        <ul>
-          <li id="city-picker-mobile"><span class="mobile-city-picker-icon"></span><a href="#">Explore a City</a></li>
-          <li id="share-picker-mobile"><span class="mobile-share-icon"></span><a href="#">Share</a></li>
-          <!-- <li id="help-tour-mobile"><span class="mobile-tour-icon"></span><a href="#">Tour</a></li> -->
-          <li id="reach-out-mobile"><span class="mobile-reach-out-icon"></span><a href="#">Reach Out</a></li>
-          <li id="methodology-mobile"><span class="mobile-methodology-icon"></span><a href="#">Methodology</a></li>
-          <li id="search-mobile">
-            <span class="searchBoxIconMobile" title="Toggle search"></span>
-            <a href="#">Search</a>
-            <!-- <div class="searchBoxContainer">
-              <input class="searchBox searchBoxMobile" placeholder="Search for a point of interest..." autocomplete="off">
-              <span class="searchBoxClearIcon" title="Clear search"></span>
-            </div> -->
-          </li>
-        </ul>
       </div>
-    </div>
+    </script>
+  </head>
+  <body class="materialUI">
+    <div id="body-content"></div>
+    <div id="map" class="no-controls"></div>
   </body>
 </html>
