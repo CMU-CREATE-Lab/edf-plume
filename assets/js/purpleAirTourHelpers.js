@@ -32,7 +32,7 @@ async function loadAndCreateSensorMarkers(epochtime_milisec, info, is_current_da
     } else {
       var marker = available_cities[selectedCity].sensors[sensorName]['marker'];
       marker.setData(parseSensorMarkerDataForPlayback(newData, is_current_day, info[i]));
-      marker.updateMarker();
+      marker.updateMarker(null, selected_aq_std);
     }
     available_cities[selectedCity].sensors[sensorName].data[epochtime_milisec] = tmp;
   }
@@ -44,7 +44,7 @@ function rollSensorData(data, info) {
 
   // Fill in missing values
   var cache = {}; // cache previous observations
-  var threshold = 3600; // one hour to look back
+  var threshold = 3600 * 3; // N hours to look back
   for (var i = 0; i < data["data"].length; i++) {
     var d = data["data"][i];
     for (var name in info["sensors"]) {

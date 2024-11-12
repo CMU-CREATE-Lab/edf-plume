@@ -132,13 +132,20 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
   var average_time_interval = 0;
 
   // Remove rows with no data, since it messes up finding average time interval used for aggregating
+  // This is very slow...
   for (var row = data.length - 1; row >= 0; row--) {
     if (data[row].slice(1).filter(Number).length == 0) {
       data.splice(row, 1);
     }
   }
 
+  if (data.length == 0) {
+    return [];
+  }
+
+  // Only check at most the first 10 rows
   var num_rows_to_check = Math.min(data.length, 10);
+
   for (var row = 0; row < num_rows_to_check; row++) {
     if (last_tmp_time && data[row]) {
       average_time_interval += (data[row][0] - last_tmp_time);
@@ -146,10 +153,6 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
     last_tmp_time = data[row][0];
   }
   average_time_interval = Math.floor(average_time_interval / (num_rows_to_check - 1));
-
-  if (num_rows_to_check == 0) {
-    return [];
-  }
 
   if (average_time_interval >= threshold) {
     return data;
@@ -163,7 +166,13 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
     current_sums.push([0,0]);
   }
 
+  //[...Array(2)].map(e => Array(n).fill(0));
+
   for (var row = 0; row < data.length; row++) {
+    // Ignore rows with no data, since it messes up finding average time interval used for aggregating
+    //if (data[row].slice(1).filter(Number).length == 0) {
+    //  continue;
+    //}
     var time = data[row][0];
     addedData = false;
     if (time <= current_time) {
@@ -343,18 +352,20 @@ function safeGet(v, default_val) {
 }
 
 
-function getSensorType(info) {
-  var sensor_type;
-  if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
-    if (!info["clickable"]) {
-      sensor_type = "WIND_ONLY2";
-    } else {
-      sensor_type = "WIND_ONLY";
-    }
-  } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1) {
-    sensor_type = "PM25";
-  } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
-    sensor_type = "VOC";
-  }
-  return sensor_type;
-}
+// function getSensorType(info) {
+//   var sensor_type;
+//   if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM") == -1) {
+//     if (!info["clickable"]) {
+//       sensor_type = "WIND_ONLY2";
+//     } else {
+//       sensor_type = "WIND_ONLY";
+//     }
+//   } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1) {
+//     sensor_type = "PM25";
+//   } else if (Object.keys(info["sensors"]).indexOf("PM10") > -1) {
+//     sensor_type = "PM10";
+//   } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
+//     sensor_type = "VOC";
+//   }
+//   return sensor_type;
+// }

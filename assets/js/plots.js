@@ -29,7 +29,7 @@ function initPlots() {
 
 function addPlot(markerData) {
   var feedIdOrApiKey = markerData.feed_id;
-  var channelName = markerData.pm25_channel;
+  var channelName = markerData.graphable_channel;
   var plotName = "plot_" + feedIdOrApiKey;
   var color = markerData.color ? markerData.color : timeSeriesColors[Object.keys(markerTimeSeriesPlots).length];
 
@@ -81,6 +81,14 @@ function addPlot(markerData) {
         var closestM = roundDate(m, moment.duration(playbackTimeline.getIncrementAmt(), "minutes"), "ceil");
         var closestTimeInMs = closestM.valueOf();
         var startOfDayForNewSelectedTime = m.clone().startOf("day");
+        var selectedYear = timeline.calendarYearGroupings[timeline.getFirstBlockData().year]
+        if (Object.keys(selectedYear).indexOf(startOfDayForNewSelectedTime.format("YYYY-MM-DD") + " 00:00:00") == -1) {
+          alert(currentLang.timeseries.noSourceDataError.content);
+          var fixedCursorPosition = playbackTimeline.getPlaybackTimeInMs() / 1000;
+          plotManager.getDateAxis().setCursorPosition(fixedCursorPosition);
+          return;
+        }
+
         if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
           playbackTimeline.setPlaybackTimeInMs(closestTimeInMs);
           await loadNewDay(startOfDayForNewSelectedTime);
@@ -130,7 +138,7 @@ function addPlotToLegend(markerData, forceOn, fromMapSensorClick) {
     var color = timeSeriesColors.shift();
     usedTimeSeriesColors.push(color);
 
-    $("#graph_legend_content").append('<tr data-plot-id=' + "plot_" + markerData.feed_id + ' data-channel=' + markerData.pm25_channel + '><td style="color:' + color + '">' + markerData.name + '</td><td><label class="switch2" title="Toggle plot"><input type="checkbox"' + (forceOn ? ' checked ' : '') + 'data-action-type="toggle-plot"><span class="slider round"><span class="input-state-text"></span></span></label></td><td><span class="remove_graph_plot" title="Remove plot from chart" data-action-type="remove-plot"></span></td></tr>');
+    $("#graph_legend_content").append('<tr data-plot-id=' + "plot_" + markerData.feed_id + ' data-channel=' + markerData.graphable_channel + '><td style="color:' + color + '">' + markerData.name + '</td><td><label class="switch2" title="Toggle plot"><input type="checkbox"' + (forceOn ? ' checked ' : '') + 'data-action-type="toggle-plot"><span class="slider round"><span class="input-state-text"></span></span></label></td><td><span class="remove_graph_plot" title="Remove plot from chart" data-action-type="remove-plot"></span></td></tr>');
     markerTimeSeriesPlots['plot_' + markerData.feed_id] = {name : markerData.name, color: color};
   }
   setChartBackgroundColors();
@@ -160,7 +168,10 @@ function handleTimeSeries() {
 
   initPlots();
 
-  plotManager.getDateAxis().constrainRangeTo({ min : Date.parse(available_cities[selectedCity].timeline_start_date) / 1000, max : Date.now() / 1000 });
+  // TODODO
+  //available_cities[selectedCity].timeline_start_date
+  // Constrain to all of selected year
+  plotManager.getDateAxis().constrainRangeTo({ min : Date.parse(timeline.getFirstBlockData().year + "-01-01") / 1000, max : Date.now() / 1000 });
 
   // TODO: Do we want custom more-info button for heatmaps?
   if (heatmapModeEnabled) {
@@ -171,6 +182,7 @@ function handleTimeSeries() {
 
   if (chartsInitialized) {
     setChartBackgroundColors();
+    repositionCharts();
     return;
   }
 
@@ -227,7 +239,7 @@ function handleTimeSeries() {
 
     if (actionType == "toggle-plot") {
       if ($target.prop("checked")) {
-        addPlot({feed_id: plotId, pm25_channel: channelName, color: markerTimeSeriesPlots[plotName].color});
+        addPlot({feed_id: plotId, graphable_channel: channelName, color: markerTimeSeriesPlots[plotName].color});
       } else {
         plotManager.getPlotContainer("plot_container").removePlot(plotName);
       }
@@ -254,6 +266,17 @@ function handleTimeSeries() {
   plotManager.getDateAxis().setCursorPosition(fixedCursorPosition);
 
   chartsInitialized = true;
+
+  repositionCharts();
+}
+
+function repositionCharts() {
+  var m = moment.tz(timeline.selectedDayInMs, selected_city_tmz);
+  var min = m.clone().subtract(12, 'hours').unix();
+  var max =  m.clone().endOf("day").add(12, 'hours').unix();
+  plotManager.getDateAxis().setRange({min : min, max: max});
+  var fixedCursorPosition = playbackTimeline.getPlaybackTimeInMs() / 1000;
+  plotManager.getDateAxis().setCursorPosition(fixedCursorPosition);
 }
 
 
@@ -261,7 +284,7 @@ function handleTimeSeries() {
 function setChartBackgroundColors() {
   var boxen = {};
   var boxenColors = ['#52b947', '#f3ec19', '#f57e20', '#ed1f24', '#991b4f'];
-  var boxenConcentrationLevels = [0, 12, 35, 55, 150];
+  var boxenConcentrationLevels = availableAqStds[selected_aq_std]['scales'][selected_pollution_type];
 
   var boxenCountLevels = [0, 500, 1000, 2000, 4000, 8000];
   var boxenAxisChangeListener = null;

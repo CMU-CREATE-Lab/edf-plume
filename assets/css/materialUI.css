@@ -66,6 +66,7 @@
 .materialUI #city-picker,
 .materialUI #share-picker,
 .materialUI #help-tour,
+.materialUI #calendar-year,
 .materialUI #reach-out,
 .materialUI #methodology,
 .materialUI #add-placemarker,
@@ -94,6 +95,7 @@
 .materialUI #city-picker,
 .materialUI #share-picker,
 .materialUI #help-tour,
+.materialUI #calendar-year,
 .materialUI #reach-out,
 .materialUI #methodology,
 .materialUI #add-placemarker,
@@ -105,6 +107,7 @@
 .materialUI #city-picker .ui-button,
 .materialUI #share-picker .ui-button,
 .materialUI #help-tour .ui-button,
+.materialUI #calendar-year .ui-button,
 .materialUI #reach-out .ui-button,
 .materialUI #methodology .ui-button,
 .materialUI #add-placemarker .ui-button,
@@ -123,6 +126,7 @@
 
 .materialUI #city-picker.ui-state-hover,
 .materialUI #help-tour.ui-state-hover,
+.materialUI #calendar-year.ui-state-hover,
 .materialUI #reach-out.ui-state-hover,
 .materialUI #methodology.ui-state-hover,
 .materialUI #add-placemarker.ui-state-hover,
@@ -150,6 +154,19 @@
   -webkit-background-size: contain;
   margin-left: -15px;
   margin-top: -14px;
+  background-repeat: no-repeat;
+}
+
+
+.materialUI #calendar-year .ui-icon-custom-calendar-black {
+  background: url('../img/calendar.png');
+  width: 25px;
+  height: 25px;
+  opacity: 0.7;
+  background-size: contain;
+  -webkit-background-size: contain;
+  margin-left: -12px;
+  margin-top: -12px;
   background-repeat: no-repeat;
 }
 
@@ -204,6 +221,7 @@
 .materialUI #share-picker:not(.ui-button-disabled):hover .ui-icon-custom-share-black,
 .materialUI #city-picker:not(.ui-button-disabled):hover .ui-icon-custom-city-picker-black,
 .materialUI #help-tour:not(.ui-button-disabled):hover .ui-icon-custom-help-tour-black,
+.materialUI #calendar-year:not(.ui-button-disabled):hover .ui-icon-custom-calendar-black,
 .materialUI #reach-out:not(.ui-button-disabled):hover .ui-icon-custom-reach-out-black,
 .materialUI #methodology:not(.ui-button-disabled):hover .ui-icon-custom-methodology-black,
 .materialUI #add-placemarker:not(.ui-button-disabled):hover .ui-icon-add-placemarker,

@@ -184,28 +184,52 @@
       for (var i = 0; i < batch.length; i++) {
         var pt = batch[i];
         // Add color string
-        var color_val = pt[data_index_for_colors];
-        var color_str;
+        // TODO: our index for color value contains an array rather than a single number
+
+        // var color_val = pt[data_index_for_colors];
+        // var color_str;
+        // if (use_color_quantiles) {
+        //   var color = valueToQuantile(color_val, color_bin, color_range);
+        //   color_str = "background-color:" + color + ";";
+        // } else {
+        //   var color = valueToGrayLevel(color_val, max_color_val, min_color_val);
+        //   color_str = "background-color:rgb(" + color + "," + color + "," + color + ");";
+        // }
+
+        var color_val_max = pt[data_index_for_colors][0];
+        var color_val_mean = pt[data_index_for_colors][1];
+        var color_str_max;
+        var color_str_mean;
         if (use_color_quantiles) {
-          var color = valueToQuantile(color_val, color_bin, color_range);
-          color_str = "background-color:" + color + ";";
+          var color_max = valueToQuantile(color_val_max, color_bin, color_range);
+          var color_mean = valueToQuantile(color_val_mean, color_bin, color_range);
+          color_str_max = "background-color:" + color_max + ";";
+          color_str_mean = "background-color:" + color_mean + ";";
         } else {
           var color = valueToGrayLevel(color_val, max_color_val, min_color_val);
           color_str = "background-color:rgb(" + color + "," + color + "," + color + ");";
         }
         // Add height string
-        var height_val = pt[data_index_for_heights];
-        var height = valueToQuantile(height_val, height_bin, height_range);
-        var height_str = "height:" + height + ";";
+        //var height_val = pt[data_index_for_heights];
+        //var height = valueToQuantile(height_val, height_bin, height_range);
+        //var height_str = "height:" + height + ";";
         // Add data string
         var data_str = "data-index='" + (previous_index - i - 1) + "' ";
         for (var j = 0; j < column_names.length; j++) {
           data_str += "data-" + column_names[j] + "='" + pt[j] + "' ";
         }
         // Create block
-        var hover_text = pt[0] + ", " + pt[column_names.length - 1];
-        var style_str = "style='" + color_str + height_str + "' ";
-        var $block = $("<div class='block' " + style_str + "></div>");
+        var hover_text = pt[0] + ", " + pt[column_names.length - 1] + "&#10;" + "PM2.5 Max: " + pt[data_index_for_colors][0] + "&#10;" + "PM2.5 Avg: " + pt[data_index_for_colors][1];
+        //var style_str = "style='" + color_str + height_str + "' ";
+        //var $block = $("<div class='block' " + style_str + "></div>");
+
+        // Handle showing two different colors at once for a block (diagonally sliced)
+        // bottom right segment
+        var style_str = "style='" + color_str_mean + "height:30px;overflow:hidden;" + "' ";
+        // top left segment
+        var style_inner_str = "style='border-top:30px solid " + color_max + ";width:0;height:0;border-right:52px solid transparent" + "' ";
+        var $block = $("<div class='block' " + style_str + "><div " + style_inner_str + "></div></div>");
+
         var $block_click_region = $("<div class='block-click-region' " + data_str + "></div>");
         var $block_container = $("<td title='" + hover_text + "'></td>");
         $block_container.append($block);

@@ -16,25 +16,36 @@ var LANG_DATA_ROOT = DATA_ROOT + "lang/";
 var HIDE_NON_PUBLIC_CITIES = window.location.href.indexOf("dev.") == -1;
 
 //var HRRR_UNCERTAINTY_COLLECTION_NAME = "hrrr-uncertainty-v2-dev";
-var PM25_UNIT = "ug/m3";
+var PM_UNIT = "ug/m3";
 var MAP_ZOOM_CHANGEOVER_THRESHOLD = 8;
+var selected_aq_std;
+var selected_pollution_type;
+var selected_wind_unit = "mph";
 
 // Increase/decrease for more or less TRAX data to look back at
 var traxDataIntervalInMin = 60;
 var traxDataIntervalInMs = traxDataIntervalInMin * 60000; // 60000 ms = 1 minute
 var monitorGapThresholdInMs = 3600000 * 2; // 2 hour(s); show no available data after a time gap longer than this.
 
+var availableAqStds;
+
+var pollution_infobar_lookup = {
+  "PM25" : "PM<sub>2.5</sub>",
+  "PM10" : "PM<sub>10</sub>"
+};
+
+// TODO: Used for TRAX, Assumes EPA AQ STD
 var pm25ColorLookup = function(pm25) {
   var color;
   if (pm25 >= 250.5) {
     color = "#7e0023"; // dark maroon
-  } else if (pm25 >= 150.5) {
+  } else if (pm25 >= 125.5) {
     color = "#99004c"; //light maroon
   } else if (pm25 >= 55.5) {
     color = "#ff0000"; //red
   } else if (pm25 >= 35.5) {
     color = "#ff7e00"; //orange
-  } else if (pm25 >= 12.1) {
+  } else if (pm25 >= 9.1) {
     color = "#ffff00"; //yellow
   } else if (pm25 >= 0) {
     color = "#00e400"; //green
@@ -138,12 +149,15 @@ var $tooltipContent;
 
 
 //var defaultHomeView = {lat: 38.26796, lng: -100.57088, zoom: window.innerWidth <= 450 ? 4 : 5};
+var defaultHomeView = {lat: 11.752425033851347, lng: -92.49624176186249, zoom: window.innerWidth <= 450 ? 3 : 3};
 var defaultHomeView = {lat: 29.818632, lng: -52.781476, zoom: window.innerWidth <= 450 ? 3 : 3};
 var startingView = Object.assign({}, defaultHomeView);
 // If true, do not pull footprints from GCS, but compute them in realtime
 var runRealTime = false;
 var runRealTimeOverride = false;
 var useGFSMetOverride = false
+
+var initialUrlVarsState = {};
 
 function isMobileView() {
   return $(window).width() <= 450;
@@ -289,7 +303,6 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
     });
     setTraxOpacityAndColor(playbackTimeInMs);
   } else {
-    //console.log("no trax data found found for:", playbackTimeInMs);
     resetAllTrax();
   }
   sensorLoadingDeferrers['trax'].resolve(null);
@@ -297,6 +310,61 @@ async function getTraxInfoByPlaybackTime(timeInEpoch) {
 
 async function loadLang(lang) {
   return await loadJsonData(LANG_DATA_ROOT + lang + ".json");
+}
+
+function pollutionSelector(newPollutionType, firstRun) {
+  selected_pollution_type = newPollutionType;
+
+  $("#pollution-type-picker-select").val(newPollutionType);
+
+  $(".pollutant-name").html(pollution_infobar_lookup[newPollutionType]);
+
+  set_pollution_scale();
+
+  if (!firstRun) {
+    determineSensorAndUpdateInfoBar();
+    changeBrowserUrlState();
+  }
+
+  if (playbackTimeline) {
+    showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+  }
+}
+
+async function initAqStdSelector() {
+  // Set up template for AQ standard picker
+  availableAqStds = await loadJsonData(CITY_DATA_ROOT + "/aq_standards.json");
+  var tpl_source = document.getElementById("aq-std-picker-tpl").innerHTML;
+  var template = Handlebars.compile(tpl_source);
+  document.getElementById('aq-std-picker').innerHTML = template(availableAqStds);
+
+  $("#aq-std-picker-select").on("change", async function(e) {
+    aqStdSelector(e.target.value)
+  });
+}
+
+function aqStdSelector(std, firstRun) {
+  selected_aq_std = std;
+
+  $("#aq-std-picker-select").val(selected_aq_std);
+
+  if (!firstRun) {
+    changeBrowserUrlState();
+  }
+
+  if (playbackTimeline) {
+    showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+  }
+
+  set_pollution_scale();
+}
+
+function set_pollution_scale() {
+  $('.pollution-scale-vals').each(function(idx, tr) {
+    $(tr).children("td").each(function(idx, td) {
+      $(td).text(availableAqStds[selected_aq_std]['scales'][selected_pollution_type][idx] + "+")
+    });
+  });
 }
 
 async function languageSelector(lang, firstTime) {
@@ -331,20 +399,24 @@ async function languageSelector(lang, firstTime) {
 }
 
 async function initMap() {
-  var urlVars = Util.parseVars(window.location.href);
+  initialUrlVarsState = Util.parseVars(window.location.href);
 
-  var shareView = urlVars.v;
-  runRealTimeOverride = urlVars.runRealTime == 'true';
-  useGFSMetOverride = urlVars.useGFSMet == 'true';
-  backtraceMode = typeof(urlVars.backtraceMode) != "undefined" ? urlVars.backtraceMode : backtraceMode;
+  var shareView = initialUrlVarsState.v;
+  runRealTimeOverride = initialUrlVarsState.runRealTime == 'true';
+  useGFSMetOverride = initialUrlVarsState.useGFSMet == 'true';
+  backtraceMode = typeof(initialUrlVarsState.backtraceMode) != "undefined" ? initialUrlVarsState.backtraceMode : backtraceMode;
 
-  var userLang = typeof(urlVars.lang) != "undefined" ? urlVars.lang : navigator.language || navigator.userLanguage;
+  var userLang = typeof(initialUrlVarsState.lang) != "undefined" ? initialUrlVarsState.lang : navigator.language || navigator.userLanguage;
   userLang = userLang.split("-")[0];
 
   if (!Object.keys(availableLanguages).includes(userLang)) {
     userLang = "en";
   }
   await languageSelector(userLang, true);
+
+  selected_aq_std = typeof(initialUrlVarsState.aqStd) != "undefined" ? initialUrlVarsState.aqStd : "epa";
+  selected_pollution_type = typeof(initialUrlVarsState.pollutionType) != "undefined" ? initialUrlVarsState.pollutionType : "PM25";
+
   bodyTemplateLoadedPromise.resolve(null);
 
   if (shareView) {
@@ -355,8 +427,8 @@ async function initMap() {
   }
 
   // DEBUG
-  STILT_GCLOUD_BUCKET = STILT_GCLOUD_BUCKET.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
-  CLOUD_STORAGE_PARENT_URL = CLOUD_STORAGE_PARENT_URL.replace("{BUCKET_NAME}", urlVars.gcsBucketName ? urlVars.gcsBucketName : "air-tracker-edf-prod");
+  STILT_GCLOUD_BUCKET = STILT_GCLOUD_BUCKET.replace("{BUCKET_NAME}", initialUrlVarsState.gcsBucketName ? initialUrlVarsState.gcsBucketName : "air-tracker-edf-prod");
+  CLOUD_STORAGE_PARENT_URL = CLOUD_STORAGE_PARENT_URL.replace("{BUCKET_NAME}", initialUrlVarsState.gcsBucketName ? initialUrlVarsState.gcsBucketName : "air-tracker-edf-prod");
   // DEBUG
 
   // Set information window
@@ -627,11 +699,23 @@ async function initMap() {
     if (!selectedInfo) {
       selectedInfo = text['legend-row'];
       selectedInfo.text = ("moreInfo." + $(this).data("info") + ".content").split('.').reduce((o,i)=> o[i], currentLang);
+      // TODO: Refactor?
+      if ($(this).data("info").includes('aq_std')) {
+        selectedInfo.text += "<br><br><a target='_blank' href='https://iris.who.int/bitstream/handle/10665/345329/9789240034228-eng.pdf'>WHO</a><br><a target='_blank' href='https://www.epa.gov/system/files/documents/2024-02/pm-naaqs-air-quality-index-fact-sheet.pdf'>U.S. EPA</a><br><a target='_blank' href='https://conama.mma.gov.br/index.php?option=com_sisconama&view=atonormativo&id=756'>CONAMA (Brazil)</a>"
+      }
     }
     setButtonTooltip(selectedInfo.text, $(this), null, selectedInfo.pos);
   });
 
   $("#infobar-close-toggle-container").on("click", toggleInfobar);
+
+  $('input[type=radio][name=wind_unit]').on("change", function() {
+    selected_wind_unit = $(this).val();
+    determineSensorAndUpdateInfoBar();
+    if (playbackTimeline) {
+      showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+    }
+  });
 
   $(".explanation-step-button").on("click", function(e) {
     if ($(this).hasClass("disabled")) return;
@@ -673,7 +757,7 @@ async function initMap() {
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
         $infobar.stop(true, false).animate({
-          height: "51px"
+          height: "65px"
         }, function() {
           $infobar.removeClass("maximized");
           $(document).trigger("click");
@@ -697,6 +781,8 @@ async function initMap() {
 
     if (timeSeriesModeEnabled) {
       hideTimeSeriesUI();
+      $("#aq-std-picker-select").prop('disabled', false);
+      $("#pollution-type-picker-select").prop('disabled', false);
     }
 
     $("#infobar").removeClass("altmode");
@@ -707,6 +793,11 @@ async function initMap() {
 
   $(window).on("resize", function() {
     map.setOptions({zoomControl: !isMobileView()});
+    // If in small screen view and someone has shrunk the infobar menu, we need to remove the inline css height
+    // that jquery had added, otherwise when the window is expanded we are stuck with that shrunk menu.
+    if (window.innerWidth > 450) {
+      $infobar.height("");
+    }
   });
 
   $("#controls").on("click", "#calendar-btn, .timestampPreview", handleTimelineToggling);
@@ -869,6 +960,7 @@ async function initMap() {
 
   initFootprintDialog();
   initDomElms();
+  initAqStdSelector()
 
   createDataPullWebWorker();
 
@@ -941,7 +1033,7 @@ async function initMap() {
   $(".shareViewModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
     open: function() {
       $(".shareurl").text(getShareUrl());
@@ -955,7 +1047,7 @@ async function initMap() {
   $(".reachOutModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
     open: function() {
       if (isMobileView()) {
@@ -968,7 +1060,7 @@ async function initMap() {
   $(".backtraceSettingsModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
     width: "350px",
     open: function() {
@@ -984,9 +1076,9 @@ async function initMap() {
   $(".tosModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
-    width: isMobileView() ? window.innerWidth - 50 : "450",
+    width: isMobileView() ? window.innerWidth - 120 : "450",
     maxWidth: window.innerWidth,
     maxHeight: window.innerHeight,
     open: function() {
@@ -1004,7 +1096,7 @@ async function initMap() {
   $(".searchModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
     position: { of: window, my: "top+40", at: "top" },
     open: function() {
@@ -1015,7 +1107,7 @@ async function initMap() {
   $(".methodologyModal").dialog({
     resizable: false,
     autoOpen: false,
-    dialogClass: "customDialog",
+    classes: {"ui-dialog": "customDialog"},
     modal: true,
     open: function() {
       if (isMobileView()) {
@@ -1032,6 +1124,8 @@ async function initMap() {
       $("#back-arrow-text").html(currentLang.timeseries.exit.content);
     }
     $("#infobar").addClass("altmode");
+    $("#aq-std-picker-select").prop('disabled', true);
+    $("#pollution-type-picker-select").prop('disabled', true);
     if (heatmapModeEnabled) {
       $("#get-heatmap").show();
     } else {
@@ -1098,10 +1192,10 @@ async function initMap() {
   $("#get-heatmap").on("click", function() {
     if ($(this).hasClass("button-loading")) return;
     if (!selectedLocationPinVisible()) {
-      alert("You need to click a location on the map.");
+      alert(currentLang.infobar.heatmap.locationSelectionError.content);
       return;
     }
-    var $that = $(this);
+    //var $that = $(this);
 
     var payload = {};
 
@@ -1111,7 +1205,7 @@ async function initMap() {
       var re = new RegExp(`^(${regexDatePattern})(,${regexDatePattern})+,?$`);
 
       if (!re.test(dates)) {
-        alert("Invalid formatted date list.");
+        alert(currentLang.infobar.heatmap.datePickerError.content);
         return;
       }
       // Date is displayed in RFC 3339, (by use of a space separating date and time)
@@ -1121,7 +1215,7 @@ async function initMap() {
     } else {
       rrule = $("#rrule-str").val();
       if (!rrule) {
-        alert("Missing start/end dates.");
+        alert(currentLang.infobar.heatmap.missingDatesError.content);
         return;
       }
       payload.rrule = rrule;
@@ -1144,13 +1238,13 @@ async function initMap() {
       await drawFootprint(selectedLocationPin.getPosition().lat(), selectedLocationPin.getPosition().lng(), true, false, data);
     }).fail(function(e) {
       if (e && e.status == 414) {
-        alert("Too many DateTimes to process. Please try again with a shorter list.");
+        alert(currentLang.infobar.heatmap.tooManyDatesError.content);
       } else if (e && e.status == 503) {
-        alert("Heatmap service is temporarily unavailable. Please try again later.")
+        alert(currentLang.infobar.heatmap.serviceUnavailableError.content)
       } else if (e && e.responseJSON && e.responseJSON.error) {
         alert(e.responseJSON.error);
       } else {
-        alert("An error occurred processing your request. Please check your input data.");
+        alert(currentLang.infobar.heatmap.genericError.content);
       }
     }).always(function() {
       //$that.removeClass("button-loading");
@@ -1223,10 +1317,6 @@ async function initMap() {
     $(".searchModal").dialog('open');
   });
 
-  $searchBoxIcon.on("mouseover mouseout", function() {
-    $searchBox.toggleClass("hover");
-  });
-
   $searchBoxIcon.on("click", function() {
     $searchBoxClear.trigger("click");
     var toggleWidth, paddingRight;
@@ -1243,6 +1333,8 @@ async function initMap() {
       width: toggleWidth,
       paddingRight: paddingRight
     });
+  }).on("mouseover mouseout", function() {
+    $searchBox.toggleClass("hover");
   });
 
   $searchBoxClear.on('click', function() {
@@ -1308,7 +1400,11 @@ async function initMap() {
     traxMarker.setVisible(false);
     traxMarkers.push(traxMarker);
   }
-  changeBrowserUrlState();
+
+  aqStdSelector(selected_aq_std, true);
+  pollutionSelector(selected_pollution_type, true);
+
+  //changeBrowserUrlState();
 }
 
 
@@ -1628,7 +1724,7 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
         createDataPullWebWorker();
         sensorLoadingDeferrers[marker_type].promise = null;
         sensorLoadingDeferrers[marker_type].isProcessing = false;
-        sensorLoadingDeferrers[marker_type].isQueued = false;
+        //sensorLoadingDeferrers[marker_type].isQueued = false;
       }
 
       if (!makeVisible) {
@@ -1645,12 +1741,12 @@ async function toggleMarkersByMarkerType(marker_type, makeVisible) {
       //var date_str_sensor = moment(timeline.selectedDayInMs).tz(selected_city_tmz).format("YYYY-MM-DD");
       //var is_current_day = date_str_sensor === current_day_str;
 
-      sensorLoadingDeferrers[marker_type] = {};
-      sensorLoadingDeferrers[marker_type].isQueued = true;
-      await waitForSensorsLoaded();
+      //sensorLoadingDeferrers[marker_type] = {};
+      //sensorLoadingDeferrers[marker_type].isQueued = true;
+      //await waitForSensorsLoaded();
       sensorLoadingDeferrers[marker_type] = new Deferred();
       sensorLoadingDeferrers[marker_type].isProcessing = true;
-      sensorLoadingDeferrers[marker_type].isQueued = false;
+      //sensorLoadingDeferrers[marker_type].isQueued = false;
 
       dataFormatWorker.postMessage({
         epochtime_milisec: timeline.selectedDayInMs,
@@ -1710,6 +1806,21 @@ async function getCityInBounds(mapFirstLoad) {
       }
       selectedCity = city_locode;
       selected_city_tmz = available_cities[selectedCity]['IANA_TZ'];
+
+      // TODO: Should URL var override a city default?
+      if (typeof(available_cities[selectedCity]['aq_std']) != "undefined") {
+        selected_aq_std = available_cities[selectedCity]['aq_std'];
+        aqStdSelector(selected_aq_std);
+      }
+
+      if (typeof(available_cities[selectedCity]['wind_unit']) != "undefined") {
+        selected_wind_unit = available_cities[selectedCity]['wind_unit'];
+        $("input[type=radio][name=wind_unit][value=" + selected_wind_unit + "]").prop("checked", true);
+      } else {
+        selected_wind_unit = "mph";
+        $("input[type=radio][name=wind_unit][value=mph]").prop("checked", true);
+      }
+
       break;
     }
   }
@@ -1717,6 +1828,7 @@ async function getCityInBounds(mapFirstLoad) {
   if (selectedCity) {
     // show/hide sensor types from legend, based on what the city offers
     toggleOffAllNonForcedSensors();
+    toggleCityBoundaries(false);
     $legend.show();
     $langPicker.removeClass("no-legend")
     $(".custom-legend").accordion( "option", "active", true );
@@ -1737,6 +1849,10 @@ async function getCityInBounds(mapFirstLoad) {
       $("#facilities-legend-row").show();
     } else {
       $("#facilities-legend-row").hide();
+    }
+
+    if (available_cities[selectedCity].city_boundary_data?.starts_on) {
+      toggleCityBoundaries(true);
     }
 
     $cityName.text(available_cities[selectedCity].name);
@@ -1765,6 +1881,7 @@ async function getCityInBounds(mapFirstLoad) {
     if (timeline) {
       // from timeline.js
       if (timeline.activeCity != selectedCity) {
+        $calendar_select.prop("selectedIndex", 0);
         loadAndUpdateTimeLine(zoomChangedSinceLastIdle ? cityInBoundsCallback : null);
         // Close playback timeline if it is open when switching to another city
         if (playbackTimeline && playbackTimeline.isActive()) {
@@ -1774,37 +1891,33 @@ async function getCityInBounds(mapFirstLoad) {
         cityInBoundsCallback();
       }
     } else {
-      /*if (!current_day_str) {
-        current_day_str = moment().tz(selected_city_tmz).format("YYYY-MM-DD");
-      }*/
-      var urlVars = Util.parseVars(window.location.href);
-      var shareTimeInMs = parseInt(urlVars.t);
-      if (shareTimeInMs) {
+      if (initialUrlVarsState.t) {
+        var shareTimeInMs = parseInt(initialUrlVarsState.t);
         selected_day_start_epochtime_milisec = moment(shareTimeInMs).tz(selected_city_tmz).startOf("day").valueOf();
       }
       setupTimeline(shareTimeInMs, async function() {
         if (zoomChangedSinceLastIdle || lastSelectedCity == "") {
           cityInBoundsCallback();
         }
-        var urlVars = Util.parseVars(window.location.href);
-        if (urlVars.playbackTimelineOpen == "true") {
+        if (initialUrlVarsState.playbackTimelineOpen == "true") {
           handleTimelineToggling();
         }
-        if (urlVars.activeSensors) {
-          var sensorsToActivate = urlVars.activeSensors.split(",");
+        if (initialUrlVarsState.activeSensors) {
+          var sensorsToActivate = initialUrlVarsState.activeSensors.split(",");
           for (var sensorType of sensorsToActivate) {
             $("#toggle-" + sensorType).trigger("click");
           }
         }
-        if (urlVars.pinnedPoint) {
-          await waitForSensorsLoaded();
-          var latLng = urlVars.pinnedPoint.split(",");
+        if (initialUrlVarsState.pinnedPoint) {
+          //await waitForSensorsLoaded();
+          var latLng = initialUrlVarsState.pinnedPoint.split(",");
           google.maps.event.trigger(map, "click", {latLng: new google.maps.LatLng(latLng[0], latLng[1]), fromVirtualClick: true});
           // Need a delay for the click to fully register
           // TODO: Make this done through a Promise
-          var waitForReady = function() {
+          var waitForReady = async function() {
             if (selectedLocationPinVisible()) {
               clearInterval(checkIfPinOnLoadIsReadyInterval);
+              await waitForSensorsLoaded();
               determineSensorAndUpdateInfoBar();
             }
           };
@@ -1871,7 +1984,7 @@ function handleControlsUI(state, doIgnore) {
 
   if (state == "enable") {
     $controls.show();
-    $("#add-placemarker, #remove-placemarkers").removeClass("disabled");
+    $("#add-placemarker, #remove-placemarkers, #calendar-year").removeClass("disabled");
     if ($map.hasClass("no-controls")) {
       $("#map, #infobar, #legend").removeClass("no-controls");
       if (timeline) {
@@ -1911,15 +2024,14 @@ function getShareUrl() {
 
   var urlVars = Util.parseVars(window.location.href);
   urlVars.v = viewStr;
-  if (timeStr) {
-    urlVars.t = timeStr;
-  } else {
-    delete urlVars.t;
-  }
   if (isPlaybackTimelineOpen) {
     urlVars.playbackTimelineOpen = true;
+    if (timeStr) {
+      urlVars.t = timeStr;
+    }
   } else {
     delete urlVars.playbackTimelineOpen;
+    delete urlVars.t;
   }
   if (activeSensors) {
     urlVars.activeSensors = activeSensors;
@@ -1932,6 +2044,8 @@ function getShareUrl() {
     delete urlVars.pinnedPoint;
   }
   urlVars.lang = currentLang.id;
+  urlVars.aqStd = selected_aq_std;
+  urlVars.pollutionType = selected_pollution_type;
   var urlVarsString = "?";
   for (var urlVar in urlVars) {
     urlVarsString += urlVar + "=" + urlVars[urlVar] + "&";
@@ -2026,16 +2140,22 @@ function isInTour() {
 }
 
 
-function initDomElms() {
+async function initDomElms() {
   $("#language-picker-select").on("change", async function(e) {
     await languageSelector(e.target.value)
-  })
+  });
+
+  if (isMobileView()) {
+    $("#language-picker-select").appendTo("#language-picker-select-mobile-container")
+  }
+
+  $("#pollution-type-picker-select").on("change", async function(e) {
+    pollutionSelector(e.target.value)
+  });
 
   $("#share-picker").show().button({
-    icons: {
-      primary: "ui-icon-custom-share-black"
-    },
-    text: false
+    icon: "ui-icon-custom-share-black",
+    showLabel: false
   }).on("click", function() {
     $(".shareViewModal").dialog('open');
   });
@@ -2044,10 +2164,8 @@ function initDomElms() {
   });
 
   $("#city-picker").show().button({
-    icons: {
-      primary: "ui-icon-custom-city-picker-black"
-    },
-    text: false
+    icon:  "ui-icon-custom-city-picker-black",
+    showLabel: false
   }).on("click", function() {
     $("#city-picker-controls .btn-mobileSelect-gen").trigger("click");
   });
@@ -2056,10 +2174,8 @@ function initDomElms() {
   });
 
   $("#help-tour").show().button({
-    icons: {
-      primary: "ui-icon-custom-help-tour-black"
-    },
-    text: false
+    icon: "ui-icon-custom-help-tour-black",
+    showLabel: false
   }).on("click", function() {
     siteTourShort();
   });
@@ -2069,10 +2185,8 @@ function initDomElms() {
   });
 
   $("#reach-out").show().button({
-    icons: {
-      primary: "ui-icon-custom-reach-out-black"
-    },
-    text: false
+    icon: "ui-icon-custom-reach-out-black",
+    showLabel: false
   }).on("click", function() {
     $(".reachOutModal").dialog('open');
   });
@@ -2080,11 +2194,22 @@ function initDomElms() {
     $(".reachOutModal").dialog('open');
   });
 
+
+  $("#calendar-year").show().button({
+    icon: "ui-icon-custom-calendar-black",
+    showLabel: false
+  })/*.on("click", function() {
+    $(".reachOutModal").dialog('open');
+  });*/
+  // $("#reach-out-mobile").on("click", function() {
+  //   $(".reachOutModal").dialog('open');
+  // });
+
+  initCalendarBtn();
+
   $("#methodology").show().button({
-    icons: {
-      primary: "ui-icon-custom-methodology-black"
-    },
-    text: false
+    icon: "ui-icon-custom-methodology-black",
+    showLabel: false
   }).on("click", function() {
     $(".methodologyModal").dialog('open');
   });
@@ -2093,10 +2218,8 @@ function initDomElms() {
   });
 
   $("#add-placemarker").show().button({
-    icons: {
-      primary: "ui-icon-add-placemarker"
-    },
-    text: false
+    icon: "ui-icon-add-placemarker",
+    showLabel: false
   }).on("click", function() {
       var marker = new google.maps.Marker({
         map: map,
@@ -2121,10 +2244,8 @@ function initDomElms() {
   });
 
   $("#remove-placemarkers").show().button({
-    icons: {
-      primary: "ui-icon-remove-placemarkers"
-    },
-    text: false
+    icon: "ui-icon-remove-placemarkers",
+    showLabel: false
   }).on("click", function() {
     clearUserAddedMarkers();
   });
@@ -2291,8 +2412,12 @@ async function determineSensorAndUpdateInfoBar() {
   // Update info panel
   if (primaryInfoPopulator) {
     updateInfoBar(primaryInfoPopulator);
-    if (primaryInfoPopulator.getData() && typeof(primaryInfoPopulator.getData().pm25_channel) == "string") {
-      $(".chart-btn").removeClass("disabled");
+    if (primaryInfoPopulator.getData()) {
+      if (typeof(primaryInfoPopulator.getData().graphable_channel) == "string") {
+        $(".chart-btn").removeClass("disabled");
+      } else {
+        $(".chart-btn").addClass("disabled");
+      }
     }
   }
 }
@@ -2333,7 +2458,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
   var previousFootprintData = overlay.getData();
   // Clear existing footprint if there is one and we are not stepping through time
   if (fromClick) {
-    // TODO: Stop re-centering map to where a user clicked. Has this been annoying to users?
+    // Re-centering map to where a user clicked. Disabled now, was annoying to folks.
     //map.panTo({lat: lat, lng: lng});
     if (overlay) {
       overlay.setMap(null);
@@ -2542,7 +2667,7 @@ async function drawFootprint(lat, lng, fromClick, wasVirtualClick, footprintData
   }
 
   // Enable/Disable chart button based on whether a sensor was clicked and whether it has pm25 readings.
-  selectedSensorMarker && typeof(selectedSensorMarker.getData().pm25_channel) == "string" ? $(".chart-btn").removeClass("disabled") : $(".chart-btn").addClass("disabled");
+  selectedSensorMarker && typeof(selectedSensorMarker.getData().graphable_channel) == "string" ? $(".chart-btn").removeClass("disabled") : $(".chart-btn").addClass("disabled");
 
   // Enable/Disable 'generate source area heatmap' button whether we have clicked inside or outside a valid city bounds
   available_cities[selectedCity].footprint_region.getBounds().contains(selectedLocationPin.getPosition()) ? $("#heatmap-modal-button").removeClass("disabled") : $("#heatmap-modal-button").addClass("disabled");
@@ -2598,7 +2723,7 @@ async function loadSensorsListForCity(city_locode) {
 async function createFacilityMarkersForCity(city_locode) {
   let facilities_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/facilities.json");
   for (let facility of facilities_list.facilities) {
-    let facility_marker = new MarkerWithLabel({
+    let facility_marker = new markerWithLabel.MarkerWithLabel({
       position: new google.maps.LatLng(facility["Lat"], facility["Lon"]),
       draggable: false,
       clickable: false,
@@ -2622,7 +2747,7 @@ async function createFacilityMarkersForCity(city_locode) {
 async function loadSensorPlaceholderListForCity(city_locode) {
   let sensor_placeholder_list = await loadJsonData(CITY_DATA_ROOT + city_locode + "/placeholders.json");
   for (let sensor_placeholder of sensor_placeholder_list.placeholders) {
-    let sensor_placeholder_marker = new MarkerWithLabel({
+    let sensor_placeholder_marker = new markerWithLabel.MarkerWithLabel({
       position: new google.maps.LatLng(sensor_placeholder["Lat"], sensor_placeholder["Lon"]),
       draggable: false,
       clickable: true,
@@ -2684,7 +2809,7 @@ async function receivedWorkerMessage(event) {
     var sensorTimes = result[sensor_names[i]].data[epochtime_milisec].data.map(entry => entry.time * 1000);
     var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
     var newData = result[sensor_names[i]].data[epochtime_milisec].data[indexOfAvailableTime];
-    if (newData && (playbackTimeInMs < sensorTimes[indexOfAvailableTime]) || (Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs)) {
+    if (!newData || playbackTimeInMs < sensorTimes[indexOfAvailableTime] || Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs) {
       newData = {};
     }
 
@@ -2692,7 +2817,15 @@ async function receivedWorkerMessage(event) {
       // UPDATE DATA FOR MARKER
       var marker = sensor['marker'];
       marker.setData(parseSensorMarkerDataForPlayback(newData, is_current_day, info[i]));
-      marker.updateMarker();
+      var forceType = null;
+      if (!Object.keys(sensor.info.sensors).includes(selected_pollution_type) && !sensor.marker.getMarkerType().startsWith("WIND_ONLY")) {
+        forceType = "noData";
+      }
+      var displayed_marker_type = selected_pollution_type;
+      if (sensor.marker.getMarkerType().startsWith("WIND_ONLY")) {
+        displayed_marker_type = "WIND_ONLY";
+      }
+      marker.updateMarker(forceType, selected_aq_std, displayed_marker_type);
       marker.getGoogleMapMarker().setVisible(true);
       if (i == info.length - 1) {
         setSensorDataLoaded(marker_type);
@@ -2713,13 +2846,10 @@ function setSensorDataLoaded(marker_type) {
 
 
 async function waitForSensorsLoaded() {
-  for (let sensor_type in sensorLoadingDeferrers) {
-    // TODO: Gross
-    if (sensorLoadingDeferrers[sensor_type].isQueued) {
-      await new Promise(r => setTimeout(r, 50));
-    }
-    await sensorLoadingDeferrers[sensor_type].promise;
-  }
+  const promises = Object.entries(sensorLoadingDeferrers).map((sensor) => {
+    return sensor[1].promise;
+  });
+  return Promise.all(promises);
 }
 
 
@@ -2743,12 +2873,13 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
   };
 
   return new CustomMapMarker({
-    "type": getSensorType(info),
+    "type": getSensorType(info, true),
     "sensor_type" : info['marker_type'],
+    "aq_std": selected_aq_std,
     "marker_icon" : getMarkerIcon(info['marker_type']),
     "marker_icon_size" : getMarkerIconSize(info['marker_type']),
     "marker_draw_level_padding" : info['marker_type'] == "air_now" ? 10 : null,
-    "data": parseSensorMarkerDataForPlayback(data, is_current_day, info),
+    "data": parseSensorMarkerDataForPlayback(data, is_current_day, info, true),
     "click": function (marker) {
       selectedSensorMarker = marker;
       handleSensorMarkerClicked(marker);
@@ -2756,23 +2887,35 @@ function createAndShowSensorMarker(data, epochtime_milisec, is_current_day, info
     "complete": function (marker) {
       var sensorName = info['name'];
       available_cities[selectedCity].sensors[sensorName].marker = marker;
+      var displayed_marker_type = selected_pollution_type;
+      if (marker.getMarkerType().startsWith("WIND_ONLY")) {
+        displayed_marker_type = "WIND_ONLY";
+      }
       if (heatmapModeEnabled) {
-        marker.updateMarker("disable");
+        marker.updateMarker("disabled", selected_aq_std, displayed_marker_type);
+      } else if (!Object.keys(info.sensors).includes(selected_pollution_type) && !marker.getMarkerType().startsWith("WIND_ONLY")) {
+        marker.updateMarker("noData", selected_aq_std, displayed_marker_type);
+        var dataToShow = marker.getData()
+        delete dataToShow['sensor_data_time'];
+        delete dataToShow['sensor_value'];
+        marker.setData(parseSensorMarkerDataForPlayback(dataToShow, is_current_day, info))
       }
       showMarkers([marker], true);
       if (i == num_sensors - 1) {
-        setSensorDataLoaded(info['marker_type']);
+        // Need a slight delay to ensure all markers are in fact visible on the map
+        setTimeout(function() {
+          setSensorDataLoaded(info['marker_type']);
+        }, 50);
       }
     }
   });
 }
 
 
-function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
-  var sensor_type = getSensorType(info);
-  if (typeof sensor_type === "undefined") return undefined;
-  var marker_sources = sensor_type.startsWith("WIND_ONLY") ? info["sensors"]["wind_direction"]["sources"] : info["sensors"][sensor_type]["sources"];
-  var most_recent_data_source = marker_sources[marker_sources.length - 1];
+function parseSensorMarkerDataForPlayback(data, is_current_day, info, firstTime) {
+  var sensor_type = getSensorType(info, firstTime);
+  var marker_sources = sensor_type ? (sensor_type.startsWith("WIND_ONLY") ? info["sensors"]["wind_direction"]["sources"] : info["sensors"][sensor_type]["sources"]) : [];
+  var most_recent_data_source = marker_sources[marker_sources.length - 1] || {};
   var marker_data = {
     "is_current_day": typeof(is_current_day) === "undefined" ? true : is_current_day,
     "name": info["name"],
@@ -2781,10 +2924,11 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
     // NOTE: This only gets the most recent feed id. There may be an older one, that is no longer used but has past data.
     "feed_id": most_recent_data_source["feed"],
     // "feed_channels": Object.keys(info["sensors"])
-    "pm25_channel" : !sensor_type.startsWith("WIND_ONLY") ? most_recent_data_source["channel"] : []
+    "graphable_channel" : sensor_type ? (!sensor_type.startsWith("WIND_ONLY") ? most_recent_data_source["channel"] : []) : []
   };
-  if (typeof data === "undefined") return marker_data;
-  // For PM25 or VOC (these two types cannot both show up in info)
+
+  if (typeof data === "undefined" || (!Object.keys(info["sensors"]).indexOf("wind_direction") && typeof sensor_type === "undefined")) return marker_data;
+  // For PM or VOC (these two types cannot both show up in info)
   if (typeof data[sensor_type] !== "undefined" && !sensor_type.startsWith("WIND_ONLY")) {
     if (typeof data[sensor_type] === "object") {
       marker_data["sensor_value"] = roundTo(data[sensor_type]["value"], 2);
@@ -2819,33 +2963,57 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info) {
     // AQSync is m/s
     // AirMatters (places like Brazil) is m/s
 
+    var wind_unit_conversions = {
+      "rws" : {
+        "mph": 1.15078,
+        "kph": 1.852
+      },
+      "mph": {
+        "mph": 1,
+        "kph": 1.60934
+      },
+      "kph": {
+        "mph": 0.621371,
+        "kph": 1
+      },
+      "ms": {
+        "mph": 2.23694,
+        "kph": 3.6
+      }
+    }
+
     var channelName = info.sensors.wind_speed.sources[0].channel.toLowerCase();
     if (channelName.endsWith("rws")) {
-      // knots to mph
+      // knots to mph or kph
       // AirNow sometimes has RWS (rather than WS) for wind speed, which is in knots (as opposed to m/s).
-      wind_val = wind_val * 1.15078;
+      wind_val = wind_val * wind_unit_conversions["rws"][selected_wind_unit];
     } else if (!channelName.endsWith("mph") && !info.name.includes("QuantAQ")) {
-      // m/s to mph
+      // m/s to mph or kph
       // In general, wind data in ESDR appears to be in m/s. However, sometimes the person who wrote the relevant scraper
       // was kind enough to include units in the channel name, so we can check on that to see if the data is actually mph.
-      wind_val = wind_val * 2.23694;
+      wind_val = wind_val * wind_unit_conversions["ms"][selected_wind_unit];
+    } else {
+      wind_val = wind_val * wind_unit_conversions["mph"][selected_wind_unit];
     }
     marker_data["wind_speed"] = roundTo(wind_val, 2);
+    marker_data["wind_speed_display_unit"] = (selected_wind_unit == "kph") ? "km/h" : selected_wind_unit;
   }
   return marker_data;
 }
 
 
-function getSensorType(info) {
+function getSensorType(info, firstTime) {
   var sensor_type;
-  if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && Object.keys(info["sensors"]).indexOf("PM25") == -1) {
+  if (Object.keys(info["sensors"]).indexOf("wind_direction") > -1 && !Object.keys(info["sensors"]).some(el => el.includes("PM"))) {
     if (typeof(info["clickable"]) != "undefined" && !info["clickable"]) {
       sensor_type = "WIND_ONLY2";
     } else {
       sensor_type = "WIND_ONLY";
     }
-  } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1) {
+  } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1 && (selected_pollution_type == "PM25" || firstTime)) {
     sensor_type = "PM25";
+  } else if (Object.keys(info["sensors"]).indexOf("PM10") > -1 && (selected_pollution_type == "PM10" || firstTime)) {
+    sensor_type = "PM10";
   } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
     sensor_type = "VOC";
   }
@@ -2902,14 +3070,16 @@ async function loadAvailableCities() {
         city_data['city_locode'] = city_locode;
         let city_icon_path = city['is_active'] ? 'img/city_icon.png' : 'img/city_icon_inactive.png';
         let label_class = city['is_active'] ? 'cityMapMarker' : 'cityMapMarker cityMapMarker-inactive';
-        let city_marker = new MarkerWithLabel({
-          position: new google.maps.LatLng(city['lat'], city['lon']),
+        let label_anchor_pos = city['label_anchor_pos'] == "top" ? -70 : -8;
+        let marker_pos_offset = city['marker_pos_offset'] ? city['marker_pos_offset'] : [0,0];
+        let city_marker = new markerWithLabel.MarkerWithLabel({
+          position: new google.maps.LatLng(city['lat'] - marker_pos_offset[0], city['lon'] - marker_pos_offset[1]),
           draggable: false,
           clickable: true,
           map: map,
           title: city_title,
           labelContent: city_title,
-          labelAnchor: new google.maps.Point(0,-8),
+          labelAnchor: new google.maps.Point(0,label_anchor_pos),
           labelClass: label_class,
           data: city_data,
           icon: ASSETS_ROOT + city_icon_path + '#' + city_locode,
@@ -3034,10 +3204,10 @@ function updateInfoBar(marker) {
   var sensorVal = markerData.sensorType == "trax" ? markerData['pm25'] : markerData['sensor_value'] ;
   if (isSensorMarkerVisible(selectedSensorMarker)) {
     if (isDaySummary) {
-      setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,currentLang.infobarContent.pollutants.daySummary.content + " "  + markerDataTimeMomentFormatted);
+      setInfobarSubheadings($infobarPollution,"",sensorVal,PM_UNIT,currentLang.infobarContent.pollutants.daySummary.content + " "  + markerDataTimeMomentFormatted);
     } else {
       if (sensorVal >= 0) {
-        setInfobarSubheadings($infobarPollution,"",sensorVal,PM25_UNIT,markerDataTimeMomentFormatted);
+        setInfobarSubheadings($infobarPollution,"",sensorVal,PM_UNIT,markerDataTimeMomentFormatted);
       } else {
         // Clicked on a trax sensor, which is now invisible since the time does not match for it.
         setInfobarUnavailableSubheadings($infobarPollution,currentLang.infobarContent.pollutants.unavailable.content);
@@ -3052,8 +3222,8 @@ function updateInfoBar(marker) {
     if (isDaySummary) {
       setInfobarUnavailableSubheadings($infobarWind,currentLang.infobarContent.pollutants.unavailable.content2);
     } else {
-      if (markerData['wind_direction']) {
-        setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " " + currentLang.infobarContent.pollutants.wind.content + " " + markerData['wind_speed'] + " mph",markerDataTimeMomentFormatted);
+      if (typeof(markerData['wind_direction']) != "undefined" && markerData['wind_direction'] >= 0) {
+        setInfobarSubheadings($infobarWind,"",getWindDirFromDeg(markerData['wind_direction']), " " + currentLang.infobarContent.pollutants.wind.content + " " + markerData['wind_speed'] + " " + markerData['wind_speed_display_unit'],markerDataTimeMomentFormatted);
       } else {
         setInfobarUnavailableSubheadings($infobarWind,currentLang.infobarContent.pollutants.unavailable.content3);
       }
@@ -3080,7 +3250,7 @@ function updateInfoBar(marker) {
           $("#infobar-plume-section").addClass("detailed");
         }
       } else {
-        infoStr = infobarContent.components.backtrace.content2 + " " + tm;
+        infoStr = currentLang.infobarContent.components.backtrace.content2 + " " + tm;
         setInfobarSubheadings($infobarPlume,infoStr,"","","");
       }
       //$infobarPlume.children(".infobar-unit").show();
@@ -3089,7 +3259,7 @@ function updateInfoBar(marker) {
       if (selectedSensorMarker) {
         pollution_time = markerDataTimeInMs;
       }
-      infoStr = infobarContent.components.backtrace.content3 + " " + formatTimeWithTimeZone(moment.tz(pollution_time, selected_city_tmz));
+      infoStr = currentLang.infobarContent.components.backtrace.content3 + " " + formatTimeWithTimeZone(moment.tz(pollution_time, selected_city_tmz));
       setInfobarUnavailableSubheadings($infobarPlume,infoStr);
       $infobarPlume.children(".infobar-text").removeClass('display-unset');
       //$infobarPlume.children(".infobar-unit").hide();
@@ -3158,8 +3328,8 @@ async function handleSensorMarkerClicked(marker) {
 
   updateInfoBar(marker);
 
-  // TODO: Add message to say only PM25 sensors can be graphed?
-  if (timeSeriesModeEnabled && marker.getData() && typeof(marker.getData().pm25_channel) == "string") {
+  // TODO: Add message to say only specific sensors can be graphed?
+  if (timeSeriesModeEnabled && marker.getData() && typeof(marker.getData().graphable_channel) == "string") {
     addPlotToLegend(selectedSensorMarker.getData(), null, true);
   }
 
@@ -3306,13 +3476,14 @@ function resetMapToCitiesOverview(city_locode) {
   $citySelector.val("");
   handleControlsUI("disable");
   toggleOffAllNonForcedSensors();
+  toggleCityBoundaries(false);
   clearUserAddedMarkers();
   selectedCity = "";
   selected_city_tmz = "";
   $legend.hide();
   $langPicker.addClass("no-legend");
   $("#infobar-back-arrow-container").trigger("click");
-  $("#add-placemarker, #remove-placemarkers").addClass("disabled");
+  $("#add-placemarker, #remove-placemarkers, #calendar-year").addClass("disabled");
 }
 
 
@@ -3376,15 +3547,27 @@ function updateSensorsByEpochTime(playbackTimeInMs, animating) {
     if (heatmapModeEnabled) {
       forceType = "disabled";
     }
-    if (indexOfAvailableTime >= 0 && sensor.marker) {
-      var dataToShow = fullDataForDay[indexOfAvailableTime];
-      if (dataToShow && (playbackTimeInMs < sensorTimes[indexOfAvailableTime]) || (Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs)) {
+    if (sensor.marker) {
+      var dataToShow = {};
+      if (indexOfAvailableTime >= 0) {
+        dataToShow = fullDataForDay[indexOfAvailableTime];
+      }
+      if (!dataToShow || playbackTimeInMs < sensorTimes[indexOfAvailableTime] || Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs) {
         dataToShow = {};
       }
       sensor.marker.setData(parseSensorMarkerDataForPlayback(dataToShow, animating, sensor.info));
       markers_with_data_for_chosen_epochtime.markers_to_show.push(sensor.marker);
     }
-    sensor.marker.updateMarker(forceType);
+    if (sensor.marker) {
+      if (!Object.keys(sensor.info.sensors).includes(selected_pollution_type) && !sensor.marker.getMarkerType().startsWith("WIND_ONLY")) {
+        forceType = "noData";
+      }
+      var displayed_marker_type = selected_pollution_type;
+      if (sensor.marker.getMarkerType().startsWith("WIND_ONLY")) {
+        displayed_marker_type = "WIND_ONLY";
+      }
+      sensor.marker.updateMarker(forceType, selected_aq_std, displayed_marker_type);
+    }
   }
   return markers_with_data_for_chosen_epochtime;
 }
@@ -3467,6 +3650,7 @@ function handleTimelineToggling(e) {
     $("#timeline-handle").slideUp(500);
     playbackTimeline.handleTimelineDateDisabling();
     playbackTimeline.seekTo(playbackTimeline.getCurrentFrameNumber(), true);
+    $("#calendar-year").addClass("disabled");
   } else {
     if ($currentTarget && $currentTarget.hasClass("playbackButton")) return;
     playbackTimeline.setActiveState(false);
@@ -3478,6 +3662,7 @@ function handleTimelineToggling(e) {
     $(".selected-block")[0].scrollIntoView(false);
     $("#timeline-handle").slideDown(500);
     $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
+    $("#calendar-year").removeClass("disabled");
   }
 }
 
@@ -3850,6 +4035,35 @@ async function handleSmellMarkerClicked(marker) {
   infowindow.open(map, mapMarker);
 }
 
+async function toggleCityBoundaries(makeVisible) {
+  if (!selectedCity) return;
+
+  if (available_cities[selectedCity]?.city_boundary_data?.has_boundaries) {
+    if (available_cities[selectedCity].city_boundary_data.boundaries) {
+      available_cities[selectedCity].city_boundary_data.boundaries.setStyle({
+        visible: makeVisible,
+        strokeColor: 'black',
+        fillColor: 'black',
+        strokeWeight: 2
+      });
+    } else {
+      available_cities[selectedCity].city_boundary_data.boundaries = new google.maps.Data();
+
+      available_cities[selectedCity].city_boundary_data.boundaries.loadGeoJson(
+        CITY_DATA_ROOT + selectedCity + "/city-boundaries.geojson"
+      );
+
+      available_cities[selectedCity].city_boundary_data.boundaries.setStyle({
+        visible: true,
+        strokeColor: 'black',
+        fillColor: 'black',
+        strokeWeight: 2
+       });
+    }
+    available_cities[selectedCity].city_boundary_data.boundaries.setMap(map);
+  }
+}
+
 
 async function toggleFacilities(makeVisible) {
   if (!selectedCity) return;
@@ -3905,8 +4119,7 @@ async function toggleFacilities(makeVisible) {
 
       available_cities[selectedCity].facility_data.boundaries.addListener('mouseover', mouseOverDataItem);
       available_cities[selectedCity].facility_data.boundaries.addListener('mouseout', mouseOutOfDataItem);
-
-      available_cities[selectedCity].facility_data.boundaries.setMap(map);
     }
+    available_cities[selectedCity].facility_data.boundaries.setMap(map);
   }
 }

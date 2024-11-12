@@ -1,14 +1,14 @@
 "use strict";
 
-//var util = new edaplotjs.Util();
+var util = new edaplotjs.Util();
 var timeline;
 var widgets = new edaplotjs.Widgets();
-//var $calendar_dialog;
-//var $calendar_select;
-//var plume_viz_data;
+var $calendar_dialog;
+var $calendar_select;
+var plume_viz_data;
 
 
-/*function getShareQuery(date_str) {
+function getShareQuery(date_str) {
   return "?date=" + date_str;
 }
 
@@ -36,10 +36,11 @@ function initCalendarBtn() {
   });
 
   // Add event to the calendar button
-  $("#calendar-btn").on("click", function () {
-    if ($("#controls").hasClass("playbackTimelineOff")) {
+  $("#calendar-year").on("click", function () {
+    //if ($("#controls").hasClass("playbackTimelineOff")) {
+      drawCalendar(Object.keys(timeline.calendarYearGroupings));
       $calendar_dialog.dialog("open");
-    }
+    //}
   });
 
   // Add event to the calendar select
@@ -48,24 +49,46 @@ function initCalendarBtn() {
     $calendar_dialog.dialog("close");
     var $selected = $calendar_select.find(":selected");
     var selected_value = $selected.val();
-    if (selected_value != -1 && selected_value != current_year) {
-      current_year = selected_value;
-      createTimeline(plume_viz_data[current_year]);
-      timeline.selectFirstBlock();
+    if (selected_value != -1 && selected_value != timeline.activeYear) {
+      timeline.activeYear = selected_value;
+      $("#selected_year").text(selected_value)
+      defaultTimelineUpdatedCallback(timeline.calendarYearGroupings[selected_value], null);
+      handleDraw(playbackTimeline.getPlaybackTimeInMs());
     }
     // Have selector go back to showing default option
-    $(this).prop("selectedIndex", 0);
+    //$(this).prop("selectedIndex", 0);
   });
 }
 
 function drawCalendar(year_list) {
+  var priorSelectElmVal = $calendar_select.find(":selected").val();
+  var $selectedElm;
   $calendar_select.empty();
-  $calendar_select.append($('<option selected value="-1">Select...</option>'));
+  $calendar_select.append($('<option value="-1">Select...</option>'));
   for (var i = year_list.length - 1; i >= 0; i--) {
     var year = year_list[i];
     $calendar_select.append($('<option value="' + year + '">' + year + '</option>'));
   }
-}*/
+  if (priorSelectElmVal && priorSelectElmVal != -1) {
+    $selectedElm = $calendar_select.find("option[value='" + priorSelectElmVal + "']");
+  } else {
+    // Select 2nd element, as that is the most recent year of data
+    $selectedElm = $calendar_select.children().eq(1);
+  }
+  $selectedElm.prop("selected","selected");
+}
+
+function formatDataForCalendar(data) {
+  return Object.entries(data).reduce((result, entry) => {
+    var dateStr = entry[0];
+    const year = dateStr.split('-')[0];
+    if (!result[year]) {
+      result[year] = {};
+    }
+    result[year][entry[0]] = entry[1];
+    return result;
+  }, {});
+}
 
 // Use the TimelineHeatmap charting library to draw the timeline
 function createTimeline(data, options) {
@@ -84,10 +107,10 @@ function createTimeline(data, options) {
     useColorQuantiles: true,
     plotDataWhenCreated: false,
     //changes colorBin based on even division of data
-    // 40 would not work as far to many days are over 40
-    // like the whole bar would be black
-    //colors are made to be similar to existing chart
-    colorBin: [50, 101, 151, 201, 301],
+    // These used to be EPA AQI levels (https://www.airnow.gov/aqi/aqi-basics/)
+    //[50, 101, 151, 201, 301]
+    // Now they are WHO PM2.5 levels
+    colorBin: [4.9, 14.9, 54.9, 124.9, 999],
     //colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
     //colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
     columnNames: ["label", "value", "epochtime_milisec", "year"],
@@ -146,12 +169,10 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   // Update timestamp preview displayed under clock button
   $currentClockPreviewTime.text(playbackTimeline.getCurrentHumanReadableTime());
 
-  if (plotManager) {
-    var m = moment.tz(epochtime_milisec, selected_city_tmz);
-    var min = m.clone().subtract(12, 'hours').unix();
-    var max =  m.clone().endOf("day").add(12, 'hours').unix();
-    plotManager.getDateAxis().setRange({min : min, max: max});
-  }
+  // Reposition charts so that the selected day is in the center
+  // if (plotManager) {
+  //   repositionCharts();
+  // }
 }
 
 
@@ -217,6 +238,10 @@ function generateURLForSmellReports(parameters) {
   return generateURL("https://api.smellpittsburgh.org/", "/api/v2/smell_reports", parameters);
 }
 
+function generateURLForMaxAvgPM25() {
+  return CITY_DATA_ROOT + selectedCity + "/pm25_max_avg_dict.json";
+}
+
 function generateURLForAQI() {
   return CITY_DATA_ROOT + selectedCity + "/aqi_dict.json";
 }
@@ -225,27 +250,38 @@ function generateURLForHourlyAQI() {
   return "https://airnowgovapi.com/andata/ReportingAreas/" + available_cities[selectedCity].airnow_hourly_aqi;
 }
 
-function loadAndUpdateTimeLine(callback) {
-  var defaultTimelineUpdatedCallback = function(data, callback) {
-    timeline.updateBlocks(formatDataForTimeline(data, null));
-    timeline.clearBlockSelection();
-    // TODO: When we switch timelines, do we want to load the most recent day for the city or the last day that was explored.
-    // If we want the latter, we will need to add more logic to track the last day selected. For now we reset to the last available day
-    // and default starting time.
-    playbackTimeline.setPlaybackTimeInMs(0, true);
-    timeline.selectLastBlock();
-    timeline.activeCity = selectedCity;
-    if (typeof callback === "function") {
-      callback();
-    }
-    //timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
+function defaultTimelineUpdatedCallback(data, callback) {
+  timeline.updateBlocks(formatDataForTimeline(data, null));
+  timeline.clearBlockSelection();
+  // TODO: When we switch timelines, do we want to load the most recent day for the city or the last day that was explored.
+  // If we want the latter, we will need to add more logic to track the last day selected. For now we reset to the last available day
+  // and default starting time.
+  playbackTimeline.setPlaybackTimeInMs(0, true);
+  timeline.selectLastBlock();
+  timeline.activeCity = selectedCity;
+  if (typeof callback === "function") {
+    callback();
   }
+  //timeline.selectedDayInMs = timeline.getSelectedBlockData().epochtime_milisec;
+}
+
+function loadAndUpdateTimeLine(callback) {
   if (timeline.aqiData[selectedCity]) {
-    defaultTimelineUpdatedCallback(timeline.aqiData[selectedCity], callback);
+    //console.log('revist')
+    timeline.calendarYearGroupings = formatDataForCalendar(timeline.aqiData[selectedCity]);
+    timeline.calendarLastYear = Object.keys(timeline.calendarYearGroupings).slice(-1);
+    $("#selected_year").text(timeline.calendarLastYear);
+    var dataToUse = timeline.calendarYearGroupings[timeline.calendarLastYear];
+    defaultTimelineUpdatedCallback(dataToUse, callback);
   } else {
+    //console.log('first time')
     loadTimelineData(null, null, function (data) {
-      defaultTimelineUpdatedCallback(data);
       timeline.aqiData[selectedCity] = data;
+      timeline.calendarYearGroupings = formatDataForCalendar(data);
+      timeline.calendarLastYear = Object.keys(timeline.calendarYearGroupings).slice(-1);
+      $("#selected_year").text(timeline.calendarLastYear);
+      var dataToUse = timeline.calendarYearGroupings[timeline.calendarLastYear];
+      defaultTimelineUpdatedCallback(dataToUse);
       if (typeof callback === "function") {
         callback();
       }
@@ -257,11 +293,24 @@ function loadAndCreateTimeline(callback, options) {
   // Create the timeline
   // Start and end time are not passed in and will be based on
   // available AQI data
+  //console.log('first time ever')
   loadTimelineData(null, null, function (data) {
-    createTimeline(formatDataForTimeline(data, null), options);
+    var calendarYearGroupings = formatDataForCalendar(data);
+    var yearToUse;
+    var calendarLastYear = Object.keys(calendarYearGroupings).slice(-1);
+    if (options.playbackTimeInMs) {
+      yearToUse = moment.tz(options.playbackTimeInMs, selected_city_tmz).format("YYYY");
+    } else {
+      yearToUse = calendarLastYear;
+    }
+    $("#selected_year").text(yearToUse);
+    var newData = calendarYearGroupings[yearToUse];
+    createTimeline(formatDataForTimeline(newData, null), options);
     timeline.activeCity = selectedCity;
     timeline.aqiData = {};
     timeline.aqiData[selectedCity] = data;
+    timeline.calendarYearGroupings = calendarYearGroupings;
+    timeline.calendarLastYear = calendarLastYear;
     if (typeof(callback) == "function") {
       callback();
       options.initCallback();
@@ -271,15 +320,17 @@ function loadAndCreateTimeline(callback, options) {
 
 function loadTimelineData(start_time, end_time, callback) {
   $.ajax({
-    "url": generateURLForAQI(),
+    "url": generateURLForMaxAvgPM25(),//generateURLForAQI(),
     "success": function (data) {
-      // If the city is marked as active, also pull in data from today, otherwise
-      // only show data that was last cached in the city's corresponding aqi_dict.json.
-      if (available_cities[selectedCity].is_active) {
-        loadTimelineDataToday(data, callback);
-      } else {
-        callback(data);
-      }
+      callback(data)
+      
+      // // If the city is marked as active, also pull in data from today, otherwise
+      // // only show data that was last cached in the city's corresponding aqi_dict.json.
+      // if (available_cities[selectedCity].is_active) {
+      //   loadTimelineDataToday(data, callback);
+      // } else {
+      //   callback(data);
+      // }
     },
     "error": function (response) {
       console.log("server error:", response);
@@ -353,11 +404,14 @@ function formatDataForTimeline(data, pad_to_date_obj) {
   //  pad_to_date_obj = current_date_obj;
   //}
 
+  ////data = formatDataForCalendar(data)['2023']
+
   var batch_3d = []; // 3D batch data
   var batch_2d = []; // the inner small 2D batch data for batch_3d
 
   var sorted_day_strs = Object.keys(data).sort();
-  sorted_day_strs = sorted_day_strs.slice(sorted_day_strs.indexOf(available_cities[selectedCity].timeline_start_date + " 00:00:00"));
+  // TODODO
+  //sorted_day_strs = sorted_day_strs.slice(sorted_day_strs.indexOf(available_cities[selectedCity].timeline_start_date + " 00:00:00"));
   var last_month;
 
   // If no data, exit
@@ -384,7 +438,10 @@ function formatDataForTimeline(data, pad_to_date_obj) {
     // Get current day and count
     var day_str = sorted_day_strs[i];
     var day_obj = dateStringToObject(day_str);
-    var count = parseInt(safeGet(data[day_str], 0));
+    //var count = parseInt(safeGet(data[day_str], 0));
+    // We have an array of values, not just a single value
+    // It's also never been counts here but rather air quality values (AQI, [max,average pm2.5 for a domain], etc)
+    var count = data[day_str];
     // Check if we need to push the 2D array to 3D, and empty the 2D array
     var month = day_obj.getMonth();
     if (typeof last_month === "undefined") {
@@ -410,17 +467,18 @@ function formatDataForTimeline(data, pad_to_date_obj) {
       next_day_obj = pad_to_date_obj; // future date is the next date
     }
     var diff_days = getDiffDays(day_obj, next_day_obj);
+    // TODODO: Come back here; temp disabled
     // Push missing days into the 2D array if necessary
-    if (diff_days > 1) {
-      for (var j = 1; j < diff_days; j++) {
-        // Number of miliseconds in a day
-        var day_obj_time_j = day_obj_time + 86400000 * j;
-        var day_obj_j = new Date(day_obj_time_j);
-        var label_j = day_obj_j.toDateString().split(" ");
-        label_j = label_j[1] + " " + label_j[2];
-        batch_2d.push([label_j, 0, day_obj_time_j]);
-      }
-    }
+    // if (diff_days > 1) {
+    //   for (var j = 1; j < diff_days; j++) {
+    //     // Number of miliseconds in a day
+    //     var day_obj_time_j = day_obj_time + 86400000 * j;
+    //     var day_obj_j = new Date(day_obj_time_j);
+    //     var label_j = day_obj_j.toDateString().split(" ");
+    //     label_j = label_j[1] + " " + label_j[2];
+    //     batch_2d.push([label_j, 0, day_obj_time_j]);
+    //   }
+    //}
   }
   if (batch_2d.length > 0) batch_3d.push(batch_2d);
   return batch_3d;

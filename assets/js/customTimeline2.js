@@ -91,10 +91,8 @@ var create = {};
       $customPlay = $(".playbackButton");
 
       $customPlay.button({
-        icons: {
-          primary: "ui-icon-custom-play"
-        },
-        text: false,
+        icon: "ui-icon-custom-play",
+        showLabel: false,
         disabled: true
       }).attr({
         "title": "Play"
@@ -452,20 +450,16 @@ var create = {};
     var setPlaybackButtonState = function(type) {
       if (type == "pause") {
         $customPlay.button({
-          icons: {
-            primary: "ui-icon-custom-play"
-          },
-          text: false
+          icon: "ui-icon-custom-play",
+          showLabel: false
         }).attr({
           "title": "Play"
         }).data("state", "paused");
         isTimelinePaused = true;
       } else if (type == "play") {
         $customPlay.button({
-          icons: {
-            primary: "ui-icon-custom-pause"
-          },
-          text: false
+          icon: "ui-icon-custom-pause",
+          showLabel: false
         }).attr({
           "title": "Pause"
         }).data("state", "playing");

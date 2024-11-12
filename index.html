@@ -6,7 +6,7 @@
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" />
-    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.14.1/themes/smoothness/jquery-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/controls.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/widgets.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/TimelineHeatmap.css" />
@@ -22,16 +22,17 @@
       var ASSETS_ROOT = IS_LOCAL ? "./assets/" : "https://airtracker.createlab.org/assets/";
     </script>
 
+    <script type="text/javascript" src="https://storage.googleapis.com/air-tracker-edf-website/prod/assets/data/lang/langs.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=default"></script>
-    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&callback=initMap&libraries=geometry,places&v=weekly" defer></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&loading=async&callback=initMap&libraries=geometry,places&v=weekly"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone-with-data-10-year-range.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script type="text/javascript" src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.14.1/jquery-ui.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script type="text/javascript" src="./assets/js/TimelineHeatmap.js" type="text/javascript"></script>
+    <script type="text/javascript" src="./assets/js/TimelineHeatmap.js"></script>
     <script type="text/javascript" src="./assets/js/widgets.js"></script>
     <script type="text/javascript" src="./assets/js/Util.js"></script>
     <script type="text/javascript" src="./assets/js/customTimeline2.js"></script>
@@ -46,42 +47,40 @@
     <script type="text/javascript" src="./assets/lib/scrollIntoView/scrollIntoView.min.js"></script>
     <script type="text/javascript" src="./assets/lib/html2canvas/html2canvas.min.js"></script>
     <script type="text/javascript" src="./assets/lib/downloadjs/download.min.js"></script>
-    <script type="text/javascript" src="./assets/lib/js-markerwithlabel/js-markerwithlabel-1.3.11.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@googlemaps/markerwithlabel@2.0.28/dist/index.min.js"></script>
     <script type="text/javascript" src="./assets/lib/introjs/intro.min.js"></script>
 
     <script type="text/javascript" src="./assets/lib/grapher/grapher.min.js"></script>
     <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.8/handlebars.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.5.0/luxon.min.js"></script>
 
     <script type="text/javascript" src="./assets/lib/rrule/rrule.min.js"></script>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
 
-    <script type="text/javascript" src="https://storage.googleapis.com/air-tracker-edf-website/prod/assets/data/lang/langs.js"></script>
-
     <script type="text/template" id="sensors-tpl">
       {{#each .}}
         <tr id="{{id}}-legend-row" class="legend-row">
           <td class="entry-title two-rows">
-            {{name}} PM<sub>2.5</sub>:
+            {{name}} <span class="pollutant-name"></span>:
             <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-{{id}}" data-lang-key="infobar.moreInfo.title"></span>
           </td>
           <td colspan="2">
             <table>
               <tr>
-                <td class="smell-color-td PM25-color-1b"></td>
-                <td class="smell-color-td PM25-color-2b"></td>
-                <td class="smell-color-td PM25-color-3b"></td>
-                <td class="smell-color-td PM25-color-4b"></td>
-                <td class="smell-color-td PM25-color-5b"></td>
+                <td class="color-td PM-color-square-1"></td>
+                <td class="color-td PM-color-square-2"></td>
+                <td class="color-td PM-color-square-3"></td>
+                <td class="color-td PM-color-square-4"></td>
+                <td class="color-td PM-color-square-5"></td>
               </tr>
-              <tr>
-                <td class="legend-label">0+</td>
-                <td class="legend-label">12+</td>
-                <td class="legend-label">35+</td>
-                <td class="legend-label">55+</td>
-                <td class="legend-label">150+</td>
+              <tr class='pollution-scale-vals'>
+                <td class="legend-label"></td>
+                <td class="legend-label"></td>
+                <td class="legend-label"></td>
+                <td class="legend-label"></td>
+                <td class="legend-label"></td>
               </tr>
             </table>
           </td>
@@ -105,6 +104,13 @@
         </select>
       </form>
     </script>
+    <script type="text/template" id="aq-std-picker-tpl">
+      <select name="aq-std-picker-select" id="aq-std-picker-select">
+        {{#each .}}
+          <option value="{{@key}}" selected>{{name}}</option>
+        {{/each}}
+      </select>
+    </script>
     <script type="text/template" id="body-tpl">
       <div id="heatmap-loading-mask"><div class="loader"></div></div>
       <div id="controls" class="playbackTimelineOff" style="display: none">
@@ -121,7 +127,7 @@
           <div id="timeJumpControl" title="{{playbackTimelineContainer.timeJumpControl.title}}" data-lang-key="playbackTimelineContainer.timeJumpControl.title"></div>
         </div>
         <div id="timeline-container" class="noselect timeline-container"></div>
-        <div id="timeline-handle" class="noselect force-no-visibility"><span><span data-lang-key="playbackTimelineContainer.dayPickerHeader.content">{{playbackTimelineContainer.dayPickerHeader.content}}</span>&nbsp;-&nbsp;</span><span id='city_name'></span></div>
+        <div id="timeline-handle" class="noselect force-no-visibility"><span><span id='selected_year'></span>&nbsp;<span data-lang-key="playbackTimelineContainer.dayPickerHeader.content">{{{playbackTimelineContainer.dayPickerHeader.content}}}</span>&nbsp;-&nbsp;</span><span id='city_name'></span></div>
         <button id="calendar-btn" title="{{calendar.titleBar.title}}" data-lang-key="calendar.titleBar.title" class="force-hidden custom-button-flat calendar-default-icon" disabled>
           <div class="calendar-specific-day hidden"></div>
         </button>
@@ -160,7 +166,7 @@
                 <table id="heatmap-date-picker">
                   <tr>
                     <td width="20">
-                      <div id="datetimepickerStartHeading" data-lang-key="infobar.heatmap.datetimepickerStartHeading.content">{{infobar.heatmap.datetimepickerStartHeading.content}}: </div>
+                      <div id="datetimepickerStartHeading" data-lang-key="infobar.heatmap.datetimepickerStartHeading.content">{{infobar.heatmap.datetimepickerStartHeading.content}}</div>
                     </td>
                     <td>
                       <div class="input-block">
@@ -171,7 +177,7 @@
                   </tr>
                   <tr>
                     <td id="datetimepickerIntervalHeading" data-lang-key="infobar.heatmap.datetimepickerIntervalHeading.content">
-                      {{infobar.heatmap.datetimepickerIntervalHeading.content}}:
+                      {{infobar.heatmap.datetimepickerIntervalHeading.content}}
                     </td>
                     <td>
                       <input type="number" id="interval" name="interval" min="1" value="1">
@@ -249,7 +255,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div data-lang-key="infobar.heatmap.datetimepickerEndHeading.content">{{infobar.heatmap.datetimepickerEndHeading.content}}: </div>
+                      <div data-lang-key="infobar.heatmap.datetimepickerEndHeading.content">{{infobar.heatmap.datetimepickerEndHeading.content}}</div>
                     </td>
                     <td>
                       <div class="input-block">
@@ -309,7 +315,7 @@
           <div id="infobar-initial" class="initial">
             <p data-lang-key="infobarContent.initial.p1.content">{{infobarContent.initial.p1.content}}</p>
             <p data-lang-key="infobarContent.initial.p2.content">{{infobarContent.initial.p2.content}}</p>
-            <p data-lang-key="infobarContent.initial.p3.content">{{infobarContent.initial.p3.content}}:</p>
+            <p data-lang-key="infobarContent.initial.p3.content">{{infobarContent.initial.p3.content}}</p>
             <ul>
               <li data-lang-key="infobarContent.initial.li1.content">{{infobarContent.initial.li1.content}}</li>
               <br>
@@ -331,7 +337,7 @@
               <div class="heatmap-modal-button-container"><button id="heatmap-btn" data-lang-key="infobarContent.components.heatmapBtn.content">{{infobarContent.components.heatmapBtn.content}}</button></div>
             </div>
             <div id="infobar-pollution-section" class="infobar-component">
-              <div class="infobar-component-header">PM<sub>2.5</sub>: <span class='more-info' title="{{infobar.moreInfo.title}}" data-lang-key="infobar.moreInfo.title" data-info="side-panel-data"></span><span class='chart-btn' title="{{infobarContent.components.timeseriesBtn.title}}" data-lang-key="infobarContent.components.timeseriesBtn.title"></span></div>
+              <div class="infobar-component-header"><span class='pollutant-name'></span>: <span class='more-info' title="{{infobar.moreInfo.title}}" data-lang-key="infobar.moreInfo.title" data-info="side-panel-data"></span><span class='chart-btn' title="{{infobarContent.components.timeseriesBtn.title}}" data-lang-key="infobarContent.components.timeseriesBtn.title"></span></div>
               <div id="infobar-pollution" class="infobar-component-value">
                 <div class="infobar-text"><i data-lang-key="infobarContent.components.pollutionHeading.content">{{infobarContent.components.pollutionHeading.content}}</i></div>
                 <div class="infobar-data"></div>
@@ -340,7 +346,7 @@
               </div>
             </div>
             <div id="infobar-wind-section" class="infobar-component">
-              <div class="infobar-component-header" data-lang-key="infobarContent.components.windHeading.content">{{infobarContent.components.windHeading.content}}: <span class='more-info' title="{{infobar.moreInfo.title}}" data-info="side-panel-data" data-lang-key="infobar.moreInfo.title"></span></div>
+              <div class="infobar-component-header" data-lang-key="infobarContent.components.windHeading.content">{{infobarContent.components.windHeading.content}}<span class='more-info' title="{{infobar.moreInfo.title}}" data-info="side-panel-data" data-lang-key="infobar.moreInfo.title"></span></div>
               <div id="infobar-wind" class="infobar-component-value">
                 <div class="infobar-text"><i data-lang-key="infobarContent.components.windDescription.content">{{infobarContent.components.windDescription.content}}</i></div>
                 <div class="infobar-data-intro" data-lang-key="infobarContent.components.windHeadingDirection.content">{{infobarContent.components.windHeadingDirection.content}}</div>
@@ -370,13 +376,14 @@
                 <span class="searchBoxIcon" title="{{infobarContent.components.searchControls.toggle.title}}" data-lang-key="infobarContent.components.searchControls.toggle.title"></span>
                 <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}" data-lang-key="infobarContent.components.searchControls.clear.title"></span>
               </div>
+              <button id="calendar-year" class="control-button disabled" data-lang-key="infobarContent.components.sideControls.calendar.title">{{infobarContent.components.sideControls.calendar.title}}</button>
               <button id="add-placemarker" class="control-button disabled" data-lang-key="infobarContent.components.placeMarkers.addPlaceMarker.title">{{infobarContent.components.placeMarkers.addPlaceMarker.title}}</button>
               <button id="remove-placemarkers" class="control-button disabled" data-lang-key="infobarContent.components.placeMarkers.removePlaceMarker.title">{{infobarContent.components.placeMarkers.removePlaceMarker.title}}</button>
             </div>
           </div>
         </div>
       </div>
-      <table style="right: 0px; position: absolute;">
+      <table id="legend-container">
         <tr>
           <td class="vertical-align-top">
             <div id="language-picker" class="language-picker no-legend" title="{{languagePicker.title}}" data-lang-key="languagePicker.title"></div>
@@ -387,11 +394,11 @@
               <div class="legend-scale">
                 <table id="legend-table">
                   <tr>
-                    <td data-lang-key="legend.date.content">{{legend.date.content}}:</td>
+                    <td data-lang-key="legend.date.content">{{legend.date.content}}</td>
                     <td colspan="2" id="current-date-legend"></td>
                   </tr>
                   <tr id="backtrace-legend-row" class="legend-row force-hidden">
-                    <td class="entry-title" data-lang-key="legend.backtrace.content">{{legend.backtrace.content}}: <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-backtrace" data-lang-key="infobar.moreInfo.title"></span></td>
+                    <td class="entry-title" data-lang-key="legend.backtrace.content">{{legend.backtrace.content}}<span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-backtrace" data-lang-key="infobar.moreInfo.title"></span></td>
                     <td colspan="2" class="backtrace-color-map"></td>
                   </tr>
                   <tr id="backtrace-details-legend-row" class="force-hidden">
@@ -401,24 +408,24 @@
                   </tr>
                   <tr id="air_now-legend-row" class="legend-row">
                     <td class="entry-title two-rows">
-                      <span data-lang-key="legend.referenceMonitor.content">{{legend.referenceMonitor.content}}</span> PM<sub>2.5</sub>:
+                      <span data-lang-key="legend.referenceMonitor.content">{{legend.referenceMonitor.content}}</span> <span class="pollutant-name"></span>:
                       <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-air_now" data-lang-key="infobar.moreInfo.title"></span>
                     </td>
                     <td colspan="2">
                       <table>
                         <tr>
-                          <td class="smell-color-td PM25-color-1"></td>
-                          <td class="smell-color-td PM25-color-2"></td>
-                          <td class="smell-color-td PM25-color-3"></td>
-                          <td class="smell-color-td PM25-color-4"></td>
-                          <td class="smell-color-td PM25-color-5"></td>
+                          <td class="color-td PM-color-1"></td>
+                          <td class="color-td PM-color-2"></td>
+                          <td class="color-td PM-color-3"></td>
+                          <td class="color-td PM-color-4"></td>
+                          <td class="color-td PM-color-5"></td>
                         </tr>
-                        <tr>
-                          <td class="legend-label">0+</td>
-                          <td class="legend-label">12+</td>
-                          <td class="legend-label">35+</td>
-                          <td class="legend-label">55+</td>
-                          <td class="legend-label">150+</td>
+                        <tr class='pollution-scale-vals'>
+                          <td class="legend-label"></td>
+                          <td class="legend-label"></td>
+                          <td class="legend-label"></td>
+                          <td class="legend-label"></td>
+                          <td class="legend-label"></td>
                         </tr>
                       </table>
                     </td>
@@ -426,16 +433,16 @@
                   <tbody id="additional-sensors"></tbody>
                   <tr id="smell_report-legend-row" class="legend-row">
                     <td class="entry-title" data-lang-key="legend.smellMonitor.content">
-                      {{legend.smellMonitor.content}}:
+                      {{legend.smellMonitor.content}}
                     </td>
                     <td colspan="2">
                       <table>
                         <tr>
-                          <td class="smell-color-td smell-color-1"></td>
-                          <td class="smell-color-td smell-color-2"></td>
-                          <td class="smell-color-td smell-color-3"></td>
-                          <td class="smell-color-td smell-color-4"></td>
-                          <td class="smell-color-td smell-color-5"></td>
+                          <td class="color-td smell-color-1"></td>
+                          <td class="color-td smell-color-2"></td>
+                          <td class="color-td smell-color-3"></td>
+                          <td class="color-td smell-color-4"></td>
+                          <td class="color-td smell-color-5"></td>
                         </tr>
                       </table>
                     </td>
@@ -473,8 +480,19 @@
                     </td>
                   </tr>
                   <tr id="wind-legend-row">
-                    <td class="entry-title">Wind: <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-wind" data-lang-key="infobar.moreInfo.title"></span></td>
-                    <td colspan="4" class="wind-arrow-td wind-arrow"></td>
+                    <td class="entry-title">
+                      <span data-lang-key="legend.wind.content">{{legend.wind.content}}</span>
+                      <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-wind" data-lang-key="infobar.moreInfo.title"></span>
+                    </td>
+                    <td colspan="1" class="wind-arrow-td wind-arrow"></td>
+                    <td colspan="2">
+                      <div style="margin-left: -50px">
+                        <input class="radio-button" type="radio" id="wind_unit_mph" name="wind_unit" value="mph" checked="checked">
+                        <label class="radio-button" for="wind_unit_mph">mph</label>
+                        <input class="radio-button" type="radio" id="wind_unit_km" name="wind_unit" value="kph">
+                        <label class="radio-button" for="wind_unit_km">km/h</label>
+                      </div>
+                    </td>                    
                   </tr>
                   <tbody id="overlays">
                     <tr id="facilities-legend-row">
@@ -491,6 +509,26 @@
                     </tr>
                   </tbody>
                 </table>
+                <table id="legend-extras">
+                  <tr>
+                    <td>
+                      <span data-lang-key="legend.aq_std.content"> {{legend.aq_std.content}}</span>
+                      <span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-aq_std" data-lang-key="infobar.moreInfo.title"></span>
+                    </td>
+                    <td id="aq-std-picker"></td>
+                  </tr>
+                  <tr>
+                    <td data-lang-key="legend.pollution_type.content">
+                      {{legend.pollution_type.content}}
+                    </td>
+                    <td>
+                      <select name="pollution-type-picker-select" id="pollution-type-picker-select">
+                        <option value="PM25" selected>PM 2.5</option>
+                        <option value="PM10">PM 10</option>
+                      </select>
+                    </td>
+                  </tr>
+                </table>
               </div>
             </div>
           </td>
@@ -499,13 +537,13 @@
       <div id="footprint-first-click-dialog" title="{{explanations.dialogTitle.title}}" data-lang-key="explanations.dialogTitle.title">
         <div id="explanation-content-container">
           <div id="explanation-1" class="explanation-content">
-            <p data-lang-key="explanations.explanation1.p1">{{explanations.explanation1.p1}}</p>
-            <p data-lang-key="explanations.explanation1.p2">{{explanations.explanation1.p2}}</p>
-            <p data-lang-key="explanations.explanation1.p3">{{explanations.explanation1.p3}}</p><br><br>
+            <p data-lang-key="explanations.explanation1.p1.content">{{{explanations.explanation1.p1.content}}}</p>
+            <p data-lang-key="explanations.explanation1.p2.content">{{{explanations.explanation1.p2.content}}}</p>
+            <p data-lang-key="explanations.explanation1.p3.content">{{{explanations.explanation1.p3.content}}}</p><br><br>
           </div>
           <div id="explanation-2" class="explanation-content">
-            <h4 data-lang-key="explanations.explanation2.heading.content">{{explanations.explanation2.heading.content}}:</h4>
-            <span data-lang-key="explanations.explanation2.description.content">{{explanations.explanation2.description.content}}</span>:
+            <h4 data-lang-key="explanations.explanation2.heading.content">{{{explanations.explanation2.heading.content}}}</h4>
+            <span data-lang-key="explanations.explanation2.description.content">{{{explanations.explanation2.description.content}}}</span>:
             <br><br>
             <div><img src="./assets/img/edf-wind-pt1a.jpg"></div>
             <br>
@@ -513,9 +551,9 @@
             <br>
             <div><img src="./assets/img/edf-wind-pt1c.jpg"></div>
             <br>
-            <span data-lang-key="explanations.explanation2.description2.content">{{explanations.explanation2.description2.content}}</span>
+            <span data-lang-key="explanations.explanation2.description2.content">{{{explanations.explanation2.description2.content}}}</span>
             <br><br>
-            <span data-lang-key="explanations.explanation2.description3.content">{{explanations.explanation2.description3.content}}</span>
+            <span data-lang-key="explanations.explanation2.description3.content">{{{explanations.explanation2.description3.content}}}</span>
             <br><br>
             <div><img src="./assets/img/edf-wind-pt2a.jpg"></div>
             <br>
@@ -535,7 +573,7 @@
         </div>
       </div>
       <div id="calendar-dialog" title="{{calendar.titleBar.title}}" data-role="none" data-lang-key="calendar.titleBar.title">
-        <p data-lang-key="calendar.p1.content">{{calendar.p1.content}}:</p>
+        <p data-lang-key="calendar.p1.content">{{calendar.p1.content}}</p>
         <input type="hidden" autofocus="autofocus" />
         <select id="calendar" data-role="none"></select>
       </div>
@@ -576,7 +614,7 @@
           <p class="heading" data-lang-key="backtraceSettingsModal.heading.content">{{backtraceSettingsModal.heading.content}}</p>
           <table>
             <tr>
-              <td data-lang-key="backtraceSettingsModal.td1.content">{{backtraceSettingsModal.td1.content}}:</td>
+              <td data-lang-key="backtraceSettingsModal.td1.content">{{backtraceSettingsModal.td1.content}}</td>
               <td>
                 <label class="switch" title="{{backtraceSettingsModal.td1.title}}" data-lang-key="backtraceSettingsModal.td1.title">
                   <input type="checkbox" id="toggle-backtrace-likelihood">
@@ -587,7 +625,7 @@
               </td>
             </tr>
             <tr>
-              <td data-lang-key="backtraceSettingsModal.td2.content">{{backtraceSettingsModal.td2.content}}:</td>
+              <td data-lang-key="backtraceSettingsModal.td2.content">{{backtraceSettingsModal.td2.content}}</td>
               <td>
                 <label class="switch" title="{{backtraceSettingsModal.td2.title}}" data-lang-key="backtraceSettingsModal.td2.title">
                   <input type="checkbox" id="toggle-uncertainty-details">
@@ -676,34 +714,38 @@
       <span class="button-tooltip">
         <p></p>
       </span>
-      <input class='mobile-menu-toggle' type="checkbox" id="active">
-      <label class='mobile-menu-toggle menu-btn' for="active"><span></span></label>
-      <label class='mobile-menu-toggle close' for="active"></label>
-      <div id='mobile-menu'>
-        <div class="searchModal">
-            <div class="searchBoxContainer">
-              <p class="heading" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</p>
-              <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off" data-lang-key="infobarContent.components.searchControls.searchBox.placeholder">
-              <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}" data-lang-key="infobarContent.components.searchControls.clear.title"></span>
+      <div id="mobile-content">
+        <input class='mobile-menu-toggle' type="checkbox" id="active">
+        <label class='mobile-menu-toggle menu-btn' for="active"><span></span></label>
+        <label class='mobile-menu-toggle close' for="active"></label>
+        <div id='mobile-menu'>
+          <div class="searchModal">
+              <div class="searchBoxContainer">
+                <p class="heading" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</p>
+                <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off" data-lang-key="infobarContent.components.searchControls.searchBox.placeholder">
+                <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}" data-lang-key="infobarContent.components.searchControls.clear.title"></span>
+              </div>
+              <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
             </div>
-            <span class="close-modal" title="{{infobar.close.title}}" data-lang-key="infobar.close.title"></span>
+          <div class="wrapper">
+            <ul>
+              <li id="city-picker-mobile"><span class="mobile-city-picker-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.cityPicker.content">{{infobarContent.components.sideControls.cityPicker.content}}</a></li>
+              <li id="share-picker-mobile"><span class="mobile-share-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.share.content">{{infobarContent.components.sideControls.share.content}}</a></li>
+              <!-- <li id="help-tour-mobile"><span class="mobile-tour-icon"></span><a href="#">Tour</a></li> -->
+              <li id="reach-out-mobile"><span class="mobile-reach-out-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.reachOut.content">{{infobarContent.components.sideControls.reachOut.content}}</a></li>
+              <li id="methodology-mobile"><span class="mobile-methodology-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.methodology.content">{{infobarContent.components.sideControls.methodology.content}}</a></li>
+              <li id="search-mobile">
+                <span class="searchBoxIconMobile" title="{{infobarContent.components.searchControls.toggle.content}}" data-lang-key="infobarContent.components.searchControls.toggle.content"></span>
+                <a href="#" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</a>
+                <!-- <div class="searchBoxContainer">
+                  <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off">
+                  <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}"></span>
+                </div> -->
+              </li>
+              <li id="language-mobile"><span class="mobile-language-icon"></span><a href="#" data-lang-key="languagePicker.content">{{languagePicker.content}}</a><div id="language-picker-select-mobile-container"></div>
+              </li>
+            </ul>
           </div>
-        <div class="wrapper">
-          <ul>
-            <li id="city-picker-mobile"><span class="mobile-city-picker-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.cityPicker.content">{{infobarContent.components.sideControls.cityPicker.content}}</a></li>
-            <li id="share-picker-mobile"><span class="mobile-share-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.share.content">{{infobarContent.components.sideControls.share.content}}</a></li>
-            <!-- <li id="help-tour-mobile"><span class="mobile-tour-icon"></span><a href="#">Tour</a></li> -->
-            <li id="reach-out-mobile"><span class="mobile-reach-out-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.reachOut.content">{{infobarContent.components.sideControls.reachOut.content}}</a></li>
-            <li id="methodology-mobile"><span class="mobile-methodology-icon"></span><a href="#" data-lang-key="infobarContent.components.sideControls.methodology.content">{{infobarContent.components.sideControls.methodology.content}}</a></li>
-            <li id="search-mobile">
-              <span class="searchBoxIconMobile" title="{{infobarContent.components.searchControls.toggle.title}}" data-lang-key="infobarContent.components.searchControls.toggle.title"></span>
-              <a href="#" data-lang-key="infobarContent.components.searchControls.heading.content">{{infobarContent.components.searchControls.heading.content}}</a>
-              <!-- <div class="searchBoxContainer">
-                <input class="searchBox searchBoxMobile" placeholder="{{infobarContent.components.searchControls.searchBox.placeholder}}" autocomplete="off">
-                <span class="searchBoxClearIcon" title="{{infobarContent.components.searchControls.clear.title}}"></span>
-              </div> -->
-            </li>
-          </ul>
         </div>
       </div>
     </script>

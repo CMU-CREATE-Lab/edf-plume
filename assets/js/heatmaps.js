@@ -14,7 +14,7 @@ function handleHeatmapMode() {
     map.getMapPanes().markerLayer.style.zIndex = 103;
   }
 
-  if (selectedSensorMarker && typeof(selectedSensorMarker.getData().pm25_channel) == "string") {
+  if (selectedSensorMarker && typeof(selectedSensorMarker.getData().graphable_channel) == "string") {
     $("#infobar-content .chart-btn").trigger("click");
     $("#heatmap input[name='date-picker-selector']:checked").trigger("click");
   }
