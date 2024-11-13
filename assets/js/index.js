@@ -333,7 +333,7 @@ function pollutionSelector(newPollutionType, firstRun) {
 
 async function initAqStdSelector() {
   // Set up template for AQ standard picker
-  availableAqStds = await loadJsonData(CITY_DATA_ROOT + "/aq_standards.json");
+  availableAqStds = await loadJsonData(CITY_DATA_ROOT + "aq_standards.json");
   var tpl_source = document.getElementById("aq-std-picker-tpl").innerHTML;
   var template = Handlebars.compile(tpl_source);
   document.getElementById('aq-std-picker').innerHTML = template(availableAqStds);
@@ -4050,7 +4050,7 @@ async function toggleCityBoundaries(makeVisible) {
       available_cities[selectedCity].city_boundary_data.boundaries = new google.maps.Data();
 
       available_cities[selectedCity].city_boundary_data.boundaries.loadGeoJson(
-        CITY_DATA_ROOT + selectedCity + "/city-boundaries.geojson"
+        CITY_DATA_ROOT + selectedCity + "city-boundaries.geojson"
       );
 
       available_cities[selectedCity].city_boundary_data.boundaries.setStyle({
