@@ -4072,7 +4072,7 @@ async function toggleCityBoundaries(makeVisible) {
       available_cities[selectedCity].city_boundary_data.boundaries = new google.maps.Data();
 
       available_cities[selectedCity].city_boundary_data.boundaries.loadGeoJson(
-        CITY_DATA_ROOT + selectedCity + "city-boundaries.geojson"
+        CITY_DATA_ROOT + selectedCity + "/city-boundaries.geojson"
       );
 
       available_cities[selectedCity].city_boundary_data.boundaries.setStyle({
