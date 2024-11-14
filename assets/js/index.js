@@ -1073,6 +1073,25 @@ async function initMap() {
     }
   });
 
+  $(".disclaimerModal").dialog({
+    resizable: false,
+    autoOpen: false,
+    classes: {"ui-dialog": "customDialog"},
+    modal: true,
+    width: isMobileView() ? window.innerWidth - 120 : "450",
+    maxWidth: window.innerWidth,
+    maxHeight: window.innerHeight,
+    open: function() {
+      document.activeElement.blur();
+      $(".disclaimerModal").dialog("option", "position", {of: window, my: "top+40", at: "top"});
+    },
+    buttons: {
+      [currentLang.dialogs.confirm.content]: function() {
+        $(this).dialog("close");
+      }
+    }
+  });
+
   $(".tosModal").dialog({
     resizable: false,
     autoOpen: false,
@@ -1091,6 +1110,7 @@ async function initMap() {
   $("#tos-agree").on("click", function() {
     localStorage.showTOS = "true";
     $(".tosModal").dialog('close');
+    $(".disclaimerModal").dialog('open');
   });
 
   $(".searchModal").dialog({
@@ -1371,6 +1391,8 @@ async function initMap() {
 
   if (localStorage.showTOS !== "true") {
     $(".tosModal").dialog('open');
+  } else {
+    $(".disclaimerModal").dialog('open');
   }
 
   RRule = rrule.RRule;

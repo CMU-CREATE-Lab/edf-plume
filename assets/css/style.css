@@ -1465,6 +1465,25 @@ body {
   min-width: 250px !important;
 }
 
+.customDialog .ui-widget-content {
+  border: none;
+  background: inherit;
+}
+
+.customDialog .ui-dialog-buttonpane {
+  margin-top: 0px;
+  padding: 0em 1em 0em .4em;
+}
+
+.customDialog .ui-dialog-buttonset .ui-button {
+  background: #5b5b5b;
+  color: white;
+}
+
+.ui-dialog.ui-widget.customDialog .disclaimerModal {
+  margin-bottom: 0px;
+}
+
 div.pac-container {
   z-index: 99999999999 !important;
 }
