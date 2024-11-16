@@ -752,7 +752,7 @@ async function initMap() {
       $(document).trigger("click");
       if (lastYDirection && lastYDirection == "up") {
         $infobar.stop(true, false).animate({
-          height: "240px"
+          height: "245px"
         });
         $infobar.addClass("maximized");
       } else if (lastYDirection && lastYDirection == "down") {
@@ -2967,7 +2967,7 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info, firstTime)
       marker_data["wind_data_time"] = data["wind_direction"]["time"] * 1000;
     } else {
       marker_data["wind_direction"] = roundTo(data["wind_direction"], 2);
-      marker_data["wind_data_time"] = data["time"] * 1000;
+      marker_data["wind_data_time"] = data["wind_data_time"] ? data["wind_data_time"] : data["time"] * 1000;
     }
   }
   // For wind speed

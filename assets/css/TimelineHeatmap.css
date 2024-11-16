@@ -129,3 +129,26 @@
 .cursor-default {
   cursor: default !important;
 }
+
+.block-bottom-right {
+  height: 30px !important;
+  overflow: hidden;
+}
+
+.block-top-left {
+  width: 0;
+  height: 0;
+  border-right: 52px solid transparent !important;
+  border-top-width: 30px !important;
+  border-top-style: solid;
+}
+
+@media screen and (max-width: 450px) {
+  .block-bottom-right {
+    height: 47px !important;
+  }
+
+  .block-top-left {
+    border-top-width: 47px !important;
+  }
+}

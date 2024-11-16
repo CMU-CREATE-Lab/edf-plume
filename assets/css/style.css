@@ -2007,6 +2007,10 @@ div.gmnoprint[role='menubar'] {
     display: block;
   }
 
+  .heatmap-modal-button-container {
+    display: none;
+  }
+
   #language-picker-select {
     opacity: 0;
     width: calc(100% - 50px);
@@ -2312,13 +2316,13 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar.no-controls {
-    height: 240px;
+    height: 245px;
   }
 
   #infobar-initial {
-    margin-top: 0px;
+    margin-top: 8px;
     margin-bottom: 25px;
-    height: 100%;
+    height: calc(100% - 8px);
   }
 
   .mobileSelect-container .mobileSelect-filter {
@@ -2358,7 +2362,7 @@ div.gmnoprint[role='menubar'] {
 
   #infobar {
     font-size: 14px;
-    height: 240px;
+    height: 245px;
     width: 100%;
     width: -moz-available;
     width: -webkit-fill-available;
@@ -2392,7 +2396,7 @@ div.gmnoprint[role='menubar'] {
   }
 
   #infobar-location-header {
-    margin-top: 6px;
+    margin-top: 20px;
   }
 
   #infobar-close-handle {

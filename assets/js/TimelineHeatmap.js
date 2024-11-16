@@ -225,10 +225,10 @@
 
         // Handle showing two different colors at once for a block (diagonally sliced)
         // bottom right segment
-        var style_str = "style='" + color_str_mean + "height:30px;overflow:hidden;" + "' ";
+        var style_str = "style='" + color_str_mean + "' ";
         // top left segment
-        var style_inner_str = "style='border-top:30px solid " + color_max + ";width:0;height:0;border-right:52px solid transparent" + "' ";
-        var $block = $("<div class='block' " + style_str + "><div " + style_inner_str + "></div></div>");
+        var style_inner_str = "style='border-color: " + color_max + "' ";
+        var $block = $("<div class='block block-bottom-right' " + style_str + "><div class='block-top-left' " + style_inner_str + "></div></div>");
 
         var $block_click_region = $("<div class='block-click-region' " + data_str + "></div>");
         var $block_container = $("<td title='" + hover_text + "'></td>");
