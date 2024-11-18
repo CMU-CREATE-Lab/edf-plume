@@ -2971,54 +2971,61 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info, firstTime)
     }
   }
   // For wind speed
-  if (typeof data["wind_speed"] !== "undefined") {
-    var wind_val;
-    if (typeof data["wind_speed"] === "object") {
-      wind_val = data["wind_speed"]["value"];
-    } else {
-      wind_val = data["wind_speed"];
-    }
-
-    // ACHD - mph, and channel named labeled as such
-    // AirNow if rws, it's knots, otherwise it's m/s
-    // QuantAQ is mph
-    // AQSync is m/s
-    // AirMatters (places like Brazil) is m/s
-
-    var wind_unit_conversions = {
-      "rws" : {
-        "mph": 1.15078,
-        "kph": 1.852
-      },
-      "mph": {
-        "mph": 1,
-        "kph": 1.60934
-      },
-      "kph": {
-        "mph": 0.621371,
-        "kph": 1
-      },
-      "ms": {
-        "mph": 2.23694,
-        "kph": 3.6
+  if (!data["wind_speed_display_unit"] || data["wind_speed_unit"] != selected_wind_unit) {
+    if (typeof data["wind_speed"] !== "undefined") {
+      var wind_val;
+      if (typeof data["wind_speed"] === "object") {
+        wind_val = data["wind_speed"]["value"];
+      } else {
+        wind_val = data["wind_speed"];
       }
-    }
 
-    var channelName = info.sensors.wind_speed.sources[0].channel.toLowerCase();
-    if (channelName.endsWith("rws")) {
-      // knots to mph or kph
-      // AirNow sometimes has RWS (rather than WS) for wind speed, which is in knots (as opposed to m/s).
-      wind_val = wind_val * wind_unit_conversions["rws"][selected_wind_unit];
-    } else if (!channelName.endsWith("mph") && !info.name.includes("QuantAQ")) {
-      // m/s to mph or kph
-      // In general, wind data in ESDR appears to be in m/s. However, sometimes the person who wrote the relevant scraper
-      // was kind enough to include units in the channel name, so we can check on that to see if the data is actually mph.
-      wind_val = wind_val * wind_unit_conversions["ms"][selected_wind_unit];
+      // ACHD - mph, and channel named labeled as such
+      // AirNow if rws, it's knots, otherwise it's m/s
+      // QuantAQ is mph
+      // AQSync is m/s
+      // AirMatters (places like Brazil) is m/s
+
+      var wind_unit_conversions = {
+        "rws" : {
+          "mph": 1.15078,
+          "kph": 1.852
+        },
+        "mph": {
+          "mph": 1,
+          "kph": 1.60934
+        },
+        "kph": {
+          "mph": 0.621371,
+          "kph": 1
+        },
+        "ms": {
+          "mph": 2.23694,
+          "kph": 3.6
+        }
+      }
+
+      var channelName = info.sensors.wind_speed.sources[0].channel.toLowerCase();
+      if (channelName.endsWith("rws")) {
+        // knots to mph or kph
+        // AirNow sometimes has RWS (rather than WS) for wind speed, which is in knots (as opposed to m/s).
+        wind_val = wind_val * wind_unit_conversions["rws"][selected_wind_unit];
+      } else if (!channelName.endsWith("mph") && !info.name.includes("QuantAQ")) {
+        // m/s to mph or kph
+        // In general, wind data in ESDR appears to be in m/s. However, sometimes the person who wrote the relevant scraper
+        // was kind enough to include units in the channel name, so we can check on that to see if the data is actually mph.
+        wind_val = wind_val * wind_unit_conversions["ms"][selected_wind_unit];
+      } else {
+        wind_val = wind_val * wind_unit_conversions["mph"][selected_wind_unit];
+      }
+      marker_data["wind_speed"] = roundTo(wind_val, 2);
+      marker_data['wind_speed_unit'] = selected_wind_unit;
+      marker_data["wind_speed_display_unit"] = (selected_wind_unit == "kph") ? "km/h" : selected_wind_unit;
     } else {
-      wind_val = wind_val * wind_unit_conversions["mph"][selected_wind_unit];
+      marker_data["wind_speed"] = data["wind_speed"];
+      marker_data['wind_speed_unit'] = data['wind_speed_unit'];
+      marker_data["wind_speed_display_unit"] = data["wind_speed_display_unit"];
     }
-    marker_data["wind_speed"] = roundTo(wind_val, 2);
-    marker_data["wind_speed_display_unit"] = (selected_wind_unit == "kph") ? "km/h" : selected_wind_unit;
   }
   return marker_data;
 }
