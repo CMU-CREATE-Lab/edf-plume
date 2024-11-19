@@ -1312,7 +1312,7 @@ async function initMap() {
     $(this).removeClass("waiting").text(currentLang.shareModal.captureBtn.content);
   });
 
-  $("#legend-table").on("click", "td input", function(e) {
+  $("#legend-table").on("click", "td input:not(.no-track-toggle)", function(e) {
     var isChecked = $(e.target).prop("checked");
     var markerType = $(e.target).data("marker-type");
     if (markerType == "facilities") {
@@ -1327,7 +1327,7 @@ async function initMap() {
     } else if (selectedLocationPinVisible()) {
       updateInfoBar(overlay);
     }
-  }).on("change", function(e) {
+  }).on("change", "td input:not(.no-track-toggle)", function(e) {
     var isChecked = $(e.target).prop("checked");
     var markerType = $(e.target).data("marker-type");
     updateSensorsEnabledState(markerType, isChecked);
