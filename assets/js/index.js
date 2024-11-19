@@ -3019,7 +3019,7 @@ function parseSensorMarkerDataForPlayback(data, is_current_day, info, firstTime)
         wind_val = wind_val * wind_unit_conversions["mph"][selected_wind_unit];
       }
       marker_data["wind_speed"] = roundTo(wind_val, 2);
-      marker_data['wind_speed_unit'] = data['wind_speed_unit'];
+      marker_data['wind_speed_unit'] = selected_wind_unit;
       marker_data["wind_speed_display_unit"] = (selected_wind_unit == "kph") ? "km/h" : selected_wind_unit;
     } else {
       marker_data["wind_speed"] = data["wind_speed"];
