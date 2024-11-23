@@ -119,33 +119,13 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
     return data;
   }
 
-  function round(date, duration, method) {
-    return moment(Math[method]((+date) / (+duration)) * (+duration));
-  }
-
-  var new_data = [];
   var threshold = playback_timeline_increment_amt_sec;
-
-  // Note: Only aggregate data that is sub time intervals of the threshold set above. Otherwise, the times associated with data will be mismatched after aggregation.
-  // TODO: If there are large gaps in data for some of the sensors, it throws this logic off.
   var last_tmp_time;
   var average_time_interval = 0;
 
-  // Remove rows with no data, since it messes up finding average time interval used for aggregating
-  // This is very slow...
-  for (var row = data.length - 1; row >= 0; row--) {
-    if (data[row].slice(1).filter(Number).length == 0) {
-      data.splice(row, 1);
-    }
-  }
-
-  if (data.length == 0) {
-    return [];
-  }
-
-  // Only check at most the first 10 rows
+  // Calculate average time interval, by looking at the first 10 rows.
+  // Yes, this may not be a good representation of the overall data.
   var num_rows_to_check = Math.min(data.length, 10);
-
   for (var row = 0; row < num_rows_to_check; row++) {
     if (last_tmp_time && data[row]) {
       average_time_interval += (data[row][0] - last_tmp_time);
@@ -154,67 +134,59 @@ function aggregateSensorData(data, info, playback_timeline_increment_amt_sec) {
   }
   average_time_interval = Math.floor(average_time_interval / (num_rows_to_check - 1));
 
+  // If the average time interval is above threshold, return data without aggregation
   if (average_time_interval >= threshold) {
     return data;
   }
 
-  var current_time = round(moment((data[0][0] + threshold) * 1000), moment.duration(threshold, "seconds"), "floor").valueOf() / 1000;
-  var addedData = false;
-  var current_sums = [];
-  var data_segment;
-  for (var col = 1; col < data[0].length; col++) {
-    current_sums.push([0,0]);
-  }
+  const result = [];
+  const numSensors = data[0].length - 1;  // number of sensors (excluding the timestamp)
+  const sumArray = new Array(numSensors).fill(0);
+  const countArray = new Array(numSensors).fill(0);
+  const aggregatedData = new Array(numSensors);
 
-  //[...Array(2)].map(e => Array(n).fill(0));
+  let currentIntervalStart = Math.floor(data[0][0] / threshold) * threshold;
+  let currentIntervalEnd = currentIntervalStart + threshold;
+  let index = 0;
 
-  for (var row = 0; row < data.length; row++) {
-    // Ignore rows with no data, since it messes up finding average time interval used for aggregating
-    //if (data[row].slice(1).filter(Number).length == 0) {
-    //  continue;
-    //}
-    var time = data[row][0];
-    addedData = false;
-    if (time <= current_time) {
-      for (var col = 1; col < data[0].length; col++) {
-        if (data[row][col] == null) {
-          continue;
-        } else {
-          current_sums[col-1][0] += data[row][col];
-          current_sums[col-1][1] += 1;
+  while (index < data.length) {
+    const [epochTime, ...sensorValues] = data[index];
+
+    // If the data is within the current interval range
+    if (epochTime <= currentIntervalEnd) {
+      // Accumulate sums and counts for each sensor
+      for (let i = 0; i < numSensors; i++) {
+        const value = sensorValues[i];
+        if (value !== null) {  // Ignore null values
+          sumArray[i] += value;
+          countArray[i]++;
         }
       }
+      index++;
     } else {
-      if (current_sums.every(entry => entry.every(value => value > 0))) {
-        data_segment = [current_time]
-        for (var col = 1; col < data[0].length; col++) {
-          data_segment.push(current_sums[col-1][0] / Math.max(1, current_sums[col-1][1]));
-        }
-        new_data.push(data_segment);
-        addedData = true;
+      // Aggregate the current interval and store in the result
+      for (let i = 0; i < numSensors; i++) {
+        aggregatedData[i] = countArray[i] > 0 ? sumArray[i] / countArray[i] : null;
       }
-      for (var col = 1; col < data[0].length; col++) {
-        if (data[row][col] == null) {
-          current_sums[col-1][0] = 0;
-          current_sums[col-1][1] = 0;
-        } else {
-          current_sums[col-1][0] = data[row][col];
-          current_sums[col-1][1] = 1;
-        }
-      }
-      current_time += threshold;
+      result.push([currentIntervalEnd, ...aggregatedData]);
+
+      // Prepare for next interval
+      currentIntervalStart = currentIntervalEnd;
+      currentIntervalEnd = currentIntervalStart + threshold;
+      sumArray.fill(0);
+      countArray.fill(0);
     }
   }
 
-  if (!addedData && current_sums.every(entry => entry.every(value => value > 0))) {
-    data_segment = [current_time]
-    for (var col = 1; col < data[0].length; col++) {
-      data_segment.push(current_sums[col-1][0] / Math.max(1, current_sums[col-1][1]));
+  // Final aggregation for any remaining data in the last interval
+  if (index > 0) {
+    for (let i = 0; i < numSensors; i++) {
+      aggregatedData[i] = countArray[i] > 0 ? sumArray[i] / countArray[i] : null;
     }
-    new_data.push(data_segment);
+    result.push([currentIntervalEnd, ...aggregatedData]);
   }
 
-  return new_data;
+  return result;
 }
 
 
