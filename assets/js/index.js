@@ -2823,14 +2823,15 @@ async function receivedWorkerMessage(event) {
     return;
   }
 
-  var sensor_names = Object.keys(result);
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
   for (var i = 0; i < info.length; i++) {
-    var sensor = available_cities[selectedCity].sensors[info[i]['name']];
+    var sensorName = info[i]['name'];
+    var sensor = available_cities[selectedCity].sensors[sensorName];
 
-    var sensorTimes = result[sensor_names[i]].data[epochtime_milisec].data.map(entry => entry.time * 1000);
+    var sensorTimes = result[sensorName].data[epochtime_milisec].data.map(entry => entry.time * 1000);
     var indexOfAvailableTime = findExactOrClosestTime(sensorTimes, playbackTimeInMs, "down");
-    var newData = result[sensor_names[i]].data[epochtime_milisec].data[indexOfAvailableTime];
+    var newData = result[sensorName].data[epochtime_milisec].data[indexOfAvailableTime];
+
     if (!newData || playbackTimeInMs < sensorTimes[indexOfAvailableTime] || Math.abs(sensorTimes[indexOfAvailableTime] - playbackTimeInMs) > monitorGapThresholdInMs) {
       newData = {};
     }
