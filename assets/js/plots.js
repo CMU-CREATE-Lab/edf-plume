@@ -89,6 +89,13 @@ function addPlot(markerData) {
           return;
         }
 
+        // Clicking on a data point in the chart will drop a pin on the relevant marker on the map
+        if (markerData.name != selectedSensorMarker.getData().name) {
+          selectedLocationPin.setMap(null);
+          selectedLocationPin = null;
+          google.maps.event.trigger(available_cities[selectedCity]['sensors'][markerData.name].marker.getGoogleMapMarker(), 'click');
+        }
+
         if (!moment.tz(playbackTimeline.getPlaybackTimeInMs(), selected_city_tmz).isSame(m, 'day')) {
           playbackTimeline.setPlaybackTimeInMs(closestTimeInMs);
           await loadNewDay(startOfDayForNewSelectedTime);
@@ -236,10 +243,11 @@ function handleTimeSeries() {
     var plotName = $elm.data("plot-id");
     var plotId = plotName.split("plot_")[1];
     var channelName = $elm.data("channel");
+    var markerName = markerTimeSeriesPlots['plot_' + plotId].name;
 
     if (actionType == "toggle-plot") {
       if ($target.prop("checked")) {
-        addPlot({feed_id: plotId, graphable_channel: channelName, color: markerTimeSeriesPlots[plotName].color});
+        addPlot({name: markerName, feed_id: plotId, graphable_channel: channelName, color: markerTimeSeriesPlots[plotName].color});
       } else {
         plotManager.getPlotContainer("plot_container").removePlot(plotName);
       }

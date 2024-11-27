@@ -3113,6 +3113,7 @@ async function loadAvailableCities() {
           labelClass: label_class,
           data: city_data,
           icon: ASSETS_ROOT + city_icon_path + '#' + city_locode,
+          labelZIndexOffset: city['is_active'] ? 10 : 0
         });
         google.maps.event.addListener(city_marker, "click", function (e) {
           map.setCenter({lat: this.data['lat'], lng: this.data['lon']});

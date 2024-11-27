@@ -1273,7 +1273,7 @@ body {
 #heatmap-btn {
   border-radius: 10px;
   margin-top: auto;
-  border: none;
+  border: 1px solid #999999;
   cursor: pointer;
   background: #d7d7d7;
   font-size: 12px;
