@@ -90,7 +90,7 @@ function addPlot(markerData) {
         }
 
         // Clicking on a data point in the chart will drop a pin on the relevant marker on the map
-        if (markerData.name != selectedSensorMarker.getData().name) {
+        if (!selectedSensorMarker || markerData.name != selectedSensorMarker.getData().name) {
           selectedLocationPin.setMap(null);
           selectedLocationPin = null;
           google.maps.event.trigger(available_cities[selectedCity]['sensors'][markerData.name].marker.getGoogleMapMarker(), 'click');
