@@ -125,8 +125,13 @@ function computeRRule() {
   var m_startDateTime = moment.tz($("#datetimepicker-start").val(), "MM/DD/yyyy h A", selected_city_tmz);
   var m_endDateTime = moment.tz($("#datetimepicker-end").val(), "MM/DD/yyyy h A", selected_city_tmz).subtract(1, "hour");
 
-  var months_between = Array.from({ length: m_endDateTime.diff(m_startDateTime, 'month') + 1 }, (_, index) =>
-    moment.tz(m_startDateTime, selected_city_tmz).add(index, 'month').format('M'),
+  let monthsDifference = m_endDateTime.diff(m_startDateTime, 'months') + 2; // +2 to include the start and end month
+  // If the start and end date are in the same month, make it only 1 month diff
+  if (m_startDateTime.month() === m_endDateTime.month() && m_startDateTime.year() === m_endDateTime.year()) {
+    monthsDifference = 1;
+  }
+  var months_between = Array.from({ length: monthsDifference }, (_, index) =>
+    m_startDateTime.clone().add(index, 'months').startOf('month').format("M")
   );
 
   // Disable days, months, hours that are not in the range of the start/end above
@@ -137,8 +142,12 @@ function computeRRule() {
 
   var months = $("#month input[name='bymonth']:checked:not(:disabled)").toArray().map(e => parseInt(e.value));
 
-  var days_between = Array.from({ length: m_endDateTime.diff(m_startDateTime, 'day') + 1 }, (_, index) =>
-    moment.tz(m_startDateTime, selected_city_tmz).add(index, 'day').format('ddd')
+  let daysDifference = m_endDateTime.diff(m_startDateTime, 'days') + 2; // +2 to include start and end day
+  if (m_startDateTime.day() === m_endDateTime.day() && m_startDateTime.month() === m_endDateTime.month() && m_startDateTime.year() === m_endDateTime.year()) {
+    daysDifference = 1;
+  }
+  var days_between = Array.from({ length: daysDifference }, (_, index) =>
+    moment.tz(m_startDateTime, selected_city_tmz).add(index, 'days').format('ddd')
   );
   days_between = [...new Set(days_between)];
   var day_mapping = {"RRule.MO" : "Mon", "RRule.TU" : "Tue", "RRule.WE": "Wed", "RRule.TH" : "Thu", "RRule.FR" : "Fri", "RRule.SA" : "Sat", "RRule.SU" : "Sun"};
@@ -235,7 +244,7 @@ function computeRRule() {
   }
 
   message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t15.content + " " + m_endDateTime.format("MMMM DD, yyyy");
-  message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t16.content + " " + m_endDateTime.format("h A");
+  message += " " + currentLang.infobar.heatmap.selectedFrequencyMsg.t16.content + " " + m_endDateTime.add(1, "hour").format("h A") + " (exclusive)";
 
   message += "<br><br>";
 

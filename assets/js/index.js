@@ -987,7 +987,8 @@ async function initMap() {
     yearStart: 2020,
     onShow:function( ct ){
       this.setOptions({
-        maxDate: $('#datetimepicker-end').val() ? $('#datetimepicker-end').val() : moment(Date.now()).tz(selected_city_tmz).format("MM/DD/YYYY 12 A")
+        minDate: moment(available_cities[selectedCity].timeline_start_date).tz(selected_city_tmz).format("MM/DD/YYYY 12 A"),
+        maxDate: moment(Date.now()).tz(selected_city_tmz).format("MM/DD/YYYY 12 A")
       });
     }
   });
@@ -1001,7 +1002,7 @@ async function initMap() {
     yearStart: 2020,
     onShow:function( ct ){
       this.setOptions({
-        minDate: $('#datetimepicker-start').val() ? $('#datetimepicker-start').val() : false,
+        minDate: moment(available_cities[selectedCity].timeline_start_date).tz(selected_city_tmz).format("MM/DD/YYYY 12 A"),
         maxDate: moment(Date.now()).tz(selected_city_tmz).format("MM/DD/YYYY 12 A")
       });
     }
