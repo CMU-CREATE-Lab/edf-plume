@@ -569,6 +569,11 @@ body {
   margin-bottom: 10px;
 }
 
+#timeseries .explain {
+  font-size: 9px;
+  margin-top: 0px;
+}
+
 #legend-container {
   right: 0px;
   position: absolute;
@@ -760,6 +765,46 @@ body {
 
 .PM-color-square-5 {
   background-image: url("../img/square_5.png");
+}
+
+.PM-color-1.brazil {
+  background-image: url("../img/PM25_1_legend_brazil.png");
+}
+
+.PM-color-2.brazil {
+  background-image: url("../img/PM25_2_legend_brazil.png");
+}
+
+.PM-color-3.brazil {
+  background-image: url("../img/PM25_3_legend_brazil.png");
+}
+
+.PM-color-4.brazil {
+  background-image: url("../img/PM25_4_legend_brazil.png");
+}
+
+.PM-color-5.brazil {
+  background-image: url("../img/PM25_5_legend_brazil.png");
+}
+
+.PM-color-square-1.brazil {
+  background-image: url("../img/square_1_brazil.png");
+}
+
+.PM-color-square-2.brazil {
+  background-image: url("../img/square_2_brazil.png");
+}
+
+.PM-color-square-3.brazil {
+  background-image: url("../img/square_3_brazil.png");
+}
+
+.PM-color-square-4.brazil {
+  background-image: url("../img/square_4_brazil.png");
+}
+
+.PM-color-square-5.brazil {
+  background-image: url("../img/square_5_brazil.png");
 }
 
 .PM-color-diamond-1 {

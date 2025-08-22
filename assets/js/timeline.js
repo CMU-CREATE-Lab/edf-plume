@@ -93,6 +93,7 @@ function formatDataForCalendar(data) {
 // Use the TimelineHeatmap charting library to draw the timeline
 function createTimeline(data, options) {
   var $timeline_container = $("#timeline-container").empty();
+  var [aqi_std, color_bin] = set_timeline_color_bins();
   var chart_settings = {
     click: function ($e) {
       handleTimelineButtonClicked(parseInt($e.data("epochtime_milisec")), $e.data("label"));
@@ -106,13 +107,11 @@ function createTimeline(data, options) {
     data: data,
     useColorQuantiles: true,
     plotDataWhenCreated: false,
-    //changes colorBin based on even division of data
     // These used to be EPA AQI levels (https://www.airnow.gov/aqi/aqi-basics/)
     //[50, 101, 151, 201, 301]
-    // Now they are WHO PM2.5 levels
-    colorBin: [4.9, 14.9, 54.9, 124.9, 999],
-    //colorRange: ["#00ff00", "#ffff00","#ff9900","#ff0000","#9900ff","#680c22"],
-    //colorRange: ["#ededed", "#dbdbdb", "#afafaf", "#848383", "#545454", "#000000"],
+    // Now they are based on what the user selects from the AQ threshold dropdown
+    colorBin: color_bin,
+    colorRange: availableAqStds[aqi_std]['colors'],
     columnNames: ["label", "value", "epochtime_milisec", "year"],
     dataIndexForLabels: 0,
     dataIndexForValues: 1,
@@ -149,6 +148,7 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
   timeline.selectedDayInMs = epochtime_milisec;
 
   var timeInc;
+  var elapsedTimeInMin;
   var playbackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
   var timeObj = moment.tz(epochtime_milisec, selected_city_tmz);
   var currentDate = moment().tz(selected_city_tmz);
@@ -157,7 +157,12 @@ async function handleTimelineButtonSelected(epochtime_milisec) {
     timeInc = {hour:currentDateRounded.hour(), minute:currentDateRounded.minute(), second:0, millisecond:0};
   } else {
     var priorTimeObj = moment.tz(playbackTimeInMs, selected_city_tmz);
-    var elapsedTimeInMin = Math.min((priorTimeObj.hour() * 60 + priorTimeObj.minute()), (currentDateRounded.hour() * 60 + currentDateRounded.minute()));
+    // Ensure we don't go past current time of current day
+    if (priorTimeObj.isSame(currentDateRounded, "day")) {
+      elapsedTimeInMin = Math.min((priorTimeObj.hour() * 60 + priorTimeObj.minute()), (currentDateRounded.hour() * 60 + currentDateRounded.minute()));
+    } else { // Prior day
+      elapsedTimeInMin = priorTimeObj.hour() * 60 + priorTimeObj.minute();
+    }
     timeInc = {hour:(Math.floor(elapsedTimeInMin / 60) % 24), minute:(elapsedTimeInMin % 60), second:0, millisecond:0};
   }
   var newPlaybackTimeInMs = timeObj.set(timeInc).valueOf();
@@ -278,8 +283,9 @@ function loadAndUpdateTimeLine(callback) {
     loadTimelineData(null, null, function (data) {
       timeline.aqiData[selectedCity] = data;
       timeline.calendarYearGroupings = formatDataForCalendar(data);
-      timeline.calendarLastYear = Object.keys(timeline.calendarYearGroupings).slice(-1);
+      timeline.calendarLastYear = Object.keys(timeline.calendarYearGroupings).at(-1);
       $("#selected_year").text(timeline.calendarLastYear);
+      timeline.activeYear = timeline.calendarLastYear;
       var dataToUse = timeline.calendarYearGroupings[timeline.calendarLastYear];
       defaultTimelineUpdatedCallback(dataToUse);
       if (typeof callback === "function") {
@@ -323,7 +329,7 @@ function loadTimelineData(start_time, end_time, callback) {
     "url": generateURLForMaxAvgPM25(),//generateURLForAQI(),
     "success": function (data) {
       callback(data)
-      
+
       // // If the city is marked as active, also pull in data from today, otherwise
       // // only show data that was last cached in the city's corresponding aqi_dict.json.
       // if (available_cities[selectedCity].is_active) {

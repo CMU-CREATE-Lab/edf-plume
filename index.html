@@ -26,7 +26,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=default"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6eawl6aLg9CHsJGc86qKcORA3vTcDZUQ&loading=async&callback=initMap&libraries=geometry,places&v=weekly"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone-with-data-10-year-range.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/moment-timezone@0.6.0/builds/moment-timezone-with-data.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/ui/1.14.1/jquery-ui.min.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -53,7 +53,7 @@
     <script type="text/javascript" src="./assets/lib/grapher/grapher.min.js"></script>
     <script type="text/javascript" src="./assets/lib/grapher/PlotManager.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.8/handlebars.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.5.0/luxon.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/luxon@3.7.1/build/global/luxon.min.js"></script>
 
     <script type="text/javascript" src="./assets/lib/rrule/rrule.min.js"></script>
 
@@ -61,7 +61,7 @@
 
     <script type="text/template" id="sensors-tpl">
       {{#each .}}
-        <tr id="{{id}}-legend-row" class="legend-row">
+        <tr id="{{id}}-legend-row" class="legend-row" data-fixed_pollutant={{fixed_pollutant}}>
           <td class="entry-title two-rows">
             {{name}} <span class="pollutant-name"></span>:
             <br><span class="legend-row-units">(ug/m<sup>3</sup>)</span><span class='more-info more-info-legend' title="{{infobar.moreInfo.title}}" data-info="legend-{{id}}" data-lang-key="infobar.moreInfo.title"></span>
@@ -274,6 +274,9 @@
                 <div class="alert" data-lang-key="timeseries.alert.content">
                   {{timeseries.alert.content}}
                 </div>
+                <p class="explain" data-lang-key="timeseries.p.content">
+                  {{{timeseries.p.content}}}
+                </p>
                 <table id="grapher" border="0" cellpadding="0" cellspacing="0">
                   <tr>
                       <td>
@@ -492,7 +495,7 @@
                         <input class="radio-button no-track-toggle" type="radio" id="wind_unit_km" name="wind_unit" value="kph">
                         <label class="radio-button no-track-toggle" for="wind_unit_km">km/h</label>
                       </div>
-                    </td>                    
+                    </td>
                   </tr>
                   <tbody id="overlays">
                     <tr id="facilities-legend-row">
@@ -525,6 +528,7 @@
                       <select name="pollution-type-picker-select" id="pollution-type-picker-select">
                         <option value="PM25" selected>PM 2.5</option>
                         <option value="PM10">PM 10</option>
+                        <option value="BC">Black Carbon</option>
                       </select>
                     </td>
                   </tr>

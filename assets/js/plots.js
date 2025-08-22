@@ -66,7 +66,7 @@ function addPlot(markerData) {
         var startOfHour = m.startOf('hour');
         var heatmapVals = $("#heatmap-dates").val();
         // We display the date-times in RFC 3339, which is a profile of ISO8601 (Extended format)
-        // This allows us to use a space, rather than a 'T' separating the date and time. 
+        // This allows us to use a space, rather than a 'T' separating the date and time.
         // When we submit the list of dates to the API backend though, we replace the space with a 'T'
         // to be ISO8601 compliant.
         var clickedVal = startOfHour.format("YYYY-MM-DD HH:mm");
@@ -291,7 +291,7 @@ function repositionCharts() {
 // Color chart background based on PM25 levels
 function setChartBackgroundColors() {
   var boxen = {};
-  var boxenColors = ['#52b947', '#f3ec19', '#f57e20', '#ed1f24', '#991b4f'];
+  var boxenColors = availableAqStds[selected_aq_std]['colors'];
   var boxenConcentrationLevels = availableAqStds[selected_aq_std]['scales'][selected_pollution_type];
 
   var boxenCountLevels = [0, 500, 1000, 2000, 4000, 8000];

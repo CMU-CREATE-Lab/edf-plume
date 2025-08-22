@@ -1,5 +1,5 @@
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.44/moment-timezone-with-data-10-year-range.min.js');
+importScripts('https://cdn.jsdelivr.net/npm/moment-timezone@0.6.0/builds/moment-timezone-with-data.min.js');
 
 var esdr_sensors = {};
 var numSensorsPerChunk = 50;
@@ -274,6 +274,10 @@ function formatAndMergeSensorData(responses, info, method) {
           }
         }
       }
+    }
+    // If only time is present, skip this data
+    if (Object.keys(tmp).length === 1) {
+      continue;
     }
     data_merged.push(tmp);
   }

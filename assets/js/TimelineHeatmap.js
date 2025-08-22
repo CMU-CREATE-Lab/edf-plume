@@ -463,6 +463,25 @@
     };
     this.enableLeftArrow = enableLeftArrow;
 
+    var updateColorBinning = function(colors, values) {
+      if (typeof colors !== "undefined") {
+        color_range = colors;
+      }
+      if (typeof values !== "undefined") {
+        color_bin = values;
+      }
+    }
+    this.updateColorBinning = updateColorBinning;
+
+    var rePlot = function() {
+      var $selected  = getSelectedBlock();
+      var idx = $selected.data("index");
+      removeBlocks();
+      plot(data);
+      selectBlockByIndex(idx);
+    }
+    this.rePlot = rePlot;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // Constructor

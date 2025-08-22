@@ -31,10 +31,12 @@ var availableAqStds;
 
 var pollution_infobar_lookup = {
   "PM25" : "PM<sub>2.5</sub>",
-  "PM10" : "PM<sub>10</sub>"
+  "PM10" : "PM<sub>10</sub>",
+  "BC" : "BC"
 };
 
 // TODO: Used for TRAX, Assumes EPA AQ STD
+// Uses the 2024 standard
 var pm25ColorLookup = function(pm25) {
   var color;
   if (pm25 >= 250.5) {
@@ -317,7 +319,11 @@ function pollutionSelector(newPollutionType, firstRun) {
 
   $("#pollution-type-picker-select").val(newPollutionType);
 
-  $(".pollutant-name").html(pollution_infobar_lookup[newPollutionType]);
+  let matches = $(".pollutant-name").filter(function () {
+    return !!$(this).parents(".legend-row").data("fixed_pollutant");
+  });
+
+  $(".pollutant-name").not(matches).html(pollution_infobar_lookup[newPollutionType]);
 
   set_pollution_scale();
 
@@ -357,14 +363,42 @@ function aqStdSelector(std, firstRun) {
   }
 
   set_pollution_scale();
+
+  set_timeline_color_bins();
+}
+
+function set_timeline_color_bins() {
+  if (!selectedCity) return;
+  var color_bin = [...availableAqStds[selected_aq_std]['scales']['PM25']];
+  // Remove the first element, which is always 0.0
+  color_bin.shift();
+  // Loop through the array to subtract 0.1 from each bin breakpoint since we compare values to the bin inclusively
+  for (var i = 0; i < color_bin.length; i++) {
+    color_bin[i] = color_bin[i] - 0.1;
+  }
+  // Add a large number to the end of the array to make sure we get all values above the last bin
+  color_bin.push(999);
+  if (timeline) {
+    timeline.updateColorBinning(availableAqStds[selected_aq_std]['colors'], color_bin);
+    timeline.rePlot();
+  }
+  return [selected_aq_std, color_bin];
 }
 
 function set_pollution_scale() {
   $('.pollution-scale-vals').each(function(idx, tr) {
+    let fixed_pollutant = $(tr).parents("tr").data("fixed_pollutant");
+    let pollution_type = fixed_pollutant ? fixed_pollutant : selected_pollution_type;
     $(tr).children("td").each(function(idx, td) {
-      $(td).text(availableAqStds[selected_aq_std]['scales'][selected_pollution_type][idx] + "+")
+      $(td).text(availableAqStds[selected_aq_std]['scales'][pollution_type][idx] + "+")
     });
   });
+
+  if (selected_aq_std == 'br') {
+    $(".color-td").addClass("brazil");
+  } else {
+    $(".color-td").removeClass("brazil");
+  }
 }
 
 async function languageSelector(lang, firstTime) {
@@ -380,9 +414,9 @@ async function languageSelector(lang, firstTime) {
     document.getElementById('language-picker').innerHTML = template(availableLanguages);
     $("#language-picker-select").val(lang);
   } else {
-    var $textElms = $('[data-lang-key]');
-    $textElms.each(function() {
-      var $this = $(this);
+    var $textElms = $('[data-lang-key]').toArray();
+    for (const [index, element] of $textElms.entries()) {
+      var $this = $(element);
       var langKey = $this.data("lang-key");
       var newString = langKey.split('.').reduce((o,i)=> o[i], currentLang);
       if (langKey.includes("title")) {
@@ -392,7 +426,7 @@ async function languageSelector(lang, firstTime) {
       } else {
         $this.html(newString);
       }
-    });
+    };
     changeBrowserUrlState();
     determineSensorAndUpdateInfoBar();
   }
@@ -1244,6 +1278,8 @@ async function initMap() {
 
     payload.view = selectedLocationPin.getPosition().lat() + "," + selectedLocationPin.getPosition().lng() + "," + map.getZoom();
     payload.forOverlay = true;
+    payload.region = available_cities[selectedCity].name.toLowerCase().replaceAll(" ","_");
+    payload.isRealTime = runRealTime
 
     //$(this).addClass("button-loading");
     $("#heatmap-loading-mask").addClass("visible");
@@ -1806,12 +1842,13 @@ async function getCityInBounds(mapFirstLoad) {
     }
     return;
   }
-  var cityInBoundsCallback = function() {
+  var cityInBoundsCallback = async function() {
     handleControlsUI("enable", mapFirstLoad);
-    showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
+    await showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
     if (selectedCity && available_cities[selectedCity].has_smell_reports) {
       handleSmellReports(playbackTimeline.getPlaybackTimeInMs());
     }
+    await showSensorMarkersByTime(playbackTimeline.getPlaybackTimeInMs());
   };
 
   let currentMapBounds = map.getBounds();
@@ -1829,6 +1866,13 @@ async function getCityInBounds(mapFirstLoad) {
       }
       selectedCity = city_locode;
       selected_city_tmz = available_cities[selectedCity]['IANA_TZ'];
+
+      // Sao Paulo, Brazil does not want WHO standard to show...
+      if (selectedCity == "BR-SAO") {
+        $('#aq-std-picker-select option[value="who"]').hide();
+      } else {
+        $('#aq-std-picker-select option[value="who"]').show();
+      }
 
       // TODO: Should URL var override a city default?
       if (typeof(available_cities[selectedCity]['aq_std']) != "undefined") {
@@ -3041,12 +3085,12 @@ function getSensorType(info, firstTime) {
     } else {
       sensor_type = "WIND_ONLY";
     }
+  } if (Object.keys(info["sensors"]).indexOf("BC") > -1 && (selected_pollution_type == "BC" || firstTime)) {
+    sensor_type = "BC";
   } else if (Object.keys(info["sensors"]).indexOf("PM25") > -1 && (selected_pollution_type == "PM25" || firstTime)) {
     sensor_type = "PM25";
   } else if (Object.keys(info["sensors"]).indexOf("PM10") > -1 && (selected_pollution_type == "PM10" || firstTime)) {
     sensor_type = "PM10";
-  } else if (Object.keys(info["sensors"]).indexOf("VOC") > -1) {
-    sensor_type = "VOC";
   }
   return sensor_type;
 }
@@ -3418,7 +3462,7 @@ function getWindDirFromDeg(deg) {
   // NOTE:
   // Wind information is reported in the direction _from_ which the wind is coming.
   // We say _from_ in the info window but our wind icon is showing _to_
-  var val = Math.round((deg / 22.5) + 0.5);
+  var val = Math.floor((deg / 22.5) + 0.5);
   var arr = ["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   return arr[(val % 16)];
 }
