@@ -24,6 +24,13 @@ body {
   overflow-y: hidden;
 }
 
+.seo {
+  clip: rect(0 0 0 0);
+  -webkit-clip-path: inset(50%);
+  clip-path: inset(50%);
+  position: absolute;
+}
+
 .radio-button  {
   cursor: pointer;
 }
