@@ -1310,43 +1310,56 @@ async function initMap() {
   });
 
   $("#get-screenshot").on("click", async function() {
-    /*var tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = 1920;
-    tmpCanvas.height = 1080;*/
-
     if ($(this).hasClass("waiting")) return;
 
-    $(this).addClass("waiting").text(currentLang.shareModal.waiting.content);
-    //var ratio = Math.max(1920/$("#map").width(), 1080/$("#map").height());
+    var $btn = $(this);
 
-    var canvas = await html2canvas(document.getElementById('map'),
-    {
-      /*canvas: tmpCanvas,*/
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      /*scale: ratio,*/
-      /*onclone: function() {
-        var tmpCanvasCtx = tmpCanvas.getContext("2d");
-        var ratio = [1920/$("#map").width(), 1080/$("#map").height()];
-        ratio = Math.max(ratio[0], ratio[1]);
-        tmpCanvasCtx.scale(ratio, ratio);
-      },*/
-      ignoreElements: function( element ) {
-        // Ignore various controls (zoom, map style) on Google Maps
-        // Note that classList returns a DOMTokenList
-        if (['gm-bundled-control','gm-style-mtc'].some(className => element.classList.contains(className))) {
-          return true;
+    try {
+      $btn.addClass("waiting").text(currentLang.shareModal.waiting.content);
+
+      var canvas = await html2canvas(document.getElementById("map"), {
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+
+        ignoreElements: function(element) {
+          // Ignore various controls (zoom, map style) on Google Maps
+          if (
+            ["gm-bundled-control", "gm-style-mtc"].some(function(className) {
+              return element.classList && element.classList.contains(className);
+            })
+          ) {
+            return true;
+          }
+
+          return false;
         }
-      }
-    });
-    var exportImage = canvas.toDataURL();
-    var currentPlaybackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
-    var isPlaybackTimelineOpen = playbackTimeline.isActive();
-    var momentTime = moment.tz(currentPlaybackTimeInMs, selected_city_tmz);
-    var dateStr = isPlaybackTimelineOpen ? momentTime.format("YYYYMMDDHHmm") : momentTime.startOf("day").format("YYYYMMDDHHmm");
-    download(exportImage, dateStr + ".png", "image/png");
-    $(this).removeClass("waiting").text(currentLang.shareModal.captureBtn.content);
+      });
+
+      var currentPlaybackTimeInMs = playbackTimeline.getPlaybackTimeInMs();
+      var isPlaybackTimelineOpen = playbackTimeline.isActive();
+      var momentTime = moment.tz(currentPlaybackTimeInMs, selected_city_tmz);
+
+      var dateStr = isPlaybackTimelineOpen
+        ? momentTime.format("YYYYMMDDHHmm")
+        : momentTime.startOf("day").format("YYYYMMDDHHmm");
+
+      var blob = await new Promise(function(resolve, reject) {
+        canvas.toBlob(function(blob) {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Canvas export failed"));
+          }
+        }, "image/png");
+      });
+
+      download(blob, dateStr + ".png", "image/png");
+    } catch (err) {
+      console.error("Map capture failed:", err);
+    } finally {
+      $btn.removeClass("waiting").text(currentLang.shareModal.captureBtn.content);
+    }
   });
 
   $("#legend-table").on("click", "td input:not(.no-track-toggle)", function(e) {
