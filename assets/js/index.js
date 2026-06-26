@@ -430,6 +430,7 @@ async function languageSelector(lang, firstTime) {
     changeBrowserUrlState();
     determineSensorAndUpdateInfoBar();
   }
+  document.documentElement.lang = lang;
 }
 
 async function initMap() {
