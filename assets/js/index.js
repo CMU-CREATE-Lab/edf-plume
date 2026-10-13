@@ -3331,7 +3331,9 @@ function updateInfoBar(marker) {
       var tm = formatTimeWithTimeZone(moment.tz(overlayData['epochtimeInMs'], selected_city_tmz));
       if (uncertaintyDetailLevel && overlayData.uncertainty) {
         if (uncertaintyDetailLevel == "1") {
-          setInfobarSubheadings($infobarPlume,"",overlayData.uncertainty.label,currentLang.infobarContent.modelConfidence.mainHeading.content,tm);
+          const confidence = getUncertaintyConfidence(overlayData.uncertainty);
+          setInfobarSubheadings($infobarPlume,"",confidence.text,currentLang.infobarContent.modelConfidence.mainHeading.content,tm);
+          $infobarPlume.children(".infobar-data").css("color", confidence.color);
           $infobarPlume.children(".infobar-text");
           $("#infobar-plume-section").removeClass("detailed");
         } else if (uncertaintyDetailLevel == "2") {
@@ -3359,34 +3361,59 @@ function updateInfoBar(marker) {
 }
 
 
+function formatUncertaintyValue(value) {
+  // Format for display only; rounding the source can change threshold decisions.
+  return Number.isFinite(value) ? roundTo(value, 2) : "N/A";
+}
+
+
+function getUncertaintyConfidence(data) {
+  const levels = currentLang.infobarContent.modelConfidence.levels;
+  const choices = {
+    High: { color: "green", key: "content3" },
+    Medium: { color: "goldenrod", key: "content2" },
+    Low: { color: "darkred", key: "content" },
+    Unavailable: { color: "gray", key: "content4" }
+  };
+
+  // A stale label must not show confidence when either comparison is unavailable.
+  const hasErrors = Number.isFinite(data.wind_direction_err) &&
+    Number.isFinite(data.wind_speed_err);
+  const label = hasErrors ? data.label : "Unavailable";
+  const choice = Object.prototype.hasOwnProperty.call(choices, label) ?
+    choices[label] : choices.Unavailable;
+
+  return {
+    color: choice.color,
+    text: levels[choice.key],
+    langKey: "infobarContent.modelConfidence.levels." + choice.key
+  };
+}
+
+
 function createUncertaintyTable($element, data) {
-  for (const x in data) {
-    if (typeof(data[x]) === 'number') {
-      data[x] = roundTo(data[x],2);
-    }
-  }
-  var confidenceColor = "green";
-  if (data.label === "Low") {
-    confidenceColor = "darkred";
-  } else if (data.label === "Medium") {
-    confidenceColor = "goldenrod";
-  }
-  var tableString = "";
-  tableString += "<table><tr><th></th><th><span data-lang-key='infobarContent.modelConfidence.windSpeedHeading.content'>" + currentLang.infobarContent.modelConfidence.windSpeedHeading.content + "</span> (m/s)</th><th><span data-lang-key='infobarContent.modelConfidence.windDirectionHeading.content'>" + currentLang.infobarContent.modelConfidence.windDirectionHeading.content + "</span> (deg)</th></tr>";
-  tableString += "<tr><th>HRRR</th><td>"+data.hrrr_ws+"</td><td id='hrrr-wd'>"+data.hrrr_wd+"</td></tr>";
-  tableString += "<tr><th>Kriged</th><td>"+data.kriged_ws+"</td><td id='kriged-wd'>"+data.kriged_wd+"</td></tr>";
-  tableString += "<tr><th><span data-lang-key='infobarContent.modelConfidence.error.content'>" + currentLang.infobarContent.modelConfidence.error.content + "</span></th><td>"+data.wind_speed_err+"</td><td>"+data.wind_direction_err+"</td></tr>";
-  tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidenceColor + "'>"+data.label + "<span data-lang-key='infobarContent.modelConfidence.mainHeading.content'> " + currentLang.infobarContent.modelConfidence.mainHeading.content + "</span></td></tr>";
-  $element.children(".infobar-text")[0].innerHTML = tableString;
-  $element.children(".infobar-text").children("table").addClass("infobar-table");
+  const confidence = getUncertaintyConfidence(data);
+  const headings = currentLang.infobarContent.modelConfidence;
+  let tableString = "<table><tr><th></th><th><span data-lang-key='infobarContent.modelConfidence.windSpeedHeading.content'>" + headings.windSpeedHeading.content + "</span> (m/s)</th><th><span data-lang-key='infobarContent.modelConfidence.windDirectionHeading.content'>" + headings.windDirectionHeading.content + "</span> (deg)</th></tr>";
+  tableString += "<tr><th>HRRR</th><td>" + formatUncertaintyValue(data.hrrr_ws) + "</td><td id='hrrr-wd'>" + formatUncertaintyValue(data.hrrr_wd) + "</td></tr>";
+  tableString += "<tr><th>Kriged</th><td>" + formatUncertaintyValue(data.kriged_ws) + "</td><td id='kriged-wd'>" + formatUncertaintyValue(data.kriged_wd) + "</td></tr>";
+  tableString += "<tr><th><span data-lang-key='infobarContent.modelConfidence.error.content'>" + headings.error.content + "</span></th><td>" + formatUncertaintyValue(data.wind_speed_err) + "</td><td>" + formatUncertaintyValue(data.wind_direction_err) + "</td></tr>";
+  tableString += "<tr><td colspan='3' style='font-weight:bold;color:" + confidence.color + "'><span data-lang-key='" + confidence.langKey + "'>" + confidence.text + "</span> <span data-lang-key='infobarContent.modelConfidence.mainHeading.content'>" + headings.mainHeading.content + "</span></td></tr></table>";
+  const $text = $element.children(".infobar-text");
+  $text[0].innerHTML = tableString;
+  $text.children("table").addClass("infobar-table");
 
-  if (data.hrrr_u){
-    $("#hrrr-wd").on("click", function() {
-      setButtonTooltip("u: " + data.hrrr_u + "  v: " + data.hrrr_v, $(this), null);
+  // Zero components are valid; each tooltip depends only on its own wind vector.
+  if (Number.isFinite(data.hrrr_u) && Number.isFinite(data.hrrr_v)) {
+    $text.find("#hrrr-wd").on("click", function() {
+      setButtonTooltip("u: " + formatUncertaintyValue(data.hrrr_u) +
+        "  v: " + formatUncertaintyValue(data.hrrr_v), $(this), null);
     });
-
-    $("#kriged-wd").on("click", function() {
-      setButtonTooltip("u: " + data.kriged_u + "  v: " + data.kriged_v, $(this), null, {at: "top"});
+  }
+  if (Number.isFinite(data.kriged_u) && Number.isFinite(data.kriged_v)) {
+    $text.find("#kriged-wd").on("click", function() {
+      setButtonTooltip("u: " + formatUncertaintyValue(data.kriged_u) +
+        "  v: " + formatUncertaintyValue(data.kriged_v), $(this), null, {at: "top"});
     });
   }
 }
@@ -3887,7 +3914,10 @@ async function handleFootprintUncertainty(lookupStr) {
     return;
   }
   var label;
-  if (data.wind_direction_err < 30) {
+  // JavaScript coerces null to zero in comparisons; require actual finite numbers.
+  if (!Number.isFinite(data.wind_direction_err) || !Number.isFinite(data.wind_speed_err)) {
+    label = "Unavailable";
+  } else if (data.wind_direction_err < 30) {
     if (data.wind_speed_err < 1) {
       label = "High";
     } else {
