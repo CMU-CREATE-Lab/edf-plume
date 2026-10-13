@@ -1,6 +1,3 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js');
-importScripts('https://cdn.jsdelivr.net/npm/moment-timezone@0.6.0/builds/moment-timezone-with-data.min.js');
-
 var esdr_sensors = {};
 var numSensorsPerChunk = 50;
 
